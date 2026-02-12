@@ -81,57 +81,57 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 border-b bg-background">
-        <div className="flex items-center justify-between gap-4 px-4 py-2">
-          <div className="flex items-center gap-4 flex-wrap">
-            <Link
-              href="/admin"
-              className="flex items-center gap-2 font-semibold"
-              data-testid="link-admin-home"
-            >
-              <Shield className="h-4 w-4" />
-              Admin Panel
-            </Link>
-            <nav className="flex items-center gap-1">
-              {navItems.map((item) => {
-                const isActive =
-                  item.url === "/admin"
-                    ? pathname === "/admin"
-                    : pathname.startsWith(item.url)
-                return (
-                  <Link key={item.title} href={item.url}>
-                    <Button
-                      variant={isActive ? "secondary" : "ghost"}
-                      size="sm"
-                      data-testid={`link-nav-${item.title.toLowerCase()}`}
-                    >
-                      <item.icon className="mr-1.5 h-4 w-4" />
-                      {item.title}
-                    </Button>
-                  </Link>
-                )
-              })}
-            </nav>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground" data-testid="text-admin-user">
-              {user.displayName || user.username}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => logoutMutation.mutate()}
-              disabled={logoutMutation.isPending}
-              data-testid="button-logout"
-            >
-              <LogOut className="mr-1.5 h-4 w-4" />
-              Logout
-            </Button>
-          </div>
+    <div className="flex min-h-screen">
+      <aside className="sticky top-0 flex h-screen w-60 flex-col border-r bg-muted/30">
+        <div className="flex items-center gap-2 border-b px-4 py-3">
+          <Shield className="h-5 w-5 text-primary" />
+          <Link
+            href="/admin"
+            className="font-semibold"
+            data-testid="link-admin-home"
+          >
+            Admin Panel
+          </Link>
         </div>
-      </header>
-      <main className="flex-1 p-6">{children}</main>
+
+        <nav className="flex flex-1 flex-col gap-1 p-3">
+          {navItems.map((item) => {
+            const isActive =
+              item.url === "/admin"
+                ? pathname === "/admin"
+                : pathname.startsWith(item.url)
+            return (
+              <Link key={item.title} href={item.url}>
+                <Button
+                  variant={isActive ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  data-testid={`link-nav-${item.title.toLowerCase()}`}
+                >
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {item.title}
+                </Button>
+              </Link>
+            )
+          })}
+        </nav>
+
+        <div className="border-t p-3">
+          <div className="mb-2 px-3 text-sm text-muted-foreground" data-testid="text-admin-user">
+            {user.displayName || user.username}
+          </div>
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
+            data-testid="button-logout"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
+        </div>
+      </aside>
+      <main className="flex-1 overflow-auto p-6">{children}</main>
     </div>
   )
 }

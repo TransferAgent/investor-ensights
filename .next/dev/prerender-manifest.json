@@ -1,1 +1,11 @@
-{"version":4,"routes":{"/locations/atlanta-ga":{},"/locations/boston-ma":{},"/locations/chicago-il":{},"/locations/dallas-tx":{},"/locations/denver-co":{},"/locations/houston-tx":{},"/locations/irvine-ca":{},"/locations/los-angeles-ca":{},"/locations/miami-fl":{},"/locations/new-york-ny":{},"/locations/philadelphia-pa":{},"/locations/phoenix-az":{},"/locations/san-francisco-ca":{},"/locations/seattle-wa":{},"/locations/testcity-3vtw-h-ca":{}},"dynamicRoutes":{"/locations/[slug]":{"dataRoute":null,"dataRouteRegex":null,"fallback":null,"fallbackRevalidate":false,"fallbackSourceRoute":"/locations/[slug]","routeRegex":"^\\/locations\\/([^/]+?)(?:\\/)?$","allowHeader":[]}},"notFoundRoutes":[],"preview":{"previewModeId":"fae1c361dc917a699a0780272126bd2c","previewModeSigningKey":"d57e3a8d0d5c3b17a211d7a0119dc78012b0637f8318d444e820def29940cbef","previewModeEncryptionKey":"c82b7eeca05b40a15aae94490493efeb1acc59abe0bd413fdb9612e4c445a6a9"}}
+{
+  "version": 4,
+  "routes": {},
+  "dynamicRoutes": {},
+  "notFoundRoutes": [],
+  "preview": {
+    "previewModeId": "59fb1d56368b2e3859d2a14cb9e5eedd",
+    "previewModeSigningKey": "eab6c6cfcee3c8def8db4d2b19b3b157442de46b0c60cf03f7b1de556ea9307a",
+    "previewModeEncryptionKey": "29d5f2b009bd82dc19bf7f269ef10639a14aaf27517d7a7426e67d5a8ee30ca5"
+  }
+}

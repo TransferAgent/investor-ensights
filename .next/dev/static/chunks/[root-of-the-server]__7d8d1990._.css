@@ -1492,6 +1492,10 @@ body {
   height: 1px;
 }
 
+.h-screen {
+  height: 100vh;
+}
+
 .h-svh {
   height: 100svh;
 }
@@ -1929,6 +1933,10 @@ body {
   align-items: stretch;
 }
 
+.justify-start {
+  justify-content: flex-start;
+}
+
 .justify-end {
   justify-content: flex-end;
 }
@@ -2225,6 +2233,10 @@ body {
 .bg-muted {
   --tw-bg-opacity: 1;
   background-color: hsl(var(--muted) / var(--tw-bg-opacity, 1));
+}
+
+.bg-muted\/30 {
+  background-color: hsl(var(--muted) / .3);
 }
 
 .bg-muted\/50 {
