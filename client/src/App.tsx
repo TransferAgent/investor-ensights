@@ -31,6 +31,7 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/locations/:slug" component={CityPage} />
       <Route path="/admin/login" component={AdminLoginPage} />
+      <Route path="/admin" component={AdminRoutes} />
       <Route path="/admin/:rest*" component={AdminRoutes} />
       <Route component={NotFound} />
     </Switch>
