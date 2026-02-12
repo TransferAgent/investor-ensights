@@ -221,6 +221,8 @@ Button.displayName = "Button";
 "use strict";
 
 __turbopack_context__.s([
+    "adminAuditLog",
+    ()=>adminAuditLog,
     "adminUsers",
     ()=>adminUsers,
     "cityContentAssignments",
@@ -229,6 +231,8 @@ __turbopack_context__.s([
     ()=>cityLocations,
     "contentTemplates",
     ()=>contentTemplates,
+    "insertAdminAuditLogSchema",
+    ()=>insertAdminAuditLogSchema,
     "insertAdminUserSchema",
     ()=>insertAdminUserSchema,
     "insertCityContentAssignmentSchema",
@@ -396,6 +400,31 @@ const adminUsers = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modu
         withTimezone: true
     }).defaultNow().notNull()
 });
+const adminAuditLog = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$table$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["pgTable"])("admin_audit_log", {
+    id: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$uuid$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["uuid"])("id").primaryKey().defaultRandom(),
+    adminId: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$uuid$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["uuid"])("admin_id").references(()=>adminUsers.id, {
+        onDelete: "set null"
+    }),
+    adminUsername: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$varchar$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["varchar"])("admin_username", {
+        length: 100
+    }).notNull(),
+    action: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$varchar$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["varchar"])("action", {
+        length: 50
+    }).notNull(),
+    entityType: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$varchar$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["varchar"])("entity_type", {
+        length: 50
+    }).notNull(),
+    entityId: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$varchar$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["varchar"])("entity_id", {
+        length: 255
+    }),
+    details: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$jsonb$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsonb"])("details"),
+    ipAddress: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$varchar$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["varchar"])("ip_address", {
+        length: 45
+    }),
+    createdAt: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$timestamp$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["timestamp"])("created_at", {
+        withTimezone: true
+    }).defaultNow().notNull()
+});
 const insertCityLocationSchema = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$zod$2f$index$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["createInsertSchema"])(cityLocations).omit({
     id: true,
     createdAt: true,
@@ -417,6 +446,10 @@ const insertAdminUserSchema = (0, __TURBOPACK__imported__module__$5b$project$5d2
 const loginSchema = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$zod$2f$lib$2f$index$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["z"].object({
     username: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$zod$2f$lib$2f$index$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["z"].string().min(1),
     password: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$zod$2f$lib$2f$index$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["z"].string().min(1)
+});
+const insertAdminAuditLogSchema = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$zod$2f$index$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["createInsertSchema"])(adminAuditLog).omit({
+    id: true,
+    createdAt: true
 });
 }),
 "[project]/lib/db.ts [app-rsc] (ecmascript)", ((__turbopack_context__) => {
@@ -576,6 +609,13 @@ class DatabaseStorage {
             activeTemplates: Number(templatesResult.count),
             assignedCities: Number(assignedResult.count)
         };
+    }
+    async createAuditLog(log) {
+        const [created] = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["db"].insert(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["adminAuditLog"]).values(log).returning();
+        return created;
+    }
+    async getAuditLogs(limit = 50) {
+        return __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["db"].select().from(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["adminAuditLog"]).orderBy((0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$sql$2f$expressions$2f$select$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["desc"])(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["adminAuditLog"].createdAt)).limit(limit);
     }
 }
 const storage = new DatabaseStorage();

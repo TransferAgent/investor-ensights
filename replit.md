@@ -61,11 +61,23 @@ All under `app/api/`:
 2. **content_templates** — Reusable content templates with placeholder patterns
 3. **city_content_assignments** — Join table linking cities to templates
 4. **admin_users** — Admin accounts with scrypt-hashed passwords
+5. **admin_audit_log** — Tracks all admin actions (login, create, update, delete) with username, action, entity type/id, and timestamp
+
+### Security Features
+- **Password hashing**: scrypt with random salt (Node.js built-in)
+- **JWT cookies**: httpOnly, secure (in production), sameSite: lax, 24h expiry
+- **Rate limiting**: Login attempts limited to 5 per 15-minute window per IP (`lib/rate-limit.ts`)
+- **Input sanitization**: XSS prevention via HTML entity encoding (`lib/sanitize.ts`)
+- **SQL injection protection**: Drizzle ORM uses parameterized queries
+- **Audit logging**: All admin mutations logged to admin_audit_log table (`lib/audit.ts`)
 
 ### Key Files
 - `lib/storage.ts` — DatabaseStorage class implementing IStorage interface
 - `lib/db.ts` — Drizzle database connection
 - `lib/auth.ts` — JWT auth helpers
+- `lib/audit.ts` — Admin audit logging helper
+- `lib/rate-limit.ts` — In-memory rate limiting for login
+- `lib/sanitize.ts` — Input sanitization for XSS prevention
 - `lib/seed.ts` — Database seeding (cities + templates + admin user)
 - `lib/placeholder-replacer.ts` — Template placeholder substitution
 - `lib/queryClient.ts` — React Query client + apiRequest helper

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/lib/storage";
 import { verifySession } from "@/lib/auth";
+import { logAuditEvent } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
   const session = await verifySession();
@@ -23,6 +24,8 @@ export async function POST(request: NextRequest) {
   } else {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
+
+  await logAuditEvent({ username: session.username, action: action, entityType: "city", details: { cityIds, templateId } });
 
   return NextResponse.json({ success: true });
 }

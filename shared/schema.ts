@@ -100,6 +100,18 @@ export const adminUsers = pgTable("admin_users", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const adminAuditLog = pgTable("admin_audit_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  adminId: uuid("admin_id").references(() => adminUsers.id, { onDelete: "set null" }),
+  adminUsername: varchar("admin_username", { length: 100 }).notNull(),
+  action: varchar("action", { length: 50 }).notNull(),
+  entityType: varchar("entity_type", { length: 50 }).notNull(),
+  entityId: varchar("entity_id", { length: 255 }),
+  details: jsonb("details"),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const insertCityLocationSchema = createInsertSchema(cityLocations).omit({
   id: true,
   createdAt: true,
@@ -135,3 +147,7 @@ export type CityContentAssignment = typeof cityContentAssignments.$inferSelect;
 export type InsertCityContentAssignment = z.infer<typeof insertCityContentAssignmentSchema>;
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
+
+export const insertAdminAuditLogSchema = createInsertSchema(adminAuditLog).omit({ id: true, createdAt: true });
+export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
+export type InsertAdminAuditLog = z.infer<typeof insertAdminAuditLogSchema>;

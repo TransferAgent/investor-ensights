@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/lib/storage";
 import { verifySession } from "@/lib/auth";
+import { logAuditEvent } from "@/lib/audit";
 
 export async function PATCH(
   request: NextRequest,
@@ -18,6 +19,7 @@ export async function PATCH(
     if (!template) {
       return NextResponse.json({ error: "Template not found" }, { status: 404 });
     }
+    await logAuditEvent({ username: session.username, action: "update", entityType: "template", entityId: id, details: body });
     return NextResponse.json(template);
   } catch (e: any) {
     return NextResponse.json({ error: e.message || "Failed to update template" }, { status: 400 });

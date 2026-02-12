@@ -3,6 +3,7 @@ import {
   contentTemplates,
   cityContentAssignments,
   adminUsers,
+  adminAuditLog,
   type CityLocation,
   type InsertCityLocation,
   type ContentTemplate,
@@ -11,6 +12,8 @@ import {
   type InsertCityContentAssignment,
   type AdminUser,
   type InsertAdminUser,
+  type AdminAuditLog,
+  type InsertAdminAuditLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, inArray, sql, desc, asc } from "drizzle-orm";
@@ -37,6 +40,9 @@ export interface IStorage {
   getAdminById(id: string): Promise<AdminUser | undefined>;
   createAdmin(admin: InsertAdminUser): Promise<AdminUser>;
   adminExists(): Promise<boolean>;
+
+  createAuditLog(log: InsertAdminAuditLog): Promise<AdminAuditLog>;
+  getAuditLogs(limit?: number): Promise<AdminAuditLog[]>;
 
   getStats(): Promise<{
     totalCities: number;
@@ -248,6 +254,15 @@ export class DatabaseStorage implements IStorage {
       activeTemplates: Number(templatesResult.count),
       assignedCities: Number(assignedResult.count),
     };
+  }
+
+  async createAuditLog(log: InsertAdminAuditLog): Promise<AdminAuditLog> {
+    const [created] = await db.insert(adminAuditLog).values(log).returning();
+    return created;
+  }
+
+  async getAuditLogs(limit = 50): Promise<AdminAuditLog[]> {
+    return db.select().from(adminAuditLog).orderBy(desc(adminAuditLog.createdAt)).limit(limit);
   }
 }
 

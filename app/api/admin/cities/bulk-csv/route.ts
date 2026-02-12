@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/lib/storage";
 import { verifySession } from "@/lib/auth";
+import { logAuditEvent } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
   const session = await verifySession();
@@ -71,6 +72,8 @@ export async function POST(request: NextRequest) {
         results.skipped++;
       }
     }
+
+    await logAuditEvent({ username: session.username, action: "bulk_csv_import", entityType: "city", details: { created: results.created, skipped: results.skipped } });
 
     return NextResponse.json(results);
   } catch (e: any) {

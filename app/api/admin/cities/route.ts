@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/lib/storage";
 import { verifySession } from "@/lib/auth";
+import { logAuditEvent } from "@/lib/audit";
 
 export async function GET() {
   const session = await verifySession();
@@ -51,6 +52,8 @@ export async function POST(request: NextRequest) {
       isPublished: isPublished ?? false,
       displayOrder: displayOrder ?? 0,
     });
+
+    await logAuditEvent({ username: session.username, action: "create", entityType: "city", entityId: city.id, details: { cityName: city.cityName, stateCode: city.stateCode } });
 
     return NextResponse.json(city, { status: 201 });
   } catch (e: any) {

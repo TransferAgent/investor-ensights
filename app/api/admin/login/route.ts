@@ -3,9 +3,20 @@ import { storage } from "@/lib/storage";
 import { createSession } from "@/lib/auth";
 import { loginSchema } from "@shared/schema";
 import { scryptSync, timingSafeEqual } from "crypto";
+import { logAuditEvent } from "@/lib/audit";
+import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
+    const { allowed, retryAfterMs } = checkRateLimit(ip);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) } }
+      );
+    }
+
     const body = await request.json();
     const { username, password } = loginSchema.parse(body);
 
@@ -23,6 +34,8 @@ export async function POST(request: NextRequest) {
     }
 
     await createSession(admin.id as unknown as number, admin.username);
+    await logAuditEvent({ username, action: "login", entityType: "session" });
+    resetRateLimit(ip);
 
     return NextResponse.json({
       success: true,
