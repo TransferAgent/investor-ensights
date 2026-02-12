@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   MapPin,
   FileText,
+  Layers,
   LogOut,
   Shield,
   ExternalLink,
@@ -20,6 +21,7 @@ const navItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Cities", url: "/admin/cities", icon: MapPin },
   { title: "Templates", url: "/admin/templates", icon: FileText },
+  { title: "Pages", url: "/admin/pages", icon: Layers },
 ]
 
 interface AdminUser {

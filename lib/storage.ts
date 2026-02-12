@@ -4,6 +4,8 @@ import {
   cityContentAssignments,
   adminUsers,
   adminAuditLog,
+  customPages,
+  pageSlides,
   type CityLocation,
   type InsertCityLocation,
   type ContentTemplate,
@@ -14,9 +16,13 @@ import {
   type InsertAdminUser,
   type AdminAuditLog,
   type InsertAdminAuditLog,
+  type CustomPage,
+  type InsertCustomPage,
+  type PageSlide,
+  type InsertPageSlide,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, inArray, sql, desc, asc } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, asc, gt, lt } from "drizzle-orm";
 
 export interface IStorage {
   getCities(onlyPublished?: boolean): Promise<CityLocation[]>;
@@ -44,11 +50,27 @@ export interface IStorage {
   createAuditLog(log: InsertAdminAuditLog): Promise<AdminAuditLog>;
   getAuditLogs(limit?: number): Promise<AdminAuditLog[]>;
 
+  getPages(onlyPublished?: boolean): Promise<CustomPage[]>;
+  getPageBySlug(slug: string): Promise<CustomPage | undefined>;
+  getPageById(id: string): Promise<CustomPage | undefined>;
+  createPage(page: InsertCustomPage): Promise<CustomPage>;
+  updatePage(id: string, data: Partial<InsertCustomPage>): Promise<CustomPage | undefined>;
+  deletePage(id: string): Promise<void>;
+
+  getSlidesByPageId(pageId: string): Promise<PageSlide[]>;
+  getSlideById(id: string): Promise<PageSlide | undefined>;
+  createSlide(slide: InsertPageSlide): Promise<PageSlide>;
+  updateSlide(id: string, data: Partial<InsertPageSlide>): Promise<PageSlide | undefined>;
+  deleteSlide(id: string): Promise<void>;
+  reorderSlides(pageId: string, slideId: string, direction: "up" | "down"): Promise<void>;
+
   getStats(): Promise<{
     totalCities: number;
     publishedCities: number;
     activeTemplates: number;
     assignedCities: number;
+    totalPages: number;
+    publishedPages: number;
   }>;
 }
 
@@ -248,11 +270,21 @@ export class DatabaseStorage implements IStorage {
       .select({ count: sql<number>`count(*)` })
       .from(cityContentAssignments);
 
+    const [pagesResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(customPages);
+    const [publishedPagesResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(customPages)
+      .where(eq(customPages.isPublished, true));
+
     return {
       totalCities: Number(totalResult.count),
       publishedCities: Number(publishedResult.count),
       activeTemplates: Number(templatesResult.count),
       assignedCities: Number(assignedResult.count),
+      totalPages: Number(pagesResult.count),
+      publishedPages: Number(publishedPagesResult.count),
     };
   }
 
@@ -263,6 +295,72 @@ export class DatabaseStorage implements IStorage {
 
   async getAuditLogs(limit = 50): Promise<AdminAuditLog[]> {
     return db.select().from(adminAuditLog).orderBy(desc(adminAuditLog.createdAt)).limit(limit);
+  }
+
+  async getPages(onlyPublished = false): Promise<CustomPage[]> {
+    if (onlyPublished) {
+      return db.select().from(customPages).where(eq(customPages.isPublished, true)).orderBy(asc(customPages.displayOrder));
+    }
+    return db.select().from(customPages).orderBy(asc(customPages.displayOrder));
+  }
+
+  async getPageBySlug(slug: string): Promise<CustomPage | undefined> {
+    const [page] = await db.select().from(customPages).where(eq(customPages.slug, slug)).limit(1);
+    return page;
+  }
+
+  async getPageById(id: string): Promise<CustomPage | undefined> {
+    const [page] = await db.select().from(customPages).where(eq(customPages.id, id)).limit(1);
+    return page;
+  }
+
+  async createPage(page: InsertCustomPage): Promise<CustomPage> {
+    const [created] = await db.insert(customPages).values(page).returning();
+    return created;
+  }
+
+  async updatePage(id: string, data: Partial<InsertCustomPage>): Promise<CustomPage | undefined> {
+    const [updated] = await db.update(customPages).set({ ...data, updatedAt: new Date() }).where(eq(customPages.id, id)).returning();
+    return updated;
+  }
+
+  async deletePage(id: string): Promise<void> {
+    await db.delete(customPages).where(eq(customPages.id, id));
+  }
+
+  async getSlidesByPageId(pageId: string): Promise<PageSlide[]> {
+    return db.select().from(pageSlides).where(eq(pageSlides.pageId, pageId)).orderBy(asc(pageSlides.slideOrder));
+  }
+
+  async getSlideById(id: string): Promise<PageSlide | undefined> {
+    const [slide] = await db.select().from(pageSlides).where(eq(pageSlides.id, id)).limit(1);
+    return slide;
+  }
+
+  async createSlide(slide: InsertPageSlide): Promise<PageSlide> {
+    const [created] = await db.insert(pageSlides).values(slide).returning();
+    return created;
+  }
+
+  async updateSlide(id: string, data: Partial<InsertPageSlide>): Promise<PageSlide | undefined> {
+    const [updated] = await db.update(pageSlides).set({ ...data, updatedAt: new Date() }).where(eq(pageSlides.id, id)).returning();
+    return updated;
+  }
+
+  async deleteSlide(id: string): Promise<void> {
+    await db.delete(pageSlides).where(eq(pageSlides.id, id));
+  }
+
+  async reorderSlides(pageId: string, slideId: string, direction: "up" | "down"): Promise<void> {
+    const slides = await this.getSlidesByPageId(pageId);
+    const idx = slides.findIndex((s) => s.id === slideId);
+    if (idx === -1) return;
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= slides.length) return;
+    const currentOrder = slides[idx].slideOrder;
+    const swapOrder = slides[swapIdx].slideOrder;
+    await db.update(pageSlides).set({ slideOrder: swapOrder, updatedAt: new Date() }).where(eq(pageSlides.id, slides[idx].id));
+    await db.update(pageSlides).set({ slideOrder: currentOrder, updatedAt: new Date() }).where(eq(pageSlides.id, slides[swapIdx].id));
   }
 }
 

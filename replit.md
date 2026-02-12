@@ -22,11 +22,14 @@ Preferred communication style: Simple, everyday language.
 - `app/page.tsx` — Public homepage (SSR Server Component), lists published cities
 - `app/city-grid.tsx` — Client component for search/filter city grid
 - `app/locations/[slug]/page.tsx` — City landing page (SSR with generateStaticParams + generateMetadata)
+- `app/[slug]/page.tsx` — Custom page (SSR, Page Builder pages with generateMetadata + generateStaticParams)
 - `app/admin/login/page.tsx` — Admin login (Client Component)
 - `app/admin/page.tsx` — Admin dashboard with stats (Client Component)
 - `app/admin/cities/page.tsx` — City management CRUD + bulk ops (Client Component)
 - `app/admin/templates/page.tsx` — Template management CRUD (Client Component)
-- `app/sitemap.ts` — Dynamic sitemap
+- `app/admin/pages/page.tsx` — Page Builder list view (Client Component)
+- `app/admin/pages/[id]/edit/page.tsx` — Page Builder editor with slide management (Client Component)
+- `app/sitemap.ts` — Dynamic sitemap (includes cities + custom pages)
 - `app/robots.ts` — Dynamic robots.txt
 
 ### API Routes (App Router)
@@ -40,6 +43,11 @@ All under `app/api/`:
 - `admin/bulk-update/route.ts` — POST publish/unpublish/assign template
 - `admin/templates/route.ts` — GET/POST templates
 - `admin/templates/[id]/route.ts` — PATCH template
+- `admin/pages/route.ts` — GET/POST custom pages
+- `admin/pages/[id]/route.ts` — GET/PATCH/DELETE custom page
+- `admin/pages/[id]/slides/route.ts` — GET/POST slides for a page
+- `admin/pages/[id]/slides/[slideId]/route.ts` — PATCH/DELETE slide
+- `admin/pages/[id]/slides/reorder/route.ts` — POST reorder slides
 - `admin/stats/route.ts` — GET dashboard stats
 - `locations/route.ts` — GET public published cities
 - `locations/[slug]/route.ts` — GET public city detail
@@ -62,6 +70,8 @@ All under `app/api/`:
 3. **city_content_assignments** — Join table linking cities to templates
 4. **admin_users** — Admin accounts with scrypt-hashed passwords
 5. **admin_audit_log** — Tracks all admin actions (login, create, update, delete) with username, action, entity type/id, and timestamp
+6. **custom_pages** — Page Builder pages with slug, title, SEO metadata, publish status
+7. **page_slides** — Individual content blocks (slides) for custom pages with JSON content, type, order, and styling options
 
 ### Security Features
 - **Password hashing**: scrypt with random salt (Node.js built-in)
@@ -81,6 +91,8 @@ All under `app/api/`:
 - `lib/seed.ts` — Database seeding (cities + templates + admin user)
 - `lib/placeholder-replacer.ts` — Template placeholder substitution
 - `lib/queryClient.ts` — React Query client + apiRequest helper
+- `components/slides/slide-renderer.tsx` — Main slide renderer dispatcher
+- `components/slides/` — 7 slide type components (hero, features, pricing, text, image_text, cta, html)
 - `components/theme-provider.tsx` — next-themes wrapper
 - `components/query-provider.tsx` — React Query provider wrapper
 - `components/ui/` — shadcn/ui components

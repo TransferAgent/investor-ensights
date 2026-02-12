@@ -4,7 +4,10 @@ import { storage } from "@/lib/storage"
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://yourcompany.com"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const cities = await storage.getCities(true)
+  const [cities, pages] = await Promise.all([
+    storage.getCities(true),
+    storage.getPages(),
+  ])
 
   const cityEntries: MetadataRoute.Sitemap = cities.map((city) => ({
     url: `${BASE_URL}/locations/${city.slug}`,
@@ -12,6 +15,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: "weekly" as const,
     priority: 0.8,
   }))
+
+  const pageEntries: MetadataRoute.Sitemap = pages
+    .filter((p) => p.isPublished)
+    .map((page) => ({
+      url: `${BASE_URL}/${page.slug}`,
+      lastModified: page.updatedAt,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }))
 
   return [
     {
@@ -21,5 +33,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1,
     },
     ...cityEntries,
+    ...pageEntries,
   ]
 }

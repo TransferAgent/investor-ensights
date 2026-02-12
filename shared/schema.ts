@@ -148,6 +148,137 @@ export type InsertCityContentAssignment = z.infer<typeof insertCityContentAssign
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
 
+export const customPages = pgTable(
+  "custom_pages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: varchar("slug", { length: 255 }).notNull().unique(),
+    pageTitle: varchar("page_title", { length: 100 }).notNull(),
+    metaTitle: varchar("meta_title", { length: 120 }),
+    metaDescription: varchar("meta_description", { length: 300 }),
+    ogImageUrl: varchar("og_image_url", { length: 500 }),
+    isPublished: boolean("is_published").default(false).notNull(),
+    displayOrder: integer("display_order").default(0).notNull(),
+    createdBy: varchar("created_by", { length: 100 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("custom_pages_slug_idx").on(table.slug),
+    index("custom_pages_published_idx").on(table.isPublished),
+  ]
+);
+
+export const pageSlides = pgTable(
+  "page_slides",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pageId: uuid("page_id").notNull().references(() => customPages.id, { onDelete: "cascade" }),
+    slideType: varchar("slide_type", { length: 50 }).notNull(),
+    slideOrder: integer("slide_order").notNull(),
+    contentJson: jsonb("content_json").notNull(),
+    contentHtml: text("content_html"),
+    backgroundColor: varchar("background_color", { length: 50 }),
+    paddingClass: varchar("padding_class", { length: 50 }),
+    containerWidth: varchar("container_width", { length: 50 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("page_slides_page_order_idx").on(table.pageId, table.slideOrder),
+  ]
+);
+
+export const HeroSlideSchema = z.object({
+  type: z.literal("hero"),
+  headline: z.string().min(1).max(200),
+  subheadline: z.string().max(300).optional(),
+  cta_text: z.string().max(50).optional(),
+  cta_url: z.string().max(500).optional(),
+  background_image: z.string().max(500).optional(),
+});
+
+export const FeaturesSlideSchema = z.object({
+  type: z.literal("features"),
+  layout: z.enum(["3-column", "4-column"]).optional().default("3-column"),
+  headline: z.string().max(200).optional(),
+  features: z.array(z.object({
+    icon: z.string().optional(),
+    title: z.string().max(100),
+    description: z.string().max(300),
+  })).min(1).max(12),
+});
+
+export const PricingSlideSchema = z.object({
+  type: z.literal("pricing"),
+  headline: z.string().max(200).optional(),
+  tiers: z.array(z.object({
+    name: z.string(),
+    price: z.string(),
+    popular: z.boolean().optional(),
+    features: z.array(z.string()),
+    cta_text: z.string(),
+    cta_url: z.string().max(500),
+  })).min(1).max(5),
+});
+
+export const TextSlideSchema = z.object({
+  type: z.literal("text"),
+  headline: z.string().max(200).optional(),
+  body: z.string(),
+});
+
+export const ImageTextSlideSchema = z.object({
+  type: z.literal("image_text"),
+  layout: z.enum(["image-left", "image-right"]).optional().default("image-left"),
+  headline: z.string().max(200).optional(),
+  body: z.string(),
+  image_url: z.string().max(500),
+  image_alt: z.string().max(200).optional(),
+});
+
+export const CTASlideSchema = z.object({
+  type: z.literal("cta"),
+  headline: z.string().max(200),
+  subheadline: z.string().max(300).optional(),
+  cta_text: z.string().max(50),
+  cta_url: z.string().max(500),
+});
+
+export const HTMLSlideSchema = z.object({
+  type: z.literal("html"),
+  html: z.string(),
+});
+
+export const SlideContentSchema = z.discriminatedUnion("type", [
+  HeroSlideSchema,
+  FeaturesSlideSchema,
+  PricingSlideSchema,
+  TextSlideSchema,
+  ImageTextSlideSchema,
+  CTASlideSchema,
+  HTMLSlideSchema,
+]);
+
+export type SlideContent = z.infer<typeof SlideContentSchema>;
+
+export const insertCustomPageSchema = createInsertSchema(customPages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPageSlideSchema = createInsertSchema(pageSlides).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type CustomPage = typeof customPages.$inferSelect;
+export type InsertCustomPage = z.infer<typeof insertCustomPageSchema>;
+export type PageSlide = typeof pageSlides.$inferSelect;
+export type InsertPageSlide = z.infer<typeof insertPageSlideSchema>;
+
 export const insertAdminAuditLogSchema = createInsertSchema(adminAuditLog).omit({ id: true, createdAt: true });
 export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
 export type InsertAdminAuditLog = z.infer<typeof insertAdminAuditLogSchema>;
