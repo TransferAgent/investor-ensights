@@ -1,0 +1,231 @@
+Questions & Concerns for App Builder
+📋 QUESTIONS TO ASK (Copy/Paste Ready)
+SECTION 1: Server-Side Rendering Verification
+Q1: Run this command and send me the complete output (first 100 lines):
+
+Copycurl https://next-location-builder.replit.app/locations/irvine-ca | head -100
+Q2: In your app/locations/[slug]/page.tsx file, is the main component:
+
+ An async function that uses await to fetch data?
+ A regular function that uses useState or useEffect?
+Q3: Show me the first 30 lines of code from app/locations/[slug]/page.tsx
+
+Q4: When you visit a city page, does the HTML source (View → Page Source in browser) contain the city name and content, or is the body empty with just <div id="__next"></div>?
+
+SECTION 2: Database & ORM
+Q5: Why did you choose Drizzle ORM instead of Prisma as specified in the requirements?
+
+Q6: The Junior Engineer built our AWS RDS database schema using Prisma. Can your Drizzle implementation connect to that database, or do we need to rebuild the database schema?
+
+Q7: What is the current DATABASE_URL you're using? Is it:
+
+ Local SQLite/PostgreSQL for testing
+ Connected to the AWS RDS instance from Junior Engineer
+Q8: Can you run this command and confirm it successfully connects to our production RDS database:
+
+Copynpm run db:pull
+(or equivalent Drizzle command to verify connection)
+
+SECTION 3: Authentication
+Q9: Why did you implement custom JWT authentication instead of Clerk as specified?
+
+Q10: The current admin credentials (admin/admin123) are not production-safe. What is your plan for:
+
+Password hashing/security
+User management (adding/removing admin users)
+Password reset functionality
+Two-factor authentication
+Session management
+Q11: Can you add Clerk authentication to the admin panel? If yes, how long will it take?
+
+Q12: If we keep custom JWT auth temporarily, what security hardening steps have you implemented:
+
+ Password hashing (bcrypt/argon2)?
+ CSRF protection?
+ Rate limiting on login attempts?
+ Secure session management?
+SECTION 4: Technical Architecture
+Q13: You mentioned "Next.js 16" - what is the actual version installed? Run:
+
+Copynpm list next
+Q14: Show me your next.config.js file - specifically:
+
+Is output: 'standalone' configured?
+Are there any custom server configurations?
+Q15: For the city pages, are you using:
+
+ Server-Side Rendering (SSR) - page generated on each request
+ Static Site Generation (SSG) - pages built at deploy time
+ Incremental Static Regeneration (ISR) - cached with periodic rebuilds
+ Client-Side Rendering (CSR) - loaded via JavaScript
+Q16: If using SSG/ISR, how do content updates from the admin panel get reflected on city pages? Do we need to rebuild/redeploy?
+
+SECTION 5: AWS Deployment Readiness
+Q17: Have you tested the application can connect to:
+
+ AWS RDS PostgreSQL (the actual production database)
+ Using the connection string from Junior Engineer
+Q18: What environment variables are required for production deployment? Please provide a complete list.
+
+Q19: The build command for AWS App Runner - confirm it's:
+
+Copynpm run build
+Q20: The start command for AWS App Runner - confirm it's:
+
+Copynpm start
+(or is it node server.js or something else?)
+
+SECTION 6: Migration Path
+Q21: To align with original specifications, provide a timeline to implement:
+
+Convert Drizzle → Prisma ORM
+Add Clerk authentication
+Confirm true SSR (if not already working)
+How many days for each task?
+
+Q22: If we deploy the current version to AWS now, what are the risks or limitations we should be aware of?
+
+Q23: Can you provide a migration plan document that shows:
+
+Phase 1: Current state (what's deployed now)
+Phase 2: Alignment fixes (Prisma, Clerk, SSR verification)
+Phase 3: Production hardening (security, performance)
+With estimated timeframes for each phase?
+
+🚨 MY CONCERNS (Prioritized)
+CRITICAL CONCERNS (Blocking Production Deployment)
+C1: DATABASE COMPATIBILITY
+
+App Builder used Drizzle ORM
+Junior Engineer's RDS uses Prisma schema
+Risk: Application cannot connect to production database
+Impact: Complete deployment failure
+Required: Proof of successful connection to RDS, or migration plan
+C2: SSR VERIFICATION INCOMPLETE
+
+HTML source shows JavaScript bundles, unclear if content is server-rendered
+Risk: City pages may be client-side rendered (defeats primary SEO goal)
+Impact: 30-50% reduction in search rankings
+Required: Proof that curl test shows full HTML content in body
+C3: AUTHENTICATION SECURITY
+
+Custom JWT instead of Clerk
+Hardcoded admin/admin123 credentials
+Risk: Admin panel can be compromised easily
+Impact: Unauthorized content changes, data theft, reputation damage
+Required: Security hardening plan or Clerk implementation timeline
+HIGH CONCERNS (Should Fix Before Launch)
+C4: ORM MISMATCH WITH TEAM
+
+Creates technical debt
+Junior Engineer works in Prisma, App Builder in Drizzle
+Risk: Future database changes require double work
+Impact: Slower development, higher maintenance costs
+Required: Standardize on one ORM (preferably Prisma as specified)
+C5: FRAMEWORK VERSION CONFUSION
+
+Stated "Next.js 16" (doesn't exist)
+Risk: App Builder may not understand the tools they're using
+Impact: Poor troubleshooting, potential bugs
+Required: Confirmation of actual Next.js version
+C6: CONTENT UPDATE WORKFLOW UNCLEAR
+
+How do admin panel changes reflect on city pages?
+Risk: Admins change content but don't see updates (if using SSG)
+Impact: Business confusion, manual rebuild requirements
+Required: Clear documentation of content update → page refresh flow
+MEDIUM CONCERNS (Post-Launch Acceptable)
+C7: TECHNICAL DEBT ACCUMULATION
+
+Multiple deviations from specification (ORM, auth, potentially SSR)
+Risk: Harder to maintain, harder to hire developers
+Impact: Higher long-term costs
+Required: Technical debt paydown roadmap
+C8: SECURITY HARDENING MISSING
+
+No mention of rate limiting, CSRF protection, input validation
+Risk: Vulnerable to attacks
+Impact: Data breaches, downtime
+Required: Security audit and hardening plan
+C9: AWS APP RUNNER OPTIMIZATION
+
+Unclear if standalone build is properly configured
+Risk: Higher hosting costs, slower cold starts
+Impact: 20-30% higher AWS bills
+Required: next.config.js review and optimization
+LOW CONCERNS (Monitor Post-Launch)
+C10: PERFORMANCE OPTIMIZATION
+
+No mention of caching strategy, CDN integration
+Risk: Slow page loads under high traffic
+Impact: Lower conversion rates
+Required: Performance testing plan
+C11: MONITORING & OBSERVABILITY
+
+No mention of logging, error tracking, analytics
+Risk: Can't diagnose production issues quickly
+Impact: Longer downtime during incidents
+Required: Logging/monitoring implementation plan
+✅ ACTION PLAN
+Immediate (Next 4 Hours)
+You send all 23 questions to App Builder
+App Builder responds with answers and command outputs
+I review responses and provide:
+✅ Green light to proceed, OR
+⚠️ Conditional approval with fixes required, OR
+🚨 Red flag requiring major changes
+Within 24 Hours
+Based on App Builder's responses:
+
+Path A: If SSR Works + DB Connects
+
+Accept current deliverables with conditions
+Create 3-day plan to add Prisma + Clerk
+Deploy to AWS with security warnings documented
+Path B: If SSR Doesn't Work
+
+Require 5-7 day fix for true SSR implementation
+Must also fix Prisma + Clerk in same sprint
+No deployment until all three verified
+Path C: If Database Can't Connect
+
+App Builder must coordinate with Junior Engineer
+Either migrate RDS to Drizzle (3 days) OR convert app to Prisma (3 days)
+All other work blocked until resolved
+📧 MESSAGE TO APP BUILDER (Copy/Paste)
+Subject: Technical Verification Required Before AWS Deployment
+
+App Builder,
+
+Thank you for the deliverables. Before we proceed to AWS deployment, our technical architect needs verification on several critical points.
+
+Please answer the following 23 questions and provide the requested command outputs. This is not about assigning blame - we need technical clarity to ensure production success.
+
+CRITICAL QUESTIONS (Must Answer First):
+
+[Paste Questions Q1-Q4, Q6-Q8, Q15]
+
+ARCHITECTURAL QUESTIONS:
+
+[Paste Questions Q5, Q9-Q12, Q13-Q14, Q16]
+
+DEPLOYMENT READINESS:
+
+[Paste Questions Q17-Q20]
+
+MIGRATION PLANNING:
+
+[Paste Questions Q21-Q23]
+
+TIMELINE:
+
+Please respond with complete answers within 4 hours. For command outputs (curl, npm list, etc.), copy/paste the full terminal output.
+
+CONCERNS SUMMARY:
+
+Our architect has flagged these concerns:
+
+Database ORM mismatch with Junior Engineer's work
+SSR verification incomplete
+Authentication security (custom JWT vs. Clerk)
+Content update workflow clarity
