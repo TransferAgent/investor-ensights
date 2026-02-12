@@ -1256,6 +1256,10 @@ body {
   margin-top: auto;
 }
 
+.mt-10 {
+  margin-top: 2.5rem;
+}
+
 .block {
   display: block;
 }
@@ -2543,6 +2547,10 @@ body {
 
 .text-sidebar-foreground\/70 {
   color: hsl(var(--sidebar-foreground) / .7);
+}
+
+.text-muted-foreground\/60 {
+  color: hsl(var(--muted-foreground) / .6);
 }
 
 .antialiased {

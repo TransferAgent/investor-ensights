@@ -13,6 +13,7 @@ import {
   FileText,
   LogOut,
   Shield,
+  ExternalLink,
 } from "lucide-react"
 
 const navItems = [
@@ -116,6 +117,16 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="border-t p-3">
+          <Link href="/" target="_blank">
+            <Button
+              variant="ghost"
+              className="w-full justify-start mb-1"
+              data-testid="link-view-site"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              View All Locations
+            </Button>
+          </Link>
           <div className="mb-2 px-3 text-sm text-muted-foreground" data-testid="text-admin-user">
             {user.displayName || user.username}
           </div>

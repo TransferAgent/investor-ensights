@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import { Building2, Globe, Phone } from "lucide-react"
+import { Building2, Globe, Phone, Lock } from "lucide-react"
 import { storage } from "@/lib/storage"
 import CityGrid from "./city-grid"
 
@@ -51,6 +52,22 @@ export default async function HomePage() {
       </section>
 
       <CityGrid cities={cities} />
+
+      <footer className="border-t">
+        <div className="mx-auto max-w-6xl px-4 py-6 flex items-center justify-between flex-wrap gap-2">
+          <p className="text-sm text-muted-foreground">
+            &copy; {new Date().getFullYear()} YourCompany. All rights reserved.
+          </p>
+          <Link
+            href="/admin/login"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            data-testid="link-admin-login"
+          >
+            <Lock className="h-3 w-3" />
+            Admin
+          </Link>
+        </div>
+      </footer>
     </div>
   )
 }

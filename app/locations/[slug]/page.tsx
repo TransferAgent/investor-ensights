@@ -12,6 +12,7 @@ import {
   Navigation,
   Building2,
   ArrowRight,
+  Lock,
 } from "lucide-react"
 import { storage } from "@/lib/storage"
 import {
@@ -302,6 +303,22 @@ export default async function CityPage({
           </Button>
         </section>
       </div>
+
+      <footer className="border-t mt-10">
+        <div className="mx-auto max-w-4xl px-4 py-6 flex items-center justify-between flex-wrap gap-2">
+          <p className="text-sm text-muted-foreground">
+            &copy; {new Date().getFullYear()} YourCompany. All rights reserved.
+          </p>
+          <Link
+            href="/admin/login"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            data-testid="link-admin-login"
+          >
+            <Lock className="h-3 w-3" />
+            Admin
+          </Link>
+        </div>
+      </footer>
 
       <script
         type="application/ld+json"
