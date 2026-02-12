@@ -10,71 +10,83 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend
-- **Framework**: React 18 with TypeScript
-- **Routing**: Wouter (lightweight client-side router)
-- **State/Data Fetching**: TanStack React Query for server state management
-- **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives
-- **Styling**: Tailwind CSS with CSS variables for theming (light/dark mode support)
-- **Build Tool**: Vite with HMR in development
-- **Path Aliases**: `@/` maps to `client/src/`, `@shared/` maps to `shared/`
+### Framework
+- **Next.js 16** with App Router (migrated from Express + React SPA)
+- **React 18** with TypeScript
+- **Tailwind CSS 3** with CSS variables for theming
+- **shadcn/ui** components (Radix UI primitives)
+- **TanStack React Query** for admin page data fetching
+- **Path Aliases**: `@/` maps to project root, `@shared/` maps to `shared/`
 
-### Frontend Pages
-- `/` — Public homepage listing all published cities
-- `/locations/:slug` — Public city landing page with templated content
-- `/admin/login` — Admin authentication page
-- `/admin` — Admin dashboard with stats
-- `/admin/cities` — City management (CRUD, bulk operations, publish/unpublish)
-- `/admin/templates` — Content template management (CRUD)
+### Pages (App Router)
+- `app/page.tsx` — Public homepage (SSR Server Component), lists published cities
+- `app/city-grid.tsx` — Client component for search/filter city grid
+- `app/locations/[slug]/page.tsx` — City landing page (SSR with generateStaticParams + generateMetadata)
+- `app/admin/login/page.tsx` — Admin login (Client Component)
+- `app/admin/page.tsx` — Admin dashboard with stats (Client Component)
+- `app/admin/cities/page.tsx` — City management CRUD + bulk ops (Client Component)
+- `app/admin/templates/page.tsx` — Template management CRUD (Client Component)
+- `app/sitemap.ts` — Dynamic sitemap
+- `app/robots.ts` — Dynamic robots.txt
 
-### Backend
-- **Runtime**: Node.js with Express 5
-- **Language**: TypeScript, executed via `tsx`
-- **API Pattern**: REST API under `/api/` prefix
-- **Session Management**: `express-session` with cookie-based sessions
-- **Authentication**: Custom admin auth using scrypt password hashing (no passport), session-based with `requireAdmin` middleware
-- **Development**: Vite dev server is integrated as Express middleware for HMR
+### API Routes (App Router)
+All under `app/api/`:
+- `admin/login/route.ts` — POST login with JWT
+- `admin/logout/route.ts` — POST logout
+- `admin/me/route.ts` — GET current user
+- `admin/cities/route.ts` — GET/POST cities
+- `admin/cities/[id]/route.ts` — PATCH/DELETE city
+- `admin/cities/bulk-csv/route.ts` — POST CSV bulk import
+- `admin/bulk-update/route.ts` — POST publish/unpublish/assign template
+- `admin/templates/route.ts` — GET/POST templates
+- `admin/templates/[id]/route.ts` — PATCH template
+- `admin/stats/route.ts` — GET dashboard stats
+- `locations/route.ts` — GET public published cities
+- `locations/[slug]/route.ts` — GET public city detail
+- `seed/route.ts` — POST database seed
+
+### Authentication
+- JWT-based with `jose` library
+- Tokens stored in httpOnly cookies
+- Helpers: `lib/auth.ts` (createSession, verifySession, destroySession)
+- Default admin: username `admin`, password `admin123`
 
 ### Data Storage
-- **Database**: PostgreSQL
-- **ORM**: Drizzle ORM with `drizzle-zod` for schema validation
-- **Schema Location**: `shared/schema.ts` (shared between client and server)
-- **Migrations**: Drizzle Kit with `db:push` command
-- **Connection**: `pg` Pool via `DATABASE_URL` environment variable
+- **Database**: PostgreSQL via `DATABASE_URL`
+- **ORM**: Drizzle ORM with `drizzle-zod` for validation
+- **Schema**: `shared/schema.ts`
 
 ### Database Tables
 1. **city_locations** — City data (name, state, slug, address, coordinates, landmarks, nearby cities, publish status)
-2. **content_templates** — Reusable content templates with placeholder patterns for meta tags, headers, body content, CTAs
+2. **content_templates** — Reusable content templates with placeholder patterns
 3. **city_content_assignments** — Join table linking cities to templates
-4. **admin_users** — Admin user accounts with hashed passwords
+4. **admin_users** — Admin accounts with scrypt-hashed passwords
 
-### Key Design Patterns
-- **Shared Schema**: The `shared/` directory contains Drizzle schema and Zod validation schemas used by both client and server
-- **Placeholder System**: Templates use `{{city}}`, `{{state}}`, `{{state_name}}`, `{{slug}}`, `{{address}}`, `{{landmarks}}`, `{{nearby_cities}}`, `{{phone}}`, `{{email}}` placeholders replaced at render time on the client
-- **Storage Interface**: `IStorage` interface in `server/storage.ts` abstracts database operations via a `DatabaseStorage` class
-- **Seed Data**: `server/seed.ts` contains seed data for 18 US cities and default templates
+### Key Files
+- `lib/storage.ts` — DatabaseStorage class implementing IStorage interface
+- `lib/db.ts` — Drizzle database connection
+- `lib/auth.ts` — JWT auth helpers
+- `lib/seed.ts` — Database seeding (cities + templates + admin user)
+- `lib/placeholder-replacer.ts` — Template placeholder substitution
+- `lib/queryClient.ts` — React Query client + apiRequest helper
+- `components/theme-provider.tsx` — next-themes wrapper
+- `components/query-provider.tsx` — React Query provider wrapper
+- `components/ui/` — shadcn/ui components
 
-### Build Process
-- **Development**: `npm run dev` runs tsx with Vite middleware
-- **Production Build**: Custom `script/build.ts` uses Vite for client and esbuild for server, outputting to `dist/`
-- **Server Build**: esbuild bundles server code as CJS, selectively bundling allowlisted dependencies for faster cold starts
+### Build & Run
+- **Development**: `npm run dev` → launches Next.js dev server on port 5000
+- **Production**: `next build` (standalone output for AWS App Runner)
+- **Database**: `npm run db:push` syncs Drizzle schema
 
-## External Dependencies
+### SEO Features
+- Server-side rendered public pages with generateMetadata
+- Canonical URLs on every page (via NEXT_PUBLIC_BASE_URL env var)
+- OpenGraph tags on city pages
+- JSON-LD structured data on city pages
+- Dynamic sitemap.xml and robots.txt
+- generateStaticParams for city pages
 
-### Required Services
-- **PostgreSQL Database**: Required. Connection via `DATABASE_URL` environment variable. Uses Drizzle ORM for all database operations.
-
-### Environment Variables
+## Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string (required)
-- `SESSION_SECRET` — Express session secret (defaults to `"dev-secret-change-me"` in dev)
-
-### Key NPM Dependencies
-- `express` v5 — HTTP server
-- `drizzle-orm` + `drizzle-kit` — ORM and migration tooling
-- `pg` — PostgreSQL client
-- `express-session` — Session management
-- `zod` + `drizzle-zod` — Schema validation
-- `@tanstack/react-query` — Client-side data fetching
-- `wouter` — Client-side routing
-- `shadcn/ui` components (Radix UI + Tailwind)
-- `lucide-react` — Icon library
+- `SESSION_SECRET` — JWT signing secret
+- `NEXT_PUBLIC_BASE_URL` — Base URL for canonical/OG tags (defaults to https://yourcompany.com)
