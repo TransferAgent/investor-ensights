@@ -60,6 +60,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Push schema and seed database
+  try {
+    const { seedDatabase } = await import("./seed");
+    await seedDatabase();
+  } catch (e) {
+    console.error("Seed error (may be expected on first run):", e);
+  }
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
