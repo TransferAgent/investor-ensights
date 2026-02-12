@@ -21,6 +21,7 @@ export interface IStorage {
   getCityById(id: string): Promise<CityLocation | undefined>;
   createCity(city: InsertCityLocation): Promise<CityLocation>;
   updateCity(id: string, data: Partial<InsertCityLocation>): Promise<CityLocation | undefined>;
+  deleteCity(id: string): Promise<void>;
   bulkUpdateCities(ids: string[], data: Partial<InsertCityLocation>): Promise<void>;
 
   getTemplates(onlyActive?: boolean): Promise<ContentTemplate[]>;
@@ -90,6 +91,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(cityLocations.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteCity(id: string): Promise<void> {
+    await db.delete(cityLocations).where(eq(cityLocations.id, id));
   }
 
   async bulkUpdateCities(

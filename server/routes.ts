@@ -126,6 +126,60 @@ export async function registerRoutes(
     res.json(stats);
   });
 
+  app.post("/api/admin/cities", requireAdmin, async (req, res) => {
+    try {
+      const { cityName, stateCode, stateName, streetAddress, zipCode, phoneNumber, email, slug, localLandmarks, nearbyCities, latitude, longitude, isPublished, displayOrder } = req.body;
+      if (!cityName || !stateCode) {
+        return res.status(400).json({ message: "City name and state code are required" });
+      }
+      const finalSlug = slug || `${cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${stateCode.toLowerCase()}`;
+      const existing = await storage.getCityBySlug(finalSlug);
+      if (existing) {
+        return res.status(409).json({ message: "A city with this slug already exists" });
+      }
+      const city = await storage.createCity({
+        cityName,
+        stateCode,
+        stateName: stateName || null,
+        streetAddress: streetAddress || null,
+        zipCode: zipCode || null,
+        phoneNumber: phoneNumber || null,
+        email: email || null,
+        slug: finalSlug,
+        localLandmarks: localLandmarks || [],
+        nearbyCities: nearbyCities || [],
+        latitude: latitude || null,
+        longitude: longitude || null,
+        isPublished: isPublished ?? false,
+        displayOrder: displayOrder ?? 0,
+      });
+      res.status(201).json(city);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Failed to create city" });
+    }
+  });
+
+  app.patch("/api/admin/cities/:id", requireAdmin, async (req, res) => {
+    try {
+      const city = await storage.updateCity(req.params.id, req.body);
+      if (!city) {
+        return res.status(404).json({ message: "City not found" });
+      }
+      res.json(city);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Failed to update city" });
+    }
+  });
+
+  app.delete("/api/admin/cities/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteCity(req.params.id);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Failed to delete city" });
+    }
+  });
+
   app.post("/api/admin/bulk-update", requireAdmin, async (req, res) => {
     const { cityIds, action, templateId } = req.body;
 
