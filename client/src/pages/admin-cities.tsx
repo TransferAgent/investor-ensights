@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -19,6 +21,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -34,6 +37,8 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Upload,
+  Download,
 } from "lucide-react";
 import type { CityLocation, ContentTemplate } from "@shared/schema";
 
@@ -57,6 +62,12 @@ const US_STATES = [
   { code: "WI", name: "Wisconsin" }, { code: "WY", name: "Wyoming" },
 ];
 
+const CSV_COLUMNS = [
+  "city_name", "state_code", "state_name", "street_address", "zip_code",
+  "phone_number", "email", "local_landmarks", "nearby_cities",
+  "meta_title", "meta_description", "allow_indexing", "is_published",
+];
+
 interface CityFormData {
   cityName: string;
   stateCode: string;
@@ -67,6 +78,9 @@ interface CityFormData {
   email: string;
   localLandmarks: string;
   nearbyCities: string;
+  metaTitle: string;
+  metaDescription: string;
+  allowIndexing: boolean;
   isPublished: boolean;
 }
 
@@ -80,6 +94,9 @@ const emptyCityForm: CityFormData = {
   email: "",
   localLandmarks: "",
   nearbyCities: "",
+  metaTitle: "",
+  metaDescription: "",
+  allowIndexing: true,
   isPublished: false,
 };
 
@@ -94,8 +111,56 @@ function cityToFormData(city: CityLocation): CityFormData {
     email: city.email || "",
     localLandmarks: Array.isArray(city.localLandmarks) ? (city.localLandmarks as string[]).join(", ") : "",
     nearbyCities: Array.isArray(city.nearbyCities) ? (city.nearbyCities as string[]).join(", ") : "",
+    metaTitle: city.metaTitle || "",
+    metaDescription: city.metaDescription || "",
+    allowIndexing: city.allowIndexing,
     isPublished: city.isPublished,
   };
+}
+
+function parseCSV(text: string): Record<string, string>[] {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+  return lines.slice(1).map((line) => {
+    const values: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        inQuotes = !inQuotes;
+      } else if (ch === "," && !inQuotes) {
+        values.push(current.trim());
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+    values.push(current.trim());
+    const row: Record<string, string> = {};
+    headers.forEach((h, idx) => {
+      row[h] = values[idx] || "";
+    });
+    return row;
+  });
+}
+
+function downloadCSVTemplate() {
+  const header = CSV_COLUMNS.join(",");
+  const example = [
+    "San Diego", "CA", "California", "123 Main St", "92101",
+    "(619) 555-0100", "info@example.com", "Balboa Park|San Diego Zoo", "Chula Vista|La Jolla",
+    "Best Services in San Diego CA", "Professional services in San Diego California. Contact us today.", "true", "true",
+  ].join(",");
+  const csv = `${header}\n${example}\n`;
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "city_upload_template.csv";
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function AdminCitiesPage() {
@@ -108,6 +173,8 @@ export default function AdminCitiesPage() {
   const [editingCity, setEditingCity] = useState<CityLocation | null>(null);
   const [formData, setFormData] = useState<CityFormData>(emptyCityForm);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const { data: cities = [], isLoading } = useQuery<CityLocation[]>({
@@ -188,6 +255,9 @@ export default function AdminCitiesPage() {
         email: data.email || null,
         localLandmarks: data.localLandmarks ? data.localLandmarks.split(",").map((s) => s.trim()).filter(Boolean) : [],
         nearbyCities: data.nearbyCities ? data.nearbyCities.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        metaTitle: data.metaTitle || null,
+        metaDescription: data.metaDescription || null,
+        allowIndexing: data.allowIndexing,
         isPublished: data.isPublished,
       };
       const res = await apiRequest("POST", "/api/admin/cities", body);
@@ -217,6 +287,9 @@ export default function AdminCitiesPage() {
         email: data.email || null,
         localLandmarks: data.localLandmarks ? data.localLandmarks.split(",").map((s) => s.trim()).filter(Boolean) : [],
         nearbyCities: data.nearbyCities ? data.nearbyCities.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        metaTitle: data.metaTitle || null,
+        metaDescription: data.metaDescription || null,
+        allowIndexing: data.allowIndexing,
         isPublished: data.isPublished,
       };
       const res = await apiRequest("PATCH", `/api/admin/cities/${id}`, body);
@@ -247,6 +320,23 @@ export default function AdminCitiesPage() {
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const bulkCsvMutation = useMutation({
+    mutationFn: async (rows: Record<string, string>[]) => {
+      const res = await apiRequest("POST", "/api/admin/cities/bulk-csv", { rows });
+      return res.json();
+    },
+    onSuccess: (data: { created: number; skipped: number; errors: string[] }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      setCsvDialogOpen(false);
+      const desc = `${data.created} cities created, ${data.skipped} skipped.${data.errors.length > 0 ? ` Issues: ${data.errors.slice(0, 3).join("; ")}` : ""}`;
+      toast({ title: "Bulk Upload Complete", description: desc });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Upload Failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -287,6 +377,23 @@ export default function AdminCitiesPage() {
     }
   };
 
+  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const rows = parseCSV(text);
+      if (rows.length === 0) {
+        toast({ title: "Error", description: "No valid rows found in CSV file", variant: "destructive" });
+        return;
+      }
+      bulkCsvMutation.mutate(rows);
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const updateField = (field: keyof CityFormData, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -304,10 +411,20 @@ export default function AdminCitiesPage() {
             {cities.length} total cities &middot; {selectedIds.size} selected
           </p>
         </div>
-        <Button onClick={openAddDialog} data-testid="button-add-city">
-          <Plus className="mr-1.5 h-4 w-4" />
-          Add City
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={openAddDialog} data-testid="button-add-city">
+            <Plus className="mr-1.5 h-4 w-4" />
+            Add City
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setCsvDialogOpen(true)}
+            data-testid="button-bulk-upload"
+          >
+            <Upload className="mr-1.5 h-4 w-4" />
+            Bulk Upload
+          </Button>
+        </div>
       </div>
 
       {selectedIds.size > 0 && (
@@ -558,6 +675,9 @@ export default function AdminCitiesPage() {
             <DialogTitle data-testid="text-city-dialog-title">
               {editingCity ? "Edit City" : "Add New City"}
             </DialogTitle>
+            <DialogDescription>
+              {editingCity ? "Update the city details below." : "Fill in the details to add a new city."}
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -664,6 +784,61 @@ export default function AdminCitiesPage() {
               />
             </div>
 
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-semibold mb-3">SEO Settings</h3>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="metaTitle">Title Tag (Title in Search Results)</Label>
+                  <Input
+                    id="metaTitle"
+                    value={formData.metaTitle}
+                    onChange={(e) => updateField("metaTitle", e.target.value)}
+                    placeholder="e.g. Best Services in San Diego, CA"
+                    maxLength={120}
+                    data-testid="input-meta-title"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {formData.metaTitle.length}/120 characters
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="metaDescription">Meta Description (Description in Search Results)</Label>
+                  <Textarea
+                    id="metaDescription"
+                    value={formData.metaDescription}
+                    onChange={(e) => updateField("metaDescription", e.target.value)}
+                    placeholder="e.g. Professional services in San Diego, California. Contact us today for a free consultation."
+                    maxLength={300}
+                    rows={3}
+                    className="resize-none"
+                    data-testid="input-meta-description"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {formData.metaDescription.length}/300 characters
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="allowIndexing" className="cursor-pointer">
+                      Let search engines index this page
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      When off, this page won't appear in Google or other search engines
+                    </p>
+                  </div>
+                  <Switch
+                    id="allowIndexing"
+                    checked={formData.allowIndexing}
+                    onCheckedChange={(checked) => updateField("allowIndexing", checked)}
+                    data-testid="switch-allow-indexing"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2">
               <Checkbox
                 id="isPublished"
@@ -704,6 +879,7 @@ export default function AdminCitiesPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Delete City</DialogTitle>
+            <DialogDescription>This action cannot be undone.</DialogDescription>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             Are you sure you want to delete this city? This action cannot be undone.
@@ -721,6 +897,53 @@ export default function AdminCitiesPage() {
               {deleteCityMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
               Delete
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle data-testid="text-csv-dialog-title">Bulk Upload Cities</DialogTitle>
+            <DialogDescription>
+              Upload a CSV file to add multiple cities at once.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Download the template first to see the correct column format, then fill it in and upload.
+            </p>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={downloadCSVTemplate}
+              data-testid="button-download-csv-template"
+            >
+              <Download className="mr-1.5 h-4 w-4" />
+              Download CSV Template
+            </Button>
+            <div className="border-t pt-4">
+              <Label htmlFor="csvFile" className="mb-2 block">Upload your CSV file</Label>
+              <input
+                ref={fileInputRef}
+                id="csvFile"
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleCsvUpload}
+                className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary-foreground"
+                data-testid="input-csv-file"
+              />
+            </div>
+            {bulkCsvMutation.isPending && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Uploading and processing...
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>Column format: {CSV_COLUMNS.join(", ")}</p>
+              <p>Use pipe (|) to separate multiple landmarks or nearby cities.</p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

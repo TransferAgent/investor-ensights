@@ -55,6 +55,8 @@ export default function AdminLayout({
         return null;
       }
     },
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const logoutMutation = useMutation({
