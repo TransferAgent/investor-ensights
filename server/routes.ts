@@ -48,6 +48,62 @@ export async function registerRoutes(
     next();
   }
 
+  // ====== SEO: sitemap.xml and robots.txt ======
+
+  app.get("/sitemap.xml", async (req, res) => {
+    const cities = await storage.getCities(true);
+    const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+    const host = req.headers["x-forwarded-host"] || req.get("host");
+    const baseUrl = `${protocol}://${host}`;
+
+    const today = new Date().toISOString().split("T")[0];
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+
+    xml += `  <url>\n`;
+    xml += `    <loc>${baseUrl}/</loc>\n`;
+    xml += `    <lastmod>${today}</lastmod>\n`;
+    xml += `    <changefreq>daily</changefreq>\n`;
+    xml += `    <priority>1.0</priority>\n`;
+    xml += `  </url>\n`;
+
+    for (const city of cities) {
+      const lastmod = city.updatedAt
+        ? new Date(city.updatedAt).toISOString().split("T")[0]
+        : today;
+      xml += `  <url>\n`;
+      xml += `    <loc>${baseUrl}/locations/${city.slug}</loc>\n`;
+      xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += `    <changefreq>weekly</changefreq>\n`;
+      xml += `    <priority>0.8</priority>\n`;
+      xml += `  </url>\n`;
+    }
+
+    xml += `</urlset>`;
+
+    res.set("Content-Type", "application/xml");
+    res.send(xml);
+  });
+
+  app.get("/robots.txt", (req, res) => {
+    const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+    const host = req.headers["x-forwarded-host"] || req.get("host");
+    const baseUrl = `${protocol}://${host}`;
+
+    const txt = [
+      "User-agent: *",
+      "Allow: /",
+      "Disallow: /admin",
+      "Disallow: /api/admin",
+      "",
+      `Sitemap: ${baseUrl}/sitemap.xml`,
+    ].join("\n");
+
+    res.set("Content-Type", "text/plain");
+    res.send(txt);
+  });
+
   // ====== Public routes ======
 
   app.get("/api/locations", async (_req, res) => {
