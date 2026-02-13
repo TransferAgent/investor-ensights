@@ -311,10 +311,10 @@ export default async function CityPage({
           </p>
           <Link
             href="/admin/login"
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             data-testid="link-admin-login"
           >
-            <Lock className="h-3 w-3" />
+            <Lock className="h-3.5 w-3.5" />
             Admin
           </Link>
         </div>
