@@ -64,7 +64,8 @@ const US_STATES = [
 
 const CSV_COLUMNS = [
   "city_name", "state_code", "state_name", "street_address", "zip_code",
-  "phone_number", "email", "local_landmarks", "nearby_cities",
+  "phone_number", "email", "latitude", "longitude",
+  "local_landmarks", "nearby_cities",
   "meta_title", "meta_description", "allow_indexing", "is_published",
 ]
 
@@ -182,7 +183,8 @@ function downloadCSVTemplate() {
   const header = CSV_COLUMNS.join(",")
   const example = [
     "San Diego", "CA", "California", "123 Main St", "92101",
-    "(619) 555-0100", "info@example.com", "Balboa Park|San Diego Zoo", "Chula Vista|La Jolla",
+    "(619) 555-0100", "info@example.com", "32.7157", "-117.1611",
+    "Balboa Park|San Diego Zoo", "Chula Vista|La Jolla",
     "Best Services in San Diego CA", "Professional services in San Diego California. Contact us today.", "true", "true",
   ].join(",")
   const csv = `${header}\n${example}\n`
