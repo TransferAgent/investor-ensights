@@ -238,6 +238,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$map$2d$pin$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__MapPin$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/map-pin.js [app-ssr] (ecmascript) <export default as MapPin>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$search$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Search$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/search.js [app-ssr] (ecmascript) <export default as Search>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$arrow$2d$right$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__ArrowRight$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/arrow-right.js [app-ssr] (ecmascript) <export default as ArrowRight>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$navigation$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Navigation$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/navigation.js [app-ssr] (ecmascript) <export default as Navigation>");
 "use client";
 ;
 ;
@@ -372,6 +373,24 @@ function CityCard({ city }) {
 function CityGrid({ cities }) {
     const [search, setSearch] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("");
     const [stateFilter, setStateFilter] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("");
+    const [detectedState, setDetectedState] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [geoLoaded, setGeoLoaded] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(false);
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
+        fetch("/api/geo").then((res)=>res.json()).then((data)=>{
+            setDetectedState(data);
+            if (data.stateCode) {
+                const hasCitiesInState = cities.some((c)=>c.stateCode === data.stateCode);
+                if (hasCitiesInState) {
+                    setStateFilter(data.stateCode);
+                }
+            }
+            setGeoLoaded(true);
+        }).catch(()=>{
+            setGeoLoaded(true);
+        });
+    }, [
+        cities
+    ]);
     const states = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"])(()=>{
         const stateSet = new Set(cities.map((c)=>c.stateCode));
         return Array.from(stateSet).sort();
@@ -389,6 +408,7 @@ function CityGrid({ cities }) {
         search,
         stateFilter
     ]);
+    const isAutoFiltered = geoLoaded && detectedState?.stateCode && stateFilter === detectedState.stateCode;
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "mx-auto max-w-6xl px-4 py-10",
         children: [
@@ -403,7 +423,7 @@ function CityGrid({ cities }) {
                                 children: "Our Locations"
                             }, void 0, false, {
                                 fileName: "[project]/app/city-grid.tsx",
-                                lineNumber: 84,
+                                lineNumber: 112,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -416,13 +436,13 @@ function CityGrid({ cities }) {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/city-grid.tsx",
-                                lineNumber: 90,
+                                lineNumber: 118,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/city-grid.tsx",
-                        lineNumber: 83,
+                        lineNumber: 111,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -435,7 +455,7 @@ function CityGrid({ cities }) {
                                         className: "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
                                     }, void 0, false, {
                                         fileName: "[project]/app/city-grid.tsx",
-                                        lineNumber: 97,
+                                        lineNumber: 125,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Input"], {
@@ -446,13 +466,13 @@ function CityGrid({ cities }) {
                                         "data-testid": "input-search-cities"
                                     }, void 0, false, {
                                         fileName: "[project]/app/city-grid.tsx",
-                                        lineNumber: 98,
+                                        lineNumber: 126,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/city-grid.tsx",
-                                lineNumber: 96,
+                                lineNumber: 124,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -466,7 +486,7 @@ function CityGrid({ cities }) {
                                         children: "All States"
                                     }, void 0, false, {
                                         fileName: "[project]/app/city-grid.tsx",
-                                        lineNumber: 112,
+                                        lineNumber: 140,
                                         columnNumber: 13
                                     }, this),
                                     states.map((s)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -474,26 +494,80 @@ function CityGrid({ cities }) {
                                             children: s
                                         }, s, false, {
                                             fileName: "[project]/app/city-grid.tsx",
-                                            lineNumber: 114,
+                                            lineNumber: 142,
                                             columnNumber: 15
                                         }, this))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/city-grid.tsx",
-                                lineNumber: 106,
+                                lineNumber: 134,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/city-grid.tsx",
-                        lineNumber: 95,
+                        lineNumber: 123,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/city-grid.tsx",
-                lineNumber: 82,
+                lineNumber: 110,
                 columnNumber: 7
+            }, this),
+            isAutoFiltered && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "mb-6 flex items-center justify-between gap-3 flex-wrap rounded-md border bg-muted/30 px-4 py-3",
+                "data-testid": "div-geo-banner",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "flex items-center gap-2 text-sm",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$navigation$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Navigation$3e$__["Navigation"], {
+                                className: "h-4 w-4 text-primary shrink-0"
+                            }, void 0, false, {
+                                fileName: "[project]/app/city-grid.tsx",
+                                lineNumber: 153,
+                                columnNumber: 13
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                children: [
+                                    "Showing locations near you in ",
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "font-medium",
+                                        children: detectedState?.stateName || detectedState?.stateCode
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/city-grid.tsx",
+                                        lineNumber: 155,
+                                        columnNumber: 45
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/app/city-grid.tsx",
+                                lineNumber: 154,
+                                columnNumber: 13
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/app/city-grid.tsx",
+                        lineNumber: 152,
+                        columnNumber: 11
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
+                        variant: "outline",
+                        size: "sm",
+                        onClick: ()=>setStateFilter(""),
+                        "data-testid": "button-show-all-locations",
+                        children: "Show All Locations"
+                    }, void 0, false, {
+                        fileName: "[project]/app/city-grid.tsx",
+                        lineNumber: 158,
+                        columnNumber: 11
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/app/city-grid.tsx",
+                lineNumber: 151,
+                columnNumber: 9
             }, this),
             filtered.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Card"], {
                 className: "flex flex-col items-center justify-center py-16",
@@ -502,7 +576,7 @@ function CityGrid({ cities }) {
                         className: "mb-3 h-10 w-10 text-muted-foreground/50"
                     }, void 0, false, {
                         fileName: "[project]/app/city-grid.tsx",
-                        lineNumber: 124,
+                        lineNumber: 171,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -510,7 +584,7 @@ function CityGrid({ cities }) {
                         children: "No locations found"
                     }, void 0, false, {
                         fileName: "[project]/app/city-grid.tsx",
-                        lineNumber: 125,
+                        lineNumber: 172,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -518,7 +592,7 @@ function CityGrid({ cities }) {
                         children: "Try adjusting your search or filter"
                     }, void 0, false, {
                         fileName: "[project]/app/city-grid.tsx",
-                        lineNumber: 126,
+                        lineNumber: 173,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
@@ -531,13 +605,13 @@ function CityGrid({ cities }) {
                         children: "Clear Filters"
                     }, void 0, false, {
                         fileName: "[project]/app/city-grid.tsx",
-                        lineNumber: 129,
+                        lineNumber: 176,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/city-grid.tsx",
-                lineNumber: 123,
+                lineNumber: 170,
                 columnNumber: 9
             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
@@ -545,18 +619,18 @@ function CityGrid({ cities }) {
                         city: city
                     }, city.id, false, {
                         fileName: "[project]/app/city-grid.tsx",
-                        lineNumber: 143,
+                        lineNumber: 190,
                         columnNumber: 13
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/app/city-grid.tsx",
-                lineNumber: 141,
+                lineNumber: 188,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/city-grid.tsx",
-        lineNumber: 81,
+        lineNumber: 109,
         columnNumber: 5
     }, this);
 }

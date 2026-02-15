@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MapPin, Search, ArrowRight } from "lucide-react"
+import { MapPin, Search, ArrowRight, Navigation } from "lucide-react"
 import type { CityLocation } from "@shared/schema"
 
 function CityCard({ city }: { city: CityLocation }) {
@@ -56,9 +56,35 @@ function CityCard({ city }: { city: CityLocation }) {
   )
 }
 
+interface GeoResult {
+  stateCode: string | null
+  stateName: string | null
+  city: string | null
+}
+
 export default function CityGrid({ cities }: { cities: CityLocation[] }) {
   const [search, setSearch] = useState("")
   const [stateFilter, setStateFilter] = useState<string>("")
+  const [detectedState, setDetectedState] = useState<GeoResult | null>(null)
+  const [geoLoaded, setGeoLoaded] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/geo")
+      .then((res) => res.json())
+      .then((data: GeoResult) => {
+        setDetectedState(data)
+        if (data.stateCode) {
+          const hasCitiesInState = cities.some((c) => c.stateCode === data.stateCode)
+          if (hasCitiesInState) {
+            setStateFilter(data.stateCode)
+          }
+        }
+        setGeoLoaded(true)
+      })
+      .catch(() => {
+        setGeoLoaded(true)
+      })
+  }, [cities])
 
   const states = useMemo(() => {
     const stateSet = new Set(cities.map((c) => c.stateCode))
@@ -76,6 +102,8 @@ export default function CityGrid({ cities }: { cities: CityLocation[] }) {
       return matchSearch && matchState
     })
   }, [cities, search, stateFilter])
+
+  const isAutoFiltered = geoLoaded && detectedState?.stateCode && stateFilter === detectedState.stateCode
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -118,6 +146,25 @@ export default function CityGrid({ cities }: { cities: CityLocation[] }) {
           </select>
         </div>
       </div>
+
+      {isAutoFiltered && (
+        <div className="mb-6 flex items-center justify-between gap-3 flex-wrap rounded-md border bg-muted/30 px-4 py-3" data-testid="div-geo-banner">
+          <div className="flex items-center gap-2 text-sm">
+            <Navigation className="h-4 w-4 text-primary shrink-0" />
+            <span>
+              Showing locations near you in <span className="font-medium">{detectedState?.stateName || detectedState?.stateCode}</span>
+            </span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setStateFilter("")}
+            data-testid="button-show-all-locations"
+          >
+            Show All Locations
+          </Button>
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-16">
