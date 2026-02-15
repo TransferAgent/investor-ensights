@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/lib/storage";
 import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
+import { geocodeAddress } from "@/lib/geocoding";
 
 export async function GET() {
   const session = await verifySession();
@@ -33,6 +34,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "A city with this slug already exists" }, { status: 409 });
     }
 
+    let finalLat = latitude || null;
+    let finalLng = longitude || null;
+
+    if (!finalLat || !finalLng) {
+      const addressForGeocode = streetAddress || cityName;
+      if (addressForGeocode) {
+        const geo = await geocodeAddress(streetAddress || "", cityName, stateCode, zipCode);
+        if (geo.success) {
+          finalLat = String(geo.latitude);
+          finalLng = String(geo.longitude);
+        }
+      }
+    }
+
     const city = await storage.createCity({
       cityName,
       stateCode,
@@ -44,8 +59,8 @@ export async function POST(request: NextRequest) {
       slug: finalSlug,
       localLandmarks: localLandmarks || [],
       nearbyCities: nearbyCities || [],
-      latitude: latitude || null,
-      longitude: longitude || null,
+      latitude: finalLat,
+      longitude: finalLng,
       metaTitle: metaTitle || null,
       metaDescription: metaDescription || null,
       allowIndexing: allowIndexing ?? true,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/lib/storage";
 import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
+import { geocodeAddress } from "@/lib/geocoding";
 
 export async function PATCH(
   request: NextRequest,
@@ -15,6 +16,20 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
+
+    if (!body.latitude || !body.longitude) {
+      const addressForGeocode = body.streetAddress || body.cityName || "";
+      const cityName = body.cityName || "";
+      const stateCode = body.stateCode || "";
+      if (addressForGeocode) {
+        const geo = await geocodeAddress(body.streetAddress || "", cityName, stateCode, body.zipCode);
+        if (geo.success) {
+          body.latitude = String(geo.latitude);
+          body.longitude = String(geo.longitude);
+        }
+      }
+    }
+
     const city = await storage.updateCity(id, body);
     if (!city) {
       return NextResponse.json({ error: "City not found" }, { status: 404 });

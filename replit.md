@@ -88,6 +88,7 @@ All under `app/api/`:
 - `lib/audit.ts` — Admin audit logging helper
 - `lib/rate-limit.ts` — In-memory rate limiting for login
 - `lib/sanitize.ts` — Input sanitization for XSS prevention
+- `lib/geocoding.ts` — OpenCage geocoding (auto-fills lat/lng from address)
 - `lib/seed.ts` — Database seeding (cities + templates + admin user)
 - `lib/placeholder-replacer.ts` — Template placeholder substitution
 - `lib/queryClient.ts` — React Query client + apiRequest helper
@@ -110,7 +111,14 @@ All under `app/api/`:
 - Dynamic sitemap.xml and robots.txt
 - generateStaticParams for city pages
 
+### Geocoding
+- **OpenCage API** auto-fills latitude/longitude when saving cities without coordinates
+- Triggers on: city create (POST), city update (PATCH), and bulk CSV import
+- Falls back gracefully if API is unavailable — city still saves without coordinates
+- Free tier: 2,500 requests/day (sufficient for 150+ cities)
+
 ## Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string (required)
 - `SESSION_SECRET` — JWT signing secret
+- `OPENCAGE_API_KEY` — OpenCage geocoding API key (for auto-filling lat/lng)
 - `NEXT_PUBLIC_BASE_URL` — Base URL for canonical/OG tags (defaults to https://yourcompany.com)

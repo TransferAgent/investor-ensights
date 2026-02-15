@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/lib/storage";
 import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
+import { geocodeAddress } from "@/lib/geocoding";
 
 export async function POST(request: NextRequest) {
   const session = await verifySession();
@@ -43,12 +44,27 @@ export async function POST(request: NextRequest) {
       try {
         const landmarks = row.localLandmarks || row.local_landmarks || "";
         const nearby = row.nearbyCities || row.nearby_cities || "";
+        const streetAddress = (row.streetAddress || row.street_address || "").trim() || null;
+        const stateName = (row.stateName || row.state_name || "").trim() || null;
+        const zipCode = (row.zipCode || row.zip_code || "").trim() || null;
+
+        let lat = (row.latitude || row.lat || "").trim() || null;
+        let lng = (row.longitude || row.lng || "").trim() || null;
+
+        if (!lat || !lng) {
+          const geo = await geocodeAddress(streetAddress || "", cityName, stateCode, zipCode || undefined);
+          if (geo.success) {
+            lat = String(geo.latitude);
+            lng = String(geo.longitude);
+          }
+        }
+
         await storage.createCity({
           cityName,
           stateCode,
-          stateName: (row.stateName || row.state_name || "").trim() || null,
-          streetAddress: (row.streetAddress || row.street_address || "").trim() || null,
-          zipCode: (row.zipCode || row.zip_code || "").trim() || null,
+          stateName,
+          streetAddress,
+          zipCode,
           phoneNumber: (row.phoneNumber || row.phone_number || "").trim() || null,
           email: (row.email || "").trim() || null,
           slug,
@@ -58,8 +74,8 @@ export async function POST(request: NextRequest) {
           nearbyCities: typeof nearby === "string" && nearby
             ? nearby.split("|").map((s: string) => s.trim()).filter(Boolean)
             : [],
-          latitude: row.latitude || null,
-          longitude: row.longitude || null,
+          latitude: lat,
+          longitude: lng,
           metaTitle: (row.metaTitle || row.meta_title || "").trim() || null,
           metaDescription: (row.metaDescription || row.meta_description || "").trim() || null,
           allowIndexing: row.allowIndexing !== "false" && row.allow_indexing !== "false",
