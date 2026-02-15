@@ -40,6 +40,7 @@ import {
   Trash2,
   Upload,
   Download,
+  MapPin,
 } from "lucide-react"
 
 const US_STATES = [
@@ -109,6 +110,8 @@ interface CityFormData {
   zipCode: string
   phoneNumber: string
   email: string
+  latitude: string
+  longitude: string
   localLandmarks: string
   nearbyCities: string
   metaTitle: string
@@ -125,6 +128,8 @@ const emptyCityForm: CityFormData = {
   zipCode: "",
   phoneNumber: "",
   email: "",
+  latitude: "",
+  longitude: "",
   localLandmarks: "",
   nearbyCities: "",
   metaTitle: "",
@@ -142,6 +147,8 @@ function cityToFormData(city: CityLocation): CityFormData {
     zipCode: city.zipCode || "",
     phoneNumber: city.phoneNumber || "",
     email: city.email || "",
+    latitude: city.latitude || "",
+    longitude: city.longitude || "",
     localLandmarks: Array.isArray(city.localLandmarks) ? (city.localLandmarks as string[]).join(", ") : "",
     nearbyCities: Array.isArray(city.nearbyCities) ? (city.nearbyCities as string[]).join(", ") : "",
     metaTitle: city.metaTitle || "",
@@ -279,7 +286,7 @@ export default function AdminCitiesPage() {
 
   const createCityMutation = useMutation({
     mutationFn: async (data: CityFormData) => {
-      const body = {
+      const body: Record<string, unknown> = {
         cityName: data.cityName,
         stateCode: data.stateCode,
         stateName: data.stateName || US_STATES.find((s) => s.code === data.stateCode)?.name || null,
@@ -294,6 +301,8 @@ export default function AdminCitiesPage() {
         allowIndexing: data.allowIndexing,
         isPublished: data.isPublished,
       }
+      if (data.latitude) body.latitude = data.latitude
+      if (data.longitude) body.longitude = data.longitude
       const res = await apiRequest("POST", "/api/admin/cities", body)
       return res.json()
     },
@@ -311,7 +320,7 @@ export default function AdminCitiesPage() {
 
   const updateCityMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: CityFormData }) => {
-      const body = {
+      const body: Record<string, unknown> = {
         cityName: data.cityName,
         stateCode: data.stateCode,
         stateName: data.stateName || US_STATES.find((s) => s.code === data.stateCode)?.name || null,
@@ -319,6 +328,8 @@ export default function AdminCitiesPage() {
         zipCode: data.zipCode || null,
         phoneNumber: data.phoneNumber || null,
         email: data.email || null,
+        latitude: data.latitude || null,
+        longitude: data.longitude || null,
         localLandmarks: data.localLandmarks ? data.localLandmarks.split(",").map((s) => s.trim()).filter(Boolean) : [],
         nearbyCities: data.nearbyCities ? data.nearbyCities.split(",").map((s) => s.trim()).filter(Boolean) : [],
         metaTitle: data.metaTitle || null,
@@ -357,17 +368,18 @@ export default function AdminCitiesPage() {
     },
   })
 
+  const [csvResults, setCsvResults] = useState<{ created: number; skipped: number; geocoded: number; geocodeFailed: number; errors: string[] } | null>(null)
+
   const bulkCsvMutation = useMutation({
     mutationFn: async (rows: Record<string, string>[]) => {
       const res = await apiRequest("POST", "/api/admin/cities/bulk-csv", { rows })
       return res.json()
     },
-    onSuccess: (data: { created: number; skipped: number; errors: string[] }) => {
+    onSuccess: (data: { created: number; skipped: number; geocoded: number; geocodeFailed: number; errors: string[] }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/cities"] })
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] })
-      setCsvDialogOpen(false)
-      const desc = `${data.created} cities created, ${data.skipped} skipped.${data.errors.length > 0 ? ` Issues: ${data.errors.slice(0, 3).join("; ")}` : ""}`
-      toast({ title: "Bulk Upload Complete", description: desc })
+      setCsvResults(data)
+      toast({ title: "Bulk Upload Complete", description: `${data.created} cities created` })
     },
     onError: (error: Error) => {
       toast({ title: "Upload Failed", description: error.message, variant: "destructive" })
@@ -452,7 +464,7 @@ export default function AdminCitiesPage() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => setCsvDialogOpen(true)}
+            onClick={() => { setCsvResults(null); setCsvDialogOpen(true) }}
             data-testid="button-bulk-upload"
           >
             <Upload className="mr-1.5 h-4 w-4" />
@@ -598,6 +610,7 @@ export default function AdminCitiesPage() {
                   <th className="px-4 py-3 text-left font-medium">City</th>
                   <th className="px-4 py-3 text-left font-medium">State</th>
                   <th className="px-4 py-3 text-left font-medium">Status</th>
+                  <th className="px-4 py-3 text-left font-medium">Coordinates</th>
                   <th className="px-4 py-3 text-left font-medium">Slug</th>
                   <th className="px-4 py-3 text-right font-medium">Actions</th>
                 </tr>
@@ -630,6 +643,18 @@ export default function AdminCitiesPage() {
                           <XCircle className="mr-1 h-3 w-3" />
                           Draft
                         </Badge>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {city.latitude && city.longitude ? (
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground font-mono" data-testid={`text-coords-${city.slug}`}>
+                          <MapPin className="h-3 w-3 text-green-500 shrink-0" />
+                          {parseFloat(city.latitude).toFixed(4)}, {parseFloat(city.longitude).toFixed(4)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/50" data-testid={`text-coords-missing-${city.slug}`}>
+                          --
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground font-mono">
@@ -796,6 +821,50 @@ export default function AdminCitiesPage() {
               />
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="latitude" className="inline-flex items-center gap-1.5">
+                  Latitude
+                  {editingCity && editingCity.latitude && formData.latitude === editingCity.latitude && (
+                    <Badge variant="secondary" className="text-[10px] no-default-active-elevate">
+                      <MapPin className="mr-0.5 h-2.5 w-2.5" />
+                      Auto-detected
+                    </Badge>
+                  )}
+                </Label>
+                <Input
+                  id="latitude"
+                  value={formData.latitude}
+                  onChange={(e) => updateField("latitude", e.target.value)}
+                  placeholder="e.g. 32.7157"
+                  data-testid="input-latitude"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="longitude" className="inline-flex items-center gap-1.5">
+                  Longitude
+                  {editingCity && editingCity.longitude && formData.longitude === editingCity.longitude && (
+                    <Badge variant="secondary" className="text-[10px] no-default-active-elevate">
+                      <MapPin className="mr-0.5 h-2.5 w-2.5" />
+                      Auto-detected
+                    </Badge>
+                  )}
+                </Label>
+                <Input
+                  id="longitude"
+                  value={formData.longitude}
+                  onChange={(e) => updateField("longitude", e.target.value)}
+                  placeholder="e.g. -117.1611"
+                  data-testid="input-longitude"
+                />
+              </div>
+            </div>
+            {!editingCity && (
+              <p className="text-xs text-muted-foreground">
+                Leave blank to auto-detect from address using geocoding.
+              </p>
+            )}
+
             <div className="space-y-1.5">
               <Label htmlFor="localLandmarks">Local Landmarks (comma-separated)</Label>
               <Input
@@ -944,40 +1013,83 @@ export default function AdminCitiesPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Download the template first to see the correct column format, then fill it in and upload.
-            </p>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={downloadCSVTemplate}
-              data-testid="button-download-csv-template"
-            >
-              <Download className="mr-1.5 h-4 w-4" />
-              Download CSV Template
-            </Button>
-            <div className="border-t pt-4">
-              <Label htmlFor="csvFile" className="mb-2 block">Upload your CSV file</Label>
-              <input
-                ref={fileInputRef}
-                id="csvFile"
-                type="file"
-                accept=".csv,text/csv"
-                onChange={handleCsvUpload}
-                className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary-foreground"
-                data-testid="input-csv-file"
-              />
-            </div>
-            {bulkCsvMutation.isPending && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Uploading and processing...
+            {csvResults ? (
+              <div className="space-y-3" data-testid="div-csv-results">
+                <h3 className="text-sm font-semibold">Upload Results</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <Card className="p-3 text-center">
+                    <p className="text-2xl font-bold text-green-600" data-testid="text-csv-created">{csvResults.created}</p>
+                    <p className="text-xs text-muted-foreground">Cities Created</p>
+                  </Card>
+                  <Card className="p-3 text-center">
+                    <p className="text-2xl font-bold text-muted-foreground" data-testid="text-csv-skipped">{csvResults.skipped}</p>
+                    <p className="text-xs text-muted-foreground">Skipped</p>
+                  </Card>
+                  <Card className="p-3 text-center">
+                    <p className="text-2xl font-bold text-blue-600" data-testid="text-csv-geocoded">{csvResults.geocoded}</p>
+                    <p className="text-xs text-muted-foreground">Geocoded</p>
+                  </Card>
+                  <Card className="p-3 text-center">
+                    <p className="text-2xl font-bold text-orange-500" data-testid="text-csv-geocode-failed">{csvResults.geocodeFailed}</p>
+                    <p className="text-xs text-muted-foreground">Geocode Failed</p>
+                  </Card>
+                </div>
+                {csvResults.errors.length > 0 && (
+                  <div className="rounded-md border p-3 text-xs space-y-1 max-h-32 overflow-y-auto">
+                    <p className="font-medium text-destructive">Issues:</p>
+                    {csvResults.errors.map((err, i) => (
+                      <p key={i} className="text-muted-foreground">{err}</p>
+                    ))}
+                  </div>
+                )}
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => setCsvResults(null)}
+                  data-testid="button-upload-another"
+                >
+                  Upload Another File
+                </Button>
               </div>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Download the template first to see the correct column format, then fill it in and upload.
+                </p>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={downloadCSVTemplate}
+                  data-testid="button-download-csv-template"
+                >
+                  <Download className="mr-1.5 h-4 w-4" />
+                  Download CSV Template
+                </Button>
+                <div className="border-t pt-4">
+                  <Label htmlFor="csvFile" className="mb-2 block">Upload your CSV file</Label>
+                  <input
+                    ref={fileInputRef}
+                    id="csvFile"
+                    type="file"
+                    accept=".csv,text/csv"
+                    onChange={handleCsvUpload}
+                    className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary-foreground"
+                    data-testid="input-csv-file"
+                  />
+                </div>
+                {bulkCsvMutation.isPending && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Uploading and processing...
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>Column format: {CSV_COLUMNS.join(", ")}</p>
+                  <p>Use pipe (|) to separate multiple landmarks or nearby cities.</p>
+                  <p>Leave latitude/longitude blank to auto-detect via geocoding.</p>
+                </div>
+              </>
             )}
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>Column format: {CSV_COLUMNS.join(", ")}</p>
-              <p>Use pipe (|) to separate multiple landmarks or nearby cities.</p>
-            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -772,6 +772,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$re
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$trash$2d$2$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Trash2$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/trash-2.js [app-client] (ecmascript) <export default as Trash2>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$upload$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Upload$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/upload.js [app-client] (ecmascript) <export default as Upload>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$download$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Download$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/download.js [app-client] (ecmascript) <export default as Download>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$map$2d$pin$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__MapPin$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/map-pin.js [app-client] (ecmascript) <export default as MapPin>");
 ;
 var _s = __turbopack_context__.k.signature();
 "use client";
@@ -1001,6 +1002,8 @@ const CSV_COLUMNS = [
     "zip_code",
     "phone_number",
     "email",
+    "latitude",
+    "longitude",
     "local_landmarks",
     "nearby_cities",
     "meta_title",
@@ -1016,6 +1019,8 @@ const emptyCityForm = {
     zipCode: "",
     phoneNumber: "",
     email: "",
+    latitude: "",
+    longitude: "",
     localLandmarks: "",
     nearbyCities: "",
     metaTitle: "",
@@ -1032,6 +1037,8 @@ function cityToFormData(city) {
         zipCode: city.zipCode || "",
         phoneNumber: city.phoneNumber || "",
         email: city.email || "",
+        latitude: city.latitude || "",
+        longitude: city.longitude || "",
         localLandmarks: Array.isArray(city.localLandmarks) ? city.localLandmarks.join(", ") : "",
         nearbyCities: Array.isArray(city.nearbyCities) ? city.nearbyCities.join(", ") : "",
         metaTitle: city.metaTitle || "",
@@ -1077,6 +1084,8 @@ function downloadCSVTemplate() {
         "92101",
         "(619) 555-0100",
         "info@example.com",
+        "32.7157",
+        "-117.1611",
         "Balboa Park|San Diego Zoo",
         "Chula Vista|La Jolla",
         "Best Services in San Diego CA",
@@ -1227,6 +1236,8 @@ function AdminCitiesPage() {
                     allowIndexing: data.allowIndexing,
                     isPublished: data.isPublished
                 };
+                if (data.latitude) body.latitude = data.latitude;
+                if (data.longitude) body.longitude = data.longitude;
                 const res = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$queryClient$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["apiRequest"])("POST", "/api/admin/cities", body);
                 return res.json();
             }
@@ -1274,6 +1285,8 @@ function AdminCitiesPage() {
                     zipCode: data.zipCode || null,
                     phoneNumber: data.phoneNumber || null,
                     email: data.email || null,
+                    latitude: data.latitude || null,
+                    longitude: data.longitude || null,
                     localLandmarks: data.localLandmarks ? data.localLandmarks.split(",").map({
                         "AdminCitiesPage.useMutation[updateCityMutation]": (s)=>s.trim()
                     }["AdminCitiesPage.useMutation[updateCityMutation]"]).filter(Boolean) : [],
@@ -1355,6 +1368,7 @@ function AdminCitiesPage() {
             }
         }["AdminCitiesPage.useMutation[deleteCityMutation]"]
     });
+    const [csvResults, setCsvResults] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const bulkCsvMutation = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useMutation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMutation"])({
         mutationFn: {
             "AdminCitiesPage.useMutation[bulkCsvMutation]": async (rows)=>{
@@ -1376,11 +1390,10 @@ function AdminCitiesPage() {
                         "/api/admin/stats"
                     ]
                 });
-                setCsvDialogOpen(false);
-                const desc = `${data.created} cities created, ${data.skipped} skipped.${data.errors.length > 0 ? ` Issues: ${data.errors.slice(0, 3).join("; ")}` : ""}`;
+                setCsvResults(data);
                 toast({
                     title: "Bulk Upload Complete",
-                    description: desc
+                    description: `${data.created} cities created`
                 });
             }
         }["AdminCitiesPage.useMutation[bulkCsvMutation]"],
@@ -1469,7 +1482,7 @@ function AdminCitiesPage() {
                                 children: "City Management"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 439,
+                                lineNumber: 453,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1482,13 +1495,13 @@ function AdminCitiesPage() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 442,
+                                lineNumber: 456,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/admin/cities/page.tsx",
-                        lineNumber: 438,
+                        lineNumber: 452,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1502,45 +1515,48 @@ function AdminCitiesPage() {
                                         className: "mr-1.5 h-4 w-4"
                                     }, void 0, false, {
                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                        lineNumber: 448,
+                                        lineNumber: 462,
                                         columnNumber: 13
                                     }, this),
                                     "Add City"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 447,
+                                lineNumber: 461,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
                                 variant: "outline",
-                                onClick: ()=>setCsvDialogOpen(true),
+                                onClick: ()=>{
+                                    setCsvResults(null);
+                                    setCsvDialogOpen(true);
+                                },
                                 "data-testid": "button-bulk-upload",
                                 children: [
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$upload$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Upload$3e$__["Upload"], {
                                         className: "mr-1.5 h-4 w-4"
                                     }, void 0, false, {
                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                        lineNumber: 456,
+                                        lineNumber: 470,
                                         columnNumber: 13
                                     }, this),
                                     "Bulk Upload"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 451,
+                                lineNumber: 465,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/admin/cities/page.tsx",
-                        lineNumber: 446,
+                        lineNumber: 460,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/admin/cities/page.tsx",
-                lineNumber: 437,
+                lineNumber: 451,
                 columnNumber: 7
             }, this),
             selectedIds.size > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
@@ -1554,7 +1570,7 @@ function AdminCitiesPage() {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/admin/cities/page.tsx",
-                        lineNumber: 464,
+                        lineNumber: 478,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -1567,20 +1583,20 @@ function AdminCitiesPage() {
                                 className: "mr-1.5 h-3.5 w-3.5 animate-spin"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 474,
+                                lineNumber: 488,
                                 columnNumber: 15
                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$eye$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Eye$3e$__["Eye"], {
                                 className: "mr-1.5 h-3.5 w-3.5"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 476,
+                                lineNumber: 490,
                                 columnNumber: 15
                             }, this),
                             "Publish"
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/admin/cities/page.tsx",
-                        lineNumber: 467,
+                        lineNumber: 481,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -1594,14 +1610,14 @@ function AdminCitiesPage() {
                                 className: "mr-1.5 h-3.5 w-3.5"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 487,
+                                lineNumber: 501,
                                 columnNumber: 13
                             }, this),
                             "Unpublish"
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/admin/cities/page.tsx",
-                        lineNumber: 480,
+                        lineNumber: 494,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1618,12 +1634,12 @@ function AdminCitiesPage() {
                                             placeholder: "Pick template..."
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 497,
+                                            lineNumber: 511,
                                             columnNumber: 17
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                        lineNumber: 496,
+                                        lineNumber: 510,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectContent"], {
@@ -1632,18 +1648,18 @@ function AdminCitiesPage() {
                                                 children: t.templateName
                                             }, t.id, false, {
                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                lineNumber: 501,
+                                                lineNumber: 515,
                                                 columnNumber: 19
                                             }, this))
                                     }, void 0, false, {
                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                        lineNumber: 499,
+                                        lineNumber: 513,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 492,
+                                lineNumber: 506,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -1657,26 +1673,26 @@ function AdminCitiesPage() {
                                         className: "mr-1.5 h-3.5 w-3.5 animate-spin"
                                     }, void 0, false, {
                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                        lineNumber: 515,
+                                        lineNumber: 529,
                                         columnNumber: 17
                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$file$2d$text$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__FileText$3e$__["FileText"], {
                                         className: "mr-1.5 h-3.5 w-3.5"
                                     }, void 0, false, {
                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                        lineNumber: 517,
+                                        lineNumber: 531,
                                         columnNumber: 17
                                     }, this),
                                     "Apply Template"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 507,
+                                lineNumber: 521,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/admin/cities/page.tsx",
-                        lineNumber: 491,
+                        lineNumber: 505,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -1687,13 +1703,13 @@ function AdminCitiesPage() {
                         children: "Clear"
                     }, void 0, false, {
                         fileName: "[project]/app/admin/cities/page.tsx",
-                        lineNumber: 523,
+                        lineNumber: 537,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/admin/cities/page.tsx",
-                lineNumber: 463,
+                lineNumber: 477,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1706,7 +1722,7 @@ function AdminCitiesPage() {
                                 className: "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 536,
+                                lineNumber: 550,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -1717,13 +1733,13 @@ function AdminCitiesPage() {
                                 "data-testid": "input-admin-search"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 537,
+                                lineNumber: 551,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/admin/cities/page.tsx",
-                        lineNumber: 535,
+                        lineNumber: 549,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -1737,7 +1753,7 @@ function AdminCitiesPage() {
                                 children: "All States"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 551,
+                                lineNumber: 565,
                                 columnNumber: 11
                             }, this),
                             states.map((s)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1745,13 +1761,13 @@ function AdminCitiesPage() {
                                     children: s
                                 }, s, false, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 553,
+                                    lineNumber: 567,
                                     columnNumber: 13
                                 }, this))
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/admin/cities/page.tsx",
-                        lineNumber: 545,
+                        lineNumber: 559,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -1765,7 +1781,7 @@ function AdminCitiesPage() {
                                 children: "All Status"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 564,
+                                lineNumber: 578,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1773,7 +1789,7 @@ function AdminCitiesPage() {
                                 children: "Published"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 565,
+                                lineNumber: 579,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1781,19 +1797,19 @@ function AdminCitiesPage() {
                                 children: "Draft"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 566,
+                                lineNumber: 580,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/admin/cities/page.tsx",
-                        lineNumber: 558,
+                        lineNumber: 572,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/admin/cities/page.tsx",
-                lineNumber: 534,
+                lineNumber: 548,
                 columnNumber: 7
             }, this),
             isLoading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
@@ -1807,39 +1823,39 @@ function AdminCitiesPage() {
                                 className: "h-4 w-4"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 574,
+                                lineNumber: 588,
                                 columnNumber: 15
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$skeleton$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Skeleton"], {
                                 className: "h-4 w-32"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 575,
+                                lineNumber: 589,
                                 columnNumber: 15
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$skeleton$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Skeleton"], {
                                 className: "h-4 w-12"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 576,
+                                lineNumber: 590,
                                 columnNumber: 15
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$skeleton$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Skeleton"], {
                                 className: "h-5 w-16"
                             }, void 0, false, {
                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                lineNumber: 577,
+                                lineNumber: 591,
                                 columnNumber: 15
                             }, this)
                         ]
                     }, i, true, {
                         fileName: "[project]/app/admin/cities/page.tsx",
-                        lineNumber: 573,
+                        lineNumber: 587,
                         columnNumber: 13
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/app/admin/cities/page.tsx",
-                lineNumber: 571,
+                lineNumber: 585,
                 columnNumber: 9
             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
                 className: "overflow-hidden",
@@ -1861,12 +1877,12 @@ function AdminCitiesPage() {
                                                     "data-testid": "checkbox-select-all"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 588,
+                                                    lineNumber: 602,
                                                     columnNumber: 21
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                lineNumber: 587,
+                                                lineNumber: 601,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1874,7 +1890,7 @@ function AdminCitiesPage() {
                                                 children: "City"
                                             }, void 0, false, {
                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                lineNumber: 596,
+                                                lineNumber: 610,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1882,7 +1898,7 @@ function AdminCitiesPage() {
                                                 children: "State"
                                             }, void 0, false, {
                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                lineNumber: 597,
+                                                lineNumber: 611,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1890,7 +1906,15 @@ function AdminCitiesPage() {
                                                 children: "Status"
                                             }, void 0, false, {
                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                lineNumber: 598,
+                                                lineNumber: 612,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                className: "px-4 py-3 text-left font-medium",
+                                                children: "Coordinates"
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                lineNumber: 613,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1898,7 +1922,7 @@ function AdminCitiesPage() {
                                                 children: "Slug"
                                             }, void 0, false, {
                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                lineNumber: 599,
+                                                lineNumber: 614,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1906,18 +1930,18 @@ function AdminCitiesPage() {
                                                 children: "Actions"
                                             }, void 0, false, {
                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                lineNumber: 600,
+                                                lineNumber: 615,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                        lineNumber: 586,
+                                        lineNumber: 600,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 585,
+                                    lineNumber: 599,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
@@ -1932,12 +1956,12 @@ function AdminCitiesPage() {
                                                         onCheckedChange: ()=>toggleOne(city.id)
                                                     }, void 0, false, {
                                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                                        lineNumber: 611,
+                                                        lineNumber: 626,
                                                         columnNumber: 23
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 610,
+                                                    lineNumber: 625,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1945,7 +1969,7 @@ function AdminCitiesPage() {
                                                     children: city.cityName
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 616,
+                                                    lineNumber: 631,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1953,7 +1977,7 @@ function AdminCitiesPage() {
                                                     children: city.stateCode
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 617,
+                                                    lineNumber: 632,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1965,14 +1989,14 @@ function AdminCitiesPage() {
                                                                 className: "mr-1 h-3 w-3"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                                lineNumber: 623,
+                                                                lineNumber: 638,
                                                                 columnNumber: 27
                                                             }, this),
                                                             "Published"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                                        lineNumber: 622,
+                                                        lineNumber: 637,
                                                         columnNumber: 25
                                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$badge$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Badge"], {
                                                         variant: "secondary",
@@ -1981,19 +2005,54 @@ function AdminCitiesPage() {
                                                                 className: "mr-1 h-3 w-3"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                                lineNumber: 628,
+                                                                lineNumber: 643,
                                                                 columnNumber: 27
                                                             }, this),
                                                             "Draft"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                                        lineNumber: 627,
+                                                        lineNumber: 642,
                                                         columnNumber: 25
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 620,
+                                                    lineNumber: 635,
+                                                    columnNumber: 21
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                    className: "px-4 py-3",
+                                                    children: city.latitude && city.longitude ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                        className: "inline-flex items-center gap-1 text-xs text-muted-foreground font-mono",
+                                                        "data-testid": `text-coords-${city.slug}`,
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$map$2d$pin$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__MapPin$3e$__["MapPin"], {
+                                                                className: "h-3 w-3 text-green-500 shrink-0"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                                lineNumber: 651,
+                                                                columnNumber: 27
+                                                            }, this),
+                                                            parseFloat(city.latitude).toFixed(4),
+                                                            ", ",
+                                                            parseFloat(city.longitude).toFixed(4)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                                        lineNumber: 650,
+                                                        columnNumber: 25
+                                                    }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                        className: "text-xs text-muted-foreground/50",
+                                                        "data-testid": `text-coords-missing-${city.slug}`,
+                                                        children: "--"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                                        lineNumber: 655,
+                                                        columnNumber: 25
+                                                    }, this)
+                                                }, void 0, false, {
+                                                    fileName: "[project]/app/admin/cities/page.tsx",
+                                                    lineNumber: 648,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -2001,7 +2060,7 @@ function AdminCitiesPage() {
                                                     children: city.slug
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 633,
+                                                    lineNumber: 660,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -2018,12 +2077,12 @@ function AdminCitiesPage() {
                                                                     className: "h-3.5 w-3.5"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                                    lineNumber: 644,
+                                                                    lineNumber: 671,
                                                                     columnNumber: 27
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                                lineNumber: 638,
+                                                                lineNumber: 665,
                                                                 columnNumber: 25
                                                             }, this),
                                                             deleteConfirmId === city.id ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2039,12 +2098,12 @@ function AdminCitiesPage() {
                                                                             className: "h-3.5 w-3.5 animate-spin"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                                                            lineNumber: 656,
+                                                                            lineNumber: 683,
                                                                             columnNumber: 33
                                                                         }, this) : "Yes"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                                                        lineNumber: 648,
+                                                                        lineNumber: 675,
                                                                         columnNumber: 29
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -2054,13 +2113,13 @@ function AdminCitiesPage() {
                                                                         children: "No"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                                                        lineNumber: 661,
+                                                                        lineNumber: 688,
                                                                         columnNumber: 29
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                                lineNumber: 647,
+                                                                lineNumber: 674,
                                                                 columnNumber: 27
                                                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
                                                                 size: "icon",
@@ -2071,12 +2130,12 @@ function AdminCitiesPage() {
                                                                     className: "h-3.5 w-3.5"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                                    lineNumber: 676,
+                                                                    lineNumber: 703,
                                                                     columnNumber: 29
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                                lineNumber: 670,
+                                                                lineNumber: 697,
                                                                 columnNumber: 27
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
@@ -2091,50 +2150,50 @@ function AdminCitiesPage() {
                                                                         className: "h-3.5 w-3.5"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                                                        lineNumber: 686,
+                                                                        lineNumber: 713,
                                                                         columnNumber: 29
                                                                     }, this)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                                    lineNumber: 685,
+                                                                    lineNumber: 712,
                                                                     columnNumber: 27
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                                lineNumber: 679,
+                                                                lineNumber: 706,
                                                                 columnNumber: 25
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/app/admin/cities/page.tsx",
-                                                        lineNumber: 637,
+                                                        lineNumber: 664,
                                                         columnNumber: 23
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 636,
+                                                    lineNumber: 663,
                                                     columnNumber: 21
                                                 }, this)
                                             ]
                                         }, city.id, true, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 605,
+                                            lineNumber: 620,
                                             columnNumber: 19
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 603,
+                                    lineNumber: 618,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/admin/cities/page.tsx",
-                            lineNumber: 584,
+                            lineNumber: 598,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/app/admin/cities/page.tsx",
-                        lineNumber: 583,
+                        lineNumber: 597,
                         columnNumber: 11
                     }, this),
                     filtered.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2142,13 +2201,13 @@ function AdminCitiesPage() {
                         children: "No cities match your filters"
                     }, void 0, false, {
                         fileName: "[project]/app/admin/cities/page.tsx",
-                        lineNumber: 697,
+                        lineNumber: 724,
                         columnNumber: 13
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/admin/cities/page.tsx",
-                lineNumber: 582,
+                lineNumber: 596,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Dialog"], {
@@ -2164,20 +2223,20 @@ function AdminCitiesPage() {
                                     children: editingCity ? "Edit City" : "Add New City"
                                 }, void 0, false, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 707,
+                                    lineNumber: 734,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogDescription"], {
                                     children: editingCity ? "Update the city details below." : "Fill in the details to add a new city."
                                 }, void 0, false, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 710,
+                                    lineNumber: 737,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/admin/cities/page.tsx",
-                            lineNumber: 706,
+                            lineNumber: 733,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -2195,7 +2254,7 @@ function AdminCitiesPage() {
                                                     children: "City Name *"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 717,
+                                                    lineNumber: 744,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2207,13 +2266,13 @@ function AdminCitiesPage() {
                                                     "data-testid": "input-city-name"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 718,
+                                                    lineNumber: 745,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 716,
+                                            lineNumber: 743,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2224,7 +2283,7 @@ function AdminCitiesPage() {
                                                     children: "State *"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 728,
+                                                    lineNumber: 755,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -2245,7 +2304,7 @@ function AdminCitiesPage() {
                                                             children: "Select state..."
                                                         }, void 0, false, {
                                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                                            lineNumber: 742,
+                                                            lineNumber: 769,
                                                             columnNumber: 19
                                                         }, this),
                                                         US_STATES.map((s)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -2258,25 +2317,25 @@ function AdminCitiesPage() {
                                                                 ]
                                                             }, s.code, true, {
                                                                 fileName: "[project]/app/admin/cities/page.tsx",
-                                                                lineNumber: 744,
+                                                                lineNumber: 771,
                                                                 columnNumber: 21
                                                             }, this))
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 729,
+                                                    lineNumber: 756,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 727,
+                                            lineNumber: 754,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 715,
+                                    lineNumber: 742,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2287,7 +2346,7 @@ function AdminCitiesPage() {
                                             children: "Street Address"
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 753,
+                                            lineNumber: 780,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2298,13 +2357,13 @@ function AdminCitiesPage() {
                                             "data-testid": "input-street-address"
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 754,
+                                            lineNumber: 781,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 752,
+                                    lineNumber: 779,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2318,7 +2377,7 @@ function AdminCitiesPage() {
                                                     children: "Zip Code"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 765,
+                                                    lineNumber: 792,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2329,13 +2388,13 @@ function AdminCitiesPage() {
                                                     "data-testid": "input-zip-code"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 766,
+                                                    lineNumber: 793,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 764,
+                                            lineNumber: 791,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2346,7 +2405,7 @@ function AdminCitiesPage() {
                                                     children: "Phone Number"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 775,
+                                                    lineNumber: 802,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2357,19 +2416,19 @@ function AdminCitiesPage() {
                                                     "data-testid": "input-phone"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 776,
+                                                    lineNumber: 803,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 774,
+                                            lineNumber: 801,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 763,
+                                    lineNumber: 790,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2380,7 +2439,7 @@ function AdminCitiesPage() {
                                             children: "Email"
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 787,
+                                            lineNumber: 814,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2391,14 +2450,129 @@ function AdminCitiesPage() {
                                             "data-testid": "input-email"
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 788,
+                                            lineNumber: 815,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 786,
+                                    lineNumber: 813,
                                     columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "grid grid-cols-2 gap-4",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "space-y-1.5",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$label$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Label"], {
+                                                    htmlFor: "latitude",
+                                                    className: "inline-flex items-center gap-1.5",
+                                                    children: [
+                                                        "Latitude",
+                                                        editingCity && editingCity.latitude && formData.latitude === editingCity.latitude && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$badge$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Badge"], {
+                                                            variant: "secondary",
+                                                            className: "text-[10px] no-default-active-elevate",
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$map$2d$pin$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__MapPin$3e$__["MapPin"], {
+                                                                    className: "mr-0.5 h-2.5 w-2.5"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/app/admin/cities/page.tsx",
+                                                                    lineNumber: 830,
+                                                                    columnNumber: 23
+                                                                }, this),
+                                                                "Auto-detected"
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/app/admin/cities/page.tsx",
+                                                            lineNumber: 829,
+                                                            columnNumber: 21
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/app/admin/cities/page.tsx",
+                                                    lineNumber: 826,
+                                                    columnNumber: 17
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
+                                                    id: "latitude",
+                                                    value: formData.latitude,
+                                                    onChange: (e)=>updateField("latitude", e.target.value),
+                                                    placeholder: "e.g. 32.7157",
+                                                    "data-testid": "input-latitude"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/app/admin/cities/page.tsx",
+                                                    lineNumber: 835,
+                                                    columnNumber: 17
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/app/admin/cities/page.tsx",
+                                            lineNumber: 825,
+                                            columnNumber: 15
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "space-y-1.5",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$label$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Label"], {
+                                                    htmlFor: "longitude",
+                                                    className: "inline-flex items-center gap-1.5",
+                                                    children: [
+                                                        "Longitude",
+                                                        editingCity && editingCity.longitude && formData.longitude === editingCity.longitude && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$badge$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Badge"], {
+                                                            variant: "secondary",
+                                                            className: "text-[10px] no-default-active-elevate",
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$map$2d$pin$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__MapPin$3e$__["MapPin"], {
+                                                                    className: "mr-0.5 h-2.5 w-2.5"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/app/admin/cities/page.tsx",
+                                                                    lineNumber: 848,
+                                                                    columnNumber: 23
+                                                                }, this),
+                                                                "Auto-detected"
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/app/admin/cities/page.tsx",
+                                                            lineNumber: 847,
+                                                            columnNumber: 21
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/app/admin/cities/page.tsx",
+                                                    lineNumber: 844,
+                                                    columnNumber: 17
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
+                                                    id: "longitude",
+                                                    value: formData.longitude,
+                                                    onChange: (e)=>updateField("longitude", e.target.value),
+                                                    placeholder: "e.g. -117.1611",
+                                                    "data-testid": "input-longitude"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/app/admin/cities/page.tsx",
+                                                    lineNumber: 853,
+                                                    columnNumber: 17
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/app/admin/cities/page.tsx",
+                                            lineNumber: 843,
+                                            columnNumber: 15
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/app/admin/cities/page.tsx",
+                                    lineNumber: 824,
+                                    columnNumber: 13
+                                }, this),
+                                !editingCity && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                    className: "text-xs text-muted-foreground",
+                                    children: "Leave blank to auto-detect from address using geocoding."
+                                }, void 0, false, {
+                                    fileName: "[project]/app/admin/cities/page.tsx",
+                                    lineNumber: 863,
+                                    columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                     className: "space-y-1.5",
@@ -2408,7 +2582,7 @@ function AdminCitiesPage() {
                                             children: "Local Landmarks (comma-separated)"
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 798,
+                                            lineNumber: 869,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2419,13 +2593,13 @@ function AdminCitiesPage() {
                                             "data-testid": "input-landmarks"
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 799,
+                                            lineNumber: 870,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 797,
+                                    lineNumber: 868,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2436,7 +2610,7 @@ function AdminCitiesPage() {
                                             children: "Nearby Cities (comma-separated)"
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 809,
+                                            lineNumber: 880,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2447,13 +2621,13 @@ function AdminCitiesPage() {
                                             "data-testid": "input-nearby-cities"
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 810,
+                                            lineNumber: 881,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 808,
+                                    lineNumber: 879,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2464,7 +2638,7 @@ function AdminCitiesPage() {
                                             children: "SEO Settings"
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 820,
+                                            lineNumber: 891,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2478,7 +2652,7 @@ function AdminCitiesPage() {
                                                             children: "Title Tag (Title in Search Results)"
                                                         }, void 0, false, {
                                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                                            lineNumber: 824,
+                                                            lineNumber: 895,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2490,7 +2664,7 @@ function AdminCitiesPage() {
                                                             "data-testid": "input-meta-title"
                                                         }, void 0, false, {
                                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                                            lineNumber: 825,
+                                                            lineNumber: 896,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2501,13 +2675,13 @@ function AdminCitiesPage() {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                                            lineNumber: 833,
+                                                            lineNumber: 904,
                                                             columnNumber: 19
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 823,
+                                                    lineNumber: 894,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2518,7 +2692,7 @@ function AdminCitiesPage() {
                                                             children: "Meta Description (Description in Search Results)"
                                                         }, void 0, false, {
                                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                                            lineNumber: 839,
+                                                            lineNumber: 910,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$textarea$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Textarea"], {
@@ -2532,7 +2706,7 @@ function AdminCitiesPage() {
                                                             "data-testid": "input-meta-description"
                                                         }, void 0, false, {
                                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                                            lineNumber: 840,
+                                                            lineNumber: 911,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2543,13 +2717,13 @@ function AdminCitiesPage() {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                                            lineNumber: 850,
+                                                            lineNumber: 921,
                                                             columnNumber: 19
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 838,
+                                                    lineNumber: 909,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2564,7 +2738,7 @@ function AdminCitiesPage() {
                                                                     children: "Let search engines index this page"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                                    lineNumber: 857,
+                                                                    lineNumber: 928,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2572,13 +2746,13 @@ function AdminCitiesPage() {
                                                                     children: "When off, this page won't appear in Google or other search engines"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                                    lineNumber: 860,
+                                                                    lineNumber: 931,
                                                                     columnNumber: 21
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                                            lineNumber: 856,
+                                                            lineNumber: 927,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$switch$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Switch"], {
@@ -2588,25 +2762,25 @@ function AdminCitiesPage() {
                                                             "data-testid": "switch-allow-indexing"
                                                         }, void 0, false, {
                                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                                            lineNumber: 864,
+                                                            lineNumber: 935,
                                                             columnNumber: 19
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 855,
+                                                    lineNumber: 926,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 822,
+                                            lineNumber: 893,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 819,
+                                    lineNumber: 890,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2619,7 +2793,7 @@ function AdminCitiesPage() {
                                             "data-testid": "checkbox-published"
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 875,
+                                            lineNumber: 946,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$label$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Label"], {
@@ -2628,13 +2802,13 @@ function AdminCitiesPage() {
                                             children: "Publish immediately"
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 881,
+                                            lineNumber: 952,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 874,
+                                    lineNumber: 945,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2648,7 +2822,7 @@ function AdminCitiesPage() {
                                             children: "Cancel"
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 887,
+                                            lineNumber: 958,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -2660,37 +2834,37 @@ function AdminCitiesPage() {
                                                     className: "mr-1.5 h-4 w-4 animate-spin"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                                    lineNumber: 901,
+                                                    lineNumber: 972,
                                                     columnNumber: 19
                                                 }, this) : null,
                                                 editingCity ? "Save Changes" : "Add City"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 895,
+                                            lineNumber: 966,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 886,
+                                    lineNumber: 957,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/admin/cities/page.tsx",
-                            lineNumber: 714,
+                            lineNumber: 741,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/app/admin/cities/page.tsx",
-                    lineNumber: 705,
+                    lineNumber: 732,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/app/admin/cities/page.tsx",
-                lineNumber: 704,
+                lineNumber: 731,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Dialog"], {
@@ -2705,20 +2879,20 @@ function AdminCitiesPage() {
                                     children: "Delete City"
                                 }, void 0, false, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 913,
+                                    lineNumber: 984,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogDescription"], {
                                     children: "This action cannot be undone."
                                 }, void 0, false, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 914,
+                                    lineNumber: 985,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/admin/cities/page.tsx",
-                            lineNumber: 912,
+                            lineNumber: 983,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2726,7 +2900,7 @@ function AdminCitiesPage() {
                             children: "Are you sure you want to delete this city? This action cannot be undone."
                         }, void 0, false, {
                             fileName: "[project]/app/admin/cities/page.tsx",
-                            lineNumber: 916,
+                            lineNumber: 987,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2739,7 +2913,7 @@ function AdminCitiesPage() {
                                     children: "Cancel"
                                 }, void 0, false, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 920,
+                                    lineNumber: 991,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -2752,31 +2926,31 @@ function AdminCitiesPage() {
                                             className: "mr-1.5 h-4 w-4 animate-spin"
                                         }, void 0, false, {
                                             fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 929,
+                                            lineNumber: 1000,
                                             columnNumber: 47
                                         }, this) : null,
                                         "Delete"
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 923,
+                                    lineNumber: 994,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/admin/cities/page.tsx",
-                            lineNumber: 919,
+                            lineNumber: 990,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/app/admin/cities/page.tsx",
-                    lineNumber: 911,
+                    lineNumber: 982,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/app/admin/cities/page.tsx",
-                lineNumber: 910,
+                lineNumber: 981,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Dialog"], {
@@ -2792,152 +2966,327 @@ function AdminCitiesPage() {
                                     children: "Bulk Upload Cities"
                                 }, void 0, false, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 939,
+                                    lineNumber: 1010,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogDescription"], {
                                     children: "Upload a CSV file to add multiple cities at once."
                                 }, void 0, false, {
                                     fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 940,
+                                    lineNumber: 1011,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/admin/cities/page.tsx",
-                            lineNumber: 938,
+                            lineNumber: 1009,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: "space-y-4",
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                    className: "text-sm text-muted-foreground",
-                                    children: "Download the template first to see the correct column format, then fill it in and upload."
-                                }, void 0, false, {
-                                    fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 945,
-                                    columnNumber: 13
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
-                                    variant: "outline",
-                                    className: "w-full",
-                                    onClick: downloadCSVTemplate,
-                                    "data-testid": "button-download-csv-template",
-                                    children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$download$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Download$3e$__["Download"], {
-                                            className: "mr-1.5 h-4 w-4"
-                                        }, void 0, false, {
-                                            fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 954,
-                                            columnNumber: 15
-                                        }, this),
-                                        "Download CSV Template"
-                                    ]
-                                }, void 0, true, {
-                                    fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 948,
-                                    columnNumber: 13
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "border-t pt-4",
-                                    children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$label$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Label"], {
-                                            htmlFor: "csvFile",
-                                            className: "mb-2 block",
-                                            children: "Upload your CSV file"
-                                        }, void 0, false, {
-                                            fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 958,
-                                            columnNumber: 15
-                                        }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                            ref: fileInputRef,
-                                            id: "csvFile",
-                                            type: "file",
-                                            accept: ".csv,text/csv",
-                                            onChange: handleCsvUpload,
-                                            className: "block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary-foreground",
-                                            "data-testid": "input-csv-file"
-                                        }, void 0, false, {
-                                            fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 959,
-                                            columnNumber: 15
-                                        }, this)
-                                    ]
-                                }, void 0, true, {
-                                    fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 957,
-                                    columnNumber: 13
-                                }, this),
-                                bulkCsvMutation.isPending && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "flex items-center gap-2 text-sm text-muted-foreground",
-                                    children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$loader$2d$circle$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Loader2$3e$__["Loader2"], {
-                                            className: "h-4 w-4 animate-spin"
-                                        }, void 0, false, {
-                                            fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 971,
-                                            columnNumber: 17
-                                        }, this),
-                                        "Uploading and processing..."
-                                    ]
-                                }, void 0, true, {
-                                    fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 970,
-                                    columnNumber: 15
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "text-xs text-muted-foreground space-y-1",
-                                    children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                            children: [
-                                                "Column format: ",
-                                                CSV_COLUMNS.join(", ")
-                                            ]
-                                        }, void 0, true, {
-                                            fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 976,
-                                            columnNumber: 15
-                                        }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                            children: "Use pipe (|) to separate multiple landmarks or nearby cities."
-                                        }, void 0, false, {
-                                            fileName: "[project]/app/admin/cities/page.tsx",
-                                            lineNumber: 977,
-                                            columnNumber: 15
-                                        }, this)
-                                    ]
-                                }, void 0, true, {
-                                    fileName: "[project]/app/admin/cities/page.tsx",
-                                    lineNumber: 975,
-                                    columnNumber: 13
-                                }, this)
-                            ]
-                        }, void 0, true, {
+                            children: csvResults ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "space-y-3",
+                                "data-testid": "div-csv-results",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                                        className: "text-sm font-semibold",
+                                        children: "Upload Results"
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                        lineNumber: 1018,
+                                        columnNumber: 17
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "grid grid-cols-2 gap-3",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
+                                                className: "p-3 text-center",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                        className: "text-2xl font-bold text-green-600",
+                                                        "data-testid": "text-csv-created",
+                                                        children: csvResults.created
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                                        lineNumber: 1021,
+                                                        columnNumber: 21
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                        className: "text-xs text-muted-foreground",
+                                                        children: "Cities Created"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                                        lineNumber: 1022,
+                                                        columnNumber: 21
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                lineNumber: 1020,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
+                                                className: "p-3 text-center",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                        className: "text-2xl font-bold text-muted-foreground",
+                                                        "data-testid": "text-csv-skipped",
+                                                        children: csvResults.skipped
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                                        lineNumber: 1025,
+                                                        columnNumber: 21
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                        className: "text-xs text-muted-foreground",
+                                                        children: "Skipped"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                                        lineNumber: 1026,
+                                                        columnNumber: 21
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                lineNumber: 1024,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
+                                                className: "p-3 text-center",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                        className: "text-2xl font-bold text-blue-600",
+                                                        "data-testid": "text-csv-geocoded",
+                                                        children: csvResults.geocoded
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                                        lineNumber: 1029,
+                                                        columnNumber: 21
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                        className: "text-xs text-muted-foreground",
+                                                        children: "Geocoded"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                                        lineNumber: 1030,
+                                                        columnNumber: 21
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                lineNumber: 1028,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
+                                                className: "p-3 text-center",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                        className: "text-2xl font-bold text-orange-500",
+                                                        "data-testid": "text-csv-geocode-failed",
+                                                        children: csvResults.geocodeFailed
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                                        lineNumber: 1033,
+                                                        columnNumber: 21
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                        className: "text-xs text-muted-foreground",
+                                                        children: "Geocode Failed"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                                        lineNumber: 1034,
+                                                        columnNumber: 21
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                lineNumber: 1032,
+                                                columnNumber: 19
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                        lineNumber: 1019,
+                                        columnNumber: 17
+                                    }, this),
+                                    csvResults.errors.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "rounded-md border p-3 text-xs space-y-1 max-h-32 overflow-y-auto",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                className: "font-medium text-destructive",
+                                                children: "Issues:"
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                lineNumber: 1039,
+                                                columnNumber: 21
+                                            }, this),
+                                            csvResults.errors.map((err, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                    className: "text-muted-foreground",
+                                                    children: err
+                                                }, i, false, {
+                                                    fileName: "[project]/app/admin/cities/page.tsx",
+                                                    lineNumber: 1041,
+                                                    columnNumber: 23
+                                                }, this))
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                        lineNumber: 1038,
+                                        columnNumber: 19
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
+                                        className: "w-full",
+                                        variant: "outline",
+                                        onClick: ()=>setCsvResults(null),
+                                        "data-testid": "button-upload-another",
+                                        children: "Upload Another File"
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                        lineNumber: 1045,
+                                        columnNumber: 17
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/app/admin/cities/page.tsx",
+                                lineNumber: 1017,
+                                columnNumber: 15
+                            }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        className: "text-sm text-muted-foreground",
+                                        children: "Download the template first to see the correct column format, then fill it in and upload."
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                        lineNumber: 1056,
+                                        columnNumber: 17
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
+                                        variant: "outline",
+                                        className: "w-full",
+                                        onClick: downloadCSVTemplate,
+                                        "data-testid": "button-download-csv-template",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$download$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Download$3e$__["Download"], {
+                                                className: "mr-1.5 h-4 w-4"
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                lineNumber: 1065,
+                                                columnNumber: 19
+                                            }, this),
+                                            "Download CSV Template"
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                        lineNumber: 1059,
+                                        columnNumber: 17
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "border-t pt-4",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$label$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Label"], {
+                                                htmlFor: "csvFile",
+                                                className: "mb-2 block",
+                                                children: "Upload your CSV file"
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                lineNumber: 1069,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                ref: fileInputRef,
+                                                id: "csvFile",
+                                                type: "file",
+                                                accept: ".csv,text/csv",
+                                                onChange: handleCsvUpload,
+                                                className: "block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary-foreground",
+                                                "data-testid": "input-csv-file"
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                lineNumber: 1070,
+                                                columnNumber: 19
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                        lineNumber: 1068,
+                                        columnNumber: 17
+                                    }, this),
+                                    bulkCsvMutation.isPending && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "flex items-center gap-2 text-sm text-muted-foreground",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$loader$2d$circle$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Loader2$3e$__["Loader2"], {
+                                                className: "h-4 w-4 animate-spin"
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                lineNumber: 1082,
+                                                columnNumber: 21
+                                            }, this),
+                                            "Uploading and processing..."
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                        lineNumber: 1081,
+                                        columnNumber: 19
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "text-xs text-muted-foreground space-y-1",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                children: [
+                                                    "Column format: ",
+                                                    CSV_COLUMNS.join(", ")
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                lineNumber: 1087,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                children: "Use pipe (|) to separate multiple landmarks or nearby cities."
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                lineNumber: 1088,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                children: "Leave latitude/longitude blank to auto-detect via geocoding."
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/admin/cities/page.tsx",
+                                                lineNumber: 1089,
+                                                columnNumber: 19
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/app/admin/cities/page.tsx",
+                                        lineNumber: 1086,
+                                        columnNumber: 17
+                                    }, this)
+                                ]
+                            }, void 0, true)
+                        }, void 0, false, {
                             fileName: "[project]/app/admin/cities/page.tsx",
-                            lineNumber: 944,
+                            lineNumber: 1015,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/app/admin/cities/page.tsx",
-                    lineNumber: 937,
+                    lineNumber: 1008,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/app/admin/cities/page.tsx",
-                lineNumber: 936,
+                lineNumber: 1007,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/admin/cities/page.tsx",
-        lineNumber: 436,
+        lineNumber: 450,
         columnNumber: 5
     }, this);
 }
-_s(AdminCitiesPage, "ljq/xeD/dhVgiel+1xwjQI2zcdY=", false, function() {
+_s(AdminCitiesPage, "zLSbg/N8UCmIMu8QGAYuS0j+ZFs=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$hooks$2f$use$2d$toast$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useToast"],
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"],

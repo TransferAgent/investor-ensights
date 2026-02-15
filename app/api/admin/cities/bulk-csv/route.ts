@@ -16,9 +16,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No rows provided" }, { status: 400 });
     }
 
-    const results: { created: number; skipped: number; errors: string[] } = {
+    const results: { created: number; skipped: number; geocoded: number; geocodeFailed: number; errors: string[] } = {
       created: 0,
       skipped: 0,
+      geocoded: 0,
+      geocodeFailed: 0,
       errors: [],
     };
 
@@ -56,6 +58,9 @@ export async function POST(request: NextRequest) {
           if (geo.success) {
             lat = String(geo.latitude);
             lng = String(geo.longitude);
+            results.geocoded++;
+          } else {
+            results.geocodeFailed++;
           }
         }
 
