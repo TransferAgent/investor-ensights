@@ -255,23 +255,36 @@ export default async function CityPage({
           </section>
         )}
 
-        {city.mapEmbedUrl && (
-          <section className="mb-10">
-            <h3 className="mb-4 text-xl font-semibold">Find Us</h3>
-            <div className="overflow-hidden rounded-md border">
-              <iframe
-                src={city.mapEmbedUrl}
-                width="100%"
-                height="400"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title={`Map of ${city.cityName} office`}
-              />
-            </div>
-          </section>
-        )}
+        {(() => {
+          let mapSrc = city.mapEmbedUrl || null
+          if (!mapSrc && city.streetAddress) {
+            const parts = [city.streetAddress, city.cityName, city.stateCode]
+            if (city.zipCode) parts.push(city.zipCode)
+            mapSrc = `https://www.google.com/maps?q=${encodeURIComponent(parts.join(", "))}&output=embed`
+          }
+          if (!mapSrc && city.latitude && city.longitude) {
+            mapSrc = `https://www.google.com/maps?q=${city.latitude},${city.longitude}&output=embed`
+          }
+          if (!mapSrc) return null
+          return (
+            <section className="mb-10" data-testid="section-map">
+              <h3 className="mb-4 text-xl font-semibold">Find Us</h3>
+              <div className="overflow-hidden rounded-md border">
+                <iframe
+                  src={mapSrc}
+                  width="100%"
+                  height="400"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title={`Map of ${city.cityName} office`}
+                  data-testid="iframe-map"
+                />
+              </div>
+            </section>
+          )
+        })()}
 
         {nearbyCities.length > 0 && (
           <section className="mb-10" data-testid="section-nearby-cities">
