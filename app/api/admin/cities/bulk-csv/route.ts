@@ -74,11 +74,11 @@ export async function POST(request: NextRequest) {
           email: (row.email || "").trim() || null,
           slug,
           localLandmarks: typeof landmarks === "string" && landmarks
-            ? landmarks.split("|").map((s: string) => s.trim()).filter(Boolean)
-            : [],
+            ? landmarks.split(/[|,]/).map((s: string) => s.trim()).filter(Boolean)
+            : Array.isArray(landmarks) ? landmarks : [],
           nearbyCities: typeof nearby === "string" && nearby
-            ? nearby.split("|").map((s: string) => s.trim()).filter(Boolean)
-            : [],
+            ? nearby.split(/[|,]/).map((s: string) => s.trim()).filter(Boolean)
+            : Array.isArray(nearby) ? nearby : [],
           latitude: lat,
           longitude: lng,
           metaTitle: (row.metaTitle || row.meta_title || "").trim() || null,

@@ -1085,7 +1085,7 @@ export default function AdminCitiesPage() {
                 )}
                 <div className="text-xs text-muted-foreground space-y-1">
                   <p>Column format: {CSV_COLUMNS.join(", ")}</p>
-                  <p>Use pipe (|) to separate multiple landmarks or nearby cities.</p>
+                  <p>Use pipe (|) or comma to separate multiple landmarks or nearby cities. If using commas, wrap the field in quotes in your CSV.</p>
                   <p>Leave latitude/longitude blank to auto-detect via geocoding.</p>
                 </div>
               </>
