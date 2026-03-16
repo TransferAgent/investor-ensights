@@ -1,11 +1,1 @@
-{
-  "version": 4,
-  "routes": {},
-  "dynamicRoutes": {},
-  "notFoundRoutes": [],
-  "preview": {
-    "previewModeId": "c2054092ee17cfe68e78d7819ceb3b30",
-    "previewModeSigningKey": "18b58c0cf118aff17d4591582162f5d9a77d4b0faa5dee67735c4664483ae4a2",
-    "previewModeEncryptionKey": "120c4b015e06d68f815e7490cf3c80cf8ba7f82b247f377fe05f5ec9bf7c542c"
-  }
-}
+{"version":4,"routes":{"/locations/atlanta-ga":{},"/locations/boston-ma":{},"/locations/chicago-il":{},"/locations/dallas-tx":{},"/locations/denver-co":{},"/locations/houston-tx":{},"/locations/irvine-ca":{},"/locations/los-angeles-ca":{},"/locations/miami-fl":{},"/locations/new-york-ny":{},"/locations/philadelphia-pa":{},"/locations/phoenix-az":{},"/locations/san-francisco-ca":{},"/locations/seattle-wa":{},"/locations/testcity-3vtw-h-ca":{}},"dynamicRoutes":{"/locations/[slug]":{"dataRoute":null,"dataRouteRegex":null,"fallback":null,"fallbackRevalidate":false,"fallbackSourceRoute":"/locations/[slug]","routeRegex":"^\\/locations\\/([^/]+?)(?:\\/)?$","allowHeader":[]}},"notFoundRoutes":[],"preview":{"previewModeId":"44b13d7a78310b98bfc47deaf0f4a444","previewModeSigningKey":"ed8767ecab7e7e64f6d340d63b35904574758eba4ede3b7f63f7e9d636b7e3ae","previewModeEncryptionKey":"f68b63529d64531033cdf6dbf8b2e92c411d80acdef3249c30fcffd38127322a"}}

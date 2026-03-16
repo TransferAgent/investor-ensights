@@ -41,12 +41,17 @@ export async function generateMetadata({
     return { title: "Location Not Found" }
   }
 
+  const landmarks = (city.localLandmarks as string[]) || []
+  const landmarkSnippet = landmarks.length > 0
+    ? ` Find our local team near ${landmarks.slice(0, 3).join(", ")}.`
+    : ""
+
   const title =
     city.metaTitle ||
-    `YourCompany ${city.cityName}, ${city.stateCode} - Sales & Marketing Services`
+    `Tableicity - Equity Management Services in ${city.cityName}, ${city.stateCode}`
   const description =
     city.metaDescription ||
-    `Professional sales and marketing services in ${city.cityName}, ${city.stateName || city.stateCode}. Contact our local team today.`
+    `Privacy-first cap table management in ${city.cityName}, ${city.stateName || city.stateCode}. Manage equity, stakeholders, and compliance with enterprise-grade security.${landmarkSnippet}`
 
   return {
     title,
@@ -58,7 +63,7 @@ export async function generateMetadata({
       title,
       description,
       url: `${BASE_URL}/locations/${city.slug}`,
-      siteName: "YourCompany",
+      siteName: "Tableicity",
       type: "website",
     },
   }
@@ -115,7 +120,7 @@ export default async function CityPage({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
-    name: `YourCompany - ${city.cityName}`,
+    name: `Tableicity - ${city.cityName}`,
     address: {
       "@type": "PostalAddress",
       streetAddress: city.streetAddress,
@@ -143,12 +148,12 @@ export default async function CityPage({
         <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-primary/80" />
         <div className="relative mx-auto max-w-4xl px-4">
           <Link
-            href="/"
+            href="/locations"
             className="mb-4 inline-flex items-center gap-1.5 text-sm text-primary-foreground/70 hover:text-primary-foreground transition-colors"
-            data-testid="link-back-home"
+            data-testid="link-back-locations"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            All Locations
+            Back to All Locations
           </Link>
           <h1
             className="mb-3 text-3xl font-bold text-primary-foreground md:text-4xl lg:text-5xl"
@@ -320,16 +325,32 @@ export default async function CityPage({
       <footer className="border-t mt-10">
         <div className="mx-auto max-w-4xl px-4 py-6 flex items-center justify-between flex-wrap gap-2">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} YourCompany. All rights reserved.
+            &copy; {new Date().getFullYear()} Tableicity. All rights reserved.
           </p>
-          <Link
-            href="/admin/login"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            data-testid="link-admin-login"
-          >
-            <Lock className="h-3.5 w-3.5" />
-            Admin
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              data-testid="link-home"
+            >
+              Home
+            </Link>
+            <Link
+              href="/locations"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              data-testid="link-locations"
+            >
+              Locations
+            </Link>
+            <Link
+              href="/admin/login"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              data-testid="link-admin-login"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              Admin
+            </Link>
+          </div>
         </div>
       </footer>
 
