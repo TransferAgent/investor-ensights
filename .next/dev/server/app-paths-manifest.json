@@ -1,4 +1,3 @@
 {
-  "/api/geo/route": "app/api/geo/route.js",
   "/page": "app/page.js"
 }
