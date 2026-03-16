@@ -41,16 +41,39 @@ export async function generateMetadata({
     return { title: "Location Not Found" }
   }
 
+  const assignment = await storage.getAssignmentByCityId(city.id)
+  const template = assignment?.templateId
+    ? await storage.getTemplateById(assignment.templateId)
+    : null
+
   const landmarks = (city.localLandmarks as string[]) || []
   const landmarkSnippet = landmarks.length > 0
     ? ` Find our local team near ${landmarks.slice(0, 3).join(", ")}.`
     : ""
 
+  const metaCityData: CityData = {
+    cityName: city.cityName,
+    stateCode: city.stateCode,
+    stateName: city.stateName || undefined,
+    slug: city.slug,
+    streetAddress: city.streetAddress || undefined,
+    localLandmarks: landmarks,
+    nearbyCities: (city.nearbyCities as string[]) || [],
+    phoneNumber: city.phoneNumber || undefined,
+    email: city.email || undefined,
+  }
+
   const title =
     city.metaTitle ||
+    (template?.metaTitlePattern
+      ? replacePlaceholders(template.metaTitlePattern, metaCityData)
+      : null) ||
     `Tableicity - Equity Management Services in ${city.cityName}, ${city.stateCode}`
   const description =
     city.metaDescription ||
+    (template?.metaDescriptionPattern
+      ? replacePlaceholders(template.metaDescriptionPattern, metaCityData)
+      : null) ||
     `Privacy-first cap table management in ${city.cityName}, ${city.stateName || city.stateCode}. Manage equity, stakeholders, and compliance with enterprise-grade security.${landmarkSnippet}`
 
   return {
