@@ -68,7 +68,7 @@ export async function generateMetadata({
     (template?.metaTitlePattern
       ? replacePlaceholders(template.metaTitlePattern, metaCityData)
       : null) ||
-    `Tableicity - Equity Management Services in ${city.cityName}, ${city.stateCode}`
+    `Tableicity - Cap Table Management Services in ${city.cityName}, ${city.stateCode}`
   const description =
     city.metaDescription ||
     (template?.metaDescriptionPattern
