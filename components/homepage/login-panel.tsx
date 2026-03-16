@@ -25,7 +25,7 @@ export default function LoginPanel() {
 
       <div className="absolute inset-0 overflow-y-auto flex items-center justify-center p-6">
         <div
-          className="w-full max-w-[420px] rounded-2xl p-8"
+          className="w-full max-w-[420px] rounded-2xl p-8 cursor-pointer transition-transform hover:scale-[1.02]"
           style={{
             border: "1px solid rgba(99,179,237,0.2)",
             boxShadow:
@@ -33,6 +33,9 @@ export default function LoginPanel() {
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             background: "rgba(13, 20, 35, 0.92)",
+          }}
+          onMouseEnter={() => {
+            window.location.href = "https://equity-manager-pro.replit.app"
           }}
         >
           <div className="text-center mb-6">
