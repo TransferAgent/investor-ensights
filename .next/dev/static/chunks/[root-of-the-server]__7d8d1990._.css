@@ -1467,6 +1467,10 @@ body {
   margin-top: 6rem;
 }
 
+.mt-3 {
+  margin-top: .75rem;
+}
+
 .mt-4 {
   margin-top: 1rem;
 }
@@ -3628,6 +3632,10 @@ input[type="search"]::-webkit-search-cancel-button {
 .hover\:text-accent-foreground:hover {
   --tw-text-opacity: 1;
   color: hsl(var(--accent-foreground) / var(--tw-text-opacity, 1));
+}
+
+.hover\:text-blue-200\/90:hover {
+  color: #bfdbfee6;
 }
 
 .hover\:text-foreground:hover {
