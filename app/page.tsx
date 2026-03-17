@@ -9,12 +9,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const homePage = await storage.getPageBySlug("home")
   if (homePage?.isPublished) {
     return {
-      title: homePage.metaTitle || homePage.pageTitle || "Tableicity - Equity Management for Startups",
-      description: homePage.metaDescription || "Privacy-first cap table management solution. Manage equity, stakeholders, and compliance with enterprise-grade security.",
+      title: homePage.metaTitle || homePage.pageTitle || "Tableicity | Cap Table Management Solutions",
+      description: homePage.metaDescription || "Tableicity empowers founders with a privacy-first cap table management solution. Leveraging zero-knowledge proofs and encrypted hashes, we ensure your equity ownership remains pseudonymous, borderless, and fully GDPR-compliant. Say goodbye to leaky cap tables and embrace a new era of secure, verifiable equity management.",
       alternates: { canonical: BASE_URL },
       openGraph: {
         title: homePage.metaTitle || homePage.pageTitle,
-        description: homePage.metaDescription || "Privacy-first cap table management solution.",
+        description: homePage.metaDescription || "Tableicity empowers founders with a privacy-first cap table management solution. Leveraging zero-knowledge proofs and encrypted hashes, we ensure your equity ownership remains pseudonymous, borderless, and fully GDPR-compliant.",
         url: BASE_URL,
         ...(homePage.ogImageUrl ? { images: [{ url: homePage.ogImageUrl }] } : {}),
       },
@@ -22,8 +22,8 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
-    title: "Tableicity - Equity Management for Startups",
-    description: "Privacy-first cap table management solution. Manage equity, stakeholders, and compliance with enterprise-grade security.",
+    title: "Tableicity | Cap Table Management Solutions",
+    description: "Tableicity empowers founders with a privacy-first cap table management solution. Leveraging zero-knowledge proofs and encrypted hashes, we ensure your equity ownership remains pseudonymous, borderless, and fully GDPR-compliant. Say goodbye to leaky cap tables and embrace a new era of secure, verifiable equity management.",
     alternates: { canonical: BASE_URL },
   }
 }
