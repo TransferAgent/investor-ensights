@@ -10,11 +10,11 @@ export async function generateMetadata(): Promise<Metadata> {
   if (homePage?.isPublished) {
     return {
       title: homePage.metaTitle || homePage.pageTitle || "Tableicity | Cap Table Management Solutions",
-      description: homePage.metaDescription || "Tableicity empowers founders with a privacy-first cap table management solution. Leveraging zero-knowledge proofs and encrypted hashes, we ensure your equity ownership remains pseudonymous, borderless, and fully GDPR-compliant. Say goodbye to leaky cap tables and embrace a new era of secure, verifiable equity management.",
+      description: homePage.metaDescription || "Tableicity: The privacy-first cap table. Leveraging SHA-256 hashes & ZK-proofs for secure, pseudonymous, and borderless equity management. Start today.",
       alternates: { canonical: BASE_URL },
       openGraph: {
         title: homePage.metaTitle || homePage.pageTitle,
-        description: homePage.metaDescription || "Tableicity empowers founders with a privacy-first cap table management solution. Leveraging zero-knowledge proofs and encrypted hashes, we ensure your equity ownership remains pseudonymous, borderless, and fully GDPR-compliant.",
+        description: homePage.metaDescription || "Tableicity: The privacy-first cap table. Leveraging SHA-256 hashes & ZK-proofs for secure, pseudonymous, and borderless equity management. Start today.",
         url: BASE_URL,
         ...(homePage.ogImageUrl ? { images: [{ url: homePage.ogImageUrl }] } : {}),
       },
@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: "Tableicity | Cap Table Management Solutions",
-    description: "Tableicity empowers founders with a privacy-first cap table management solution. Leveraging zero-knowledge proofs and encrypted hashes, we ensure your equity ownership remains pseudonymous, borderless, and fully GDPR-compliant. Say goodbye to leaky cap tables and embrace a new era of secure, verifiable equity management.",
+    description: "Tableicity: The privacy-first cap table. Leveraging SHA-256 hashes & ZK-proofs for secure, pseudonymous, and borderless equity management. Start today.",
     alternates: { canonical: BASE_URL },
   }
 }
