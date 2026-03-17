@@ -19,9 +19,10 @@ Preferred communication style: Simple, everyday language.
 - **Path Aliases**: `@/` maps to project root, `@shared/` maps to `shared/`
 
 ### Pages (App Router)
-- `app/page.tsx` — Public homepage (SSR Server Component), lists published cities
-- `app/city-grid.tsx` — Client component for search/filter city grid
-- `app/locations/[slug]/page.tsx` — City landing page (SSR with generateStaticParams + generateMetadata)
+- `app/page.tsx` — Public homepage (SSR), two-panel Tableicity marketing + login layout (or Page Builder if "home" page published)
+- `app/locations/page.tsx` — Locations grid page (SSR), hero banner + city grid with search/filter/geo-detection
+- `app/city-grid.tsx` — Client component for search/filter city grid with IP-based state detection
+- `app/locations/[slug]/page.tsx` — City landing page (SSR), two-panel layout clone: left=city-specific marketing content (H1/H2/body from templates, slideshow, contact info, landmarks, map), right=login panel with hover redirect to Cap Table App
 - `app/[slug]/page.tsx` — Custom page (SSR, Page Builder pages with generateMetadata + generateStaticParams)
 - `app/admin/login/page.tsx` — Admin login (Client Component)
 - `app/admin/page.tsx` — Admin dashboard with stats (Client Component)
@@ -92,6 +93,10 @@ All under `app/api/`:
 - `lib/seed.ts` — Database seeding (cities + templates + admin user)
 - `lib/placeholder-replacer.ts` — Template placeholder substitution
 - `lib/queryClient.ts` — React Query client + apiRequest helper
+- `components/homepage/hero-home.tsx` — Two-panel homepage wrapper
+- `components/homepage/marketing-panel.tsx` — Homepage left panel (slideshow, features, security)
+- `components/homepage/city-marketing-panel.tsx` — City page left panel (H1/H2/body, slideshow, contact, landmarks, map)
+- `components/homepage/login-panel.tsx` — Right panel with glass login card + hover redirect to Cap Table App
 - `components/slides/slide-renderer.tsx` — Main slide renderer dispatcher
 - `components/slides/` — 7 slide type components (hero, features, pricing, text, image_text, cta, html)
 - `components/theme-provider.tsx` — next-themes wrapper

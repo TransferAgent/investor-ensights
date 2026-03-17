@@ -2388,6 +2388,10 @@ body {
   background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
 }
 
+.bg-white\/5 {
+  background-color: #ffffff0d;
+}
+
 .bg-gradient-to-br {
   background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
 }
@@ -4523,6 +4527,10 @@ input[type="search"]::-webkit-search-cancel-button {
 
   .xl\:p-12 {
     padding: 3rem;
+  }
+
+  .xl\:text-\[1\.75rem\] {
+    font-size: 1.75rem;
   }
 
   .xl\:text-\[2rem\] {
