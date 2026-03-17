@@ -15,7 +15,7 @@ import {
 } from "lucide-react"
 
 const SLIDES = [
-  "/slideshow-f.png",
+  "/slideshow-f2.png",
   "/slideshow-a.png",
   "/slideshow-b.png",
   "/slideshow-c.png",
