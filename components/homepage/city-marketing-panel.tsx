@@ -15,10 +15,10 @@ import {
 } from "lucide-react"
 
 const SLIDES = [
+  "/slideshow-f.png",
   "/slideshow-a.png",
   "/slideshow-b.png",
   "/slideshow-c.png",
-  "/slideshow-d.png",
 ]
 
 function Typewriter() {
@@ -92,7 +92,7 @@ export default function CityMarketingPanel({
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % SLIDES.length)
-    }, 6000)
+    }, 7200)
     return () => clearInterval(interval)
   }, [])
 
@@ -149,7 +149,7 @@ export default function CityMarketingPanel({
                 exit={{ opacity: 0 }}
                 transition={{
                   opacity: { duration: 1, ease: "easeInOut" },
-                  scale: { duration: 6, ease: "linear" },
+                  scale: { duration: 7.2, ease: "linear" },
                 }}
               />
             </AnimatePresence>
