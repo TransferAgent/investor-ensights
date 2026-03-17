@@ -190,48 +190,65 @@ export default function CityMarketingPanel({
           </div>
         </div>
 
-        {(streetAddress || phoneNumber || email) && (
+        {(streetAddress || phoneNumber || email || mapSrc) && (
           <div className="border-t border-white/10 pt-4 mb-4">
             <p className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3">
               Contact Info
             </p>
-            <div className="space-y-2.5">
-              {streetAddress && (
-                <div className="flex items-start gap-2.5">
-                  <MapPin className="h-3.5 w-3.5 text-blue-400 shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-200/70">
-                    {streetAddress}
-                    {zipCode && (
-                      <>
-                        <br />
-                        {cityName}, {stateCode} {zipCode}
-                      </>
-                    )}
-                  </p>
-                </div>
-              )}
-              {phoneNumber && (
-                <div className="flex items-center gap-2.5">
-                  <Phone className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                  <a
-                    href={`tel:${phoneNumber}`}
-                    className="text-xs text-blue-200/70 hover:text-blue-200/90 transition-colors"
-                    data-testid="link-phone"
-                  >
-                    {phoneNumber}
-                  </a>
-                </div>
-              )}
-              {email && (
-                <div className="flex items-center gap-2.5">
-                  <Mail className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                  <a
-                    href={`mailto:${email}`}
-                    className="text-xs text-blue-200/70 hover:text-blue-200/90 transition-colors"
-                    data-testid="link-email"
-                  >
-                    {email}
-                  </a>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2.5">
+                {streetAddress && (
+                  <div className="flex items-start gap-2.5">
+                    <MapPin className="h-3.5 w-3.5 text-blue-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-200/70">
+                      {streetAddress}
+                      {zipCode && (
+                        <>
+                          <br />
+                          {cityName}, {stateCode} {zipCode}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                )}
+                {phoneNumber && (
+                  <div className="flex items-center gap-2.5">
+                    <Phone className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                    <a
+                      href={`tel:${phoneNumber}`}
+                      className="text-xs text-blue-200/70 hover:text-blue-200/90 transition-colors"
+                      data-testid="link-phone"
+                    >
+                      {phoneNumber}
+                    </a>
+                  </div>
+                )}
+                {email && (
+                  <div className="flex items-center gap-2.5">
+                    <Mail className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                    <a
+                      href={`mailto:${email}`}
+                      className="text-xs text-blue-200/70 hover:text-blue-200/90 transition-colors"
+                      data-testid="link-email"
+                    >
+                      {email}
+                    </a>
+                  </div>
+                )}
+              </div>
+              {mapSrc && (
+                <div className="overflow-hidden rounded-lg" data-testid="section-map">
+                  <iframe
+                    src={mapSrc}
+                    width="100%"
+                    height="150"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title={`Map of ${cityName} office`}
+                    data-testid="iframe-map"
+                  />
                 </div>
               )}
             </div>
@@ -269,27 +286,6 @@ export default function CityMarketingPanel({
                   {nc}
                 </span>
               ))}
-            </div>
-          </div>
-        )}
-
-        {mapSrc && (
-          <div className="border-t border-white/10 pt-4 mb-4" data-testid="section-map">
-            <p className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3">
-              Find Us
-            </p>
-            <div className="overflow-hidden rounded-lg">
-              <iframe
-                src={mapSrc}
-                width="100%"
-                height="200"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title={`Map of ${cityName} office`}
-                data-testid="iframe-map"
-              />
             </div>
           </div>
         )}

@@ -1455,10 +1455,6 @@ body {
   margin-top: .375rem;
 }
 
-.mt-10 {
-  margin-top: 2.5rem;
-}
-
 .mt-2 {
   margin-top: .5rem;
 }
@@ -3013,10 +3009,6 @@ body {
   color: hsl(var(--primary-foreground) / var(--tw-text-opacity, 1));
 }
 
-.text-primary-foreground\/70 {
-  color: hsl(var(--primary-foreground) / .7);
-}
-
 .text-primary-foreground\/80 {
   color: hsl(var(--primary-foreground) / .8);
 }
@@ -4496,10 +4488,6 @@ input[type="search"]::-webkit-search-cancel-button {
     display: flex;
   }
 
-  .md\:w-72 {
-    width: 18rem;
-  }
-
   .md\:w-\[var\(--radix-navigation-menu-viewport-width\)\] {
     width: var(--radix-navigation-menu-viewport-width);
   }
@@ -4536,11 +4524,6 @@ input[type="search"]::-webkit-search-cancel-button {
     padding: 3rem;
   }
 
-  .md\:py-20 {
-    padding-top: 5rem;
-    padding-bottom: 5rem;
-  }
-
   .md\:py-28 {
     padding-top: 7rem;
     padding-bottom: 7rem;
@@ -4549,11 +4532,6 @@ input[type="search"]::-webkit-search-cancel-button {
   .md\:text-3xl {
     font-size: 1.875rem;
     line-height: 2.25rem;
-  }
-
-  .md\:text-4xl {
-    font-size: 2.25rem;
-    line-height: 2.5rem;
   }
 
   .md\:text-5xl {
@@ -4626,11 +4604,6 @@ input[type="search"]::-webkit-search-cancel-button {
 
   .lg\:grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .lg\:text-5xl {
-    font-size: 3rem;
-    line-height: 1;
   }
 
   .lg\:text-6xl {
