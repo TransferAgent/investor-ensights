@@ -123,15 +123,6 @@ export default function CityMarketingPanel({
           </div>
         </div>
 
-        <Link
-          href="/locations"
-          className="mb-3 inline-flex items-center gap-1.5 text-xs text-blue-200/60 hover:text-blue-200/90 transition-colors"
-          data-testid="link-back-locations"
-        >
-          <ArrowLeft className="h-3 w-3" />
-          Back to All Locations
-        </Link>
-
         <h1
           className="text-2xl xl:text-[1.75rem] font-bold leading-tight text-white mb-1"
           data-testid="text-city-h1"
@@ -260,10 +251,10 @@ export default function CityMarketingPanel({
             <p className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3">
               Near Our {cityName} Office
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
               {landmarks.map((landmark, i) => (
-                <div key={i} className="flex items-center gap-2" data-testid={`card-landmark-${i}`}>
-                  <Navigation className="h-3.5 w-3.5 text-green-400 shrink-0" />
+                <div key={i} className="flex items-center gap-1.5" data-testid={`card-landmark-${i}`}>
+                  <Navigation className="h-3 w-3 text-green-400 shrink-0" />
                   <span className="text-xs text-blue-200/70">{landmark}</span>
                 </div>
               ))}
@@ -309,6 +300,16 @@ export default function CityMarketingPanel({
               <MapPin className="h-3 w-3 text-blue-400 shrink-0" />
               <span className="text-xs text-blue-200/50 hover:text-blue-200/90 transition-colors">
                 Locations
+              </span>
+            </Link>
+            <Link
+              href="/locations"
+              className="flex items-center gap-1.5"
+              data-testid="link-back-locations"
+            >
+              <ArrowLeft className="h-3 w-3 text-blue-400 shrink-0" />
+              <span className="text-xs text-blue-200/50 hover:text-blue-200/90 transition-colors">
+                Back to All Locations
               </span>
             </Link>
           </div>
