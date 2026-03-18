@@ -142,7 +142,7 @@ export default function MarketingPanel() {
         <p className="text-sm leading-relaxed mb-4 text-blue-200/80">
           Privacy-First Cap Table Management Solution. Leveraging zero-knowledge
           proofs and encrypted hashes, we ensure your equity ownership remains
-          pseudonymous.
+          pseudonymous with on-demand auditor reveal.
         </p>
 
         <div className="mb-8 w-full">
