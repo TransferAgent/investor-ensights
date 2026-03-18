@@ -16,6 +16,7 @@ import {
 
 const SLIDES = [
   "/slideshow-f2.png",
+  "/slideshow-g.png",
   "/slideshow-a.png",
   "/slideshow-b.png",
   "/slideshow-c.png",
