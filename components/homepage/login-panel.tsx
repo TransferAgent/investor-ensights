@@ -6,7 +6,7 @@ export default function LoginPanel() {
   return (
     <div className="flex-1 relative" style={{ backgroundColor: "#0a1628" }}>
       <div
-        className="absolute inset-0 pointer-events-none z-0"
+        className="absolute inset-0 pointer-events-none z-[1]"
         style={{
           backgroundImage: "url(/peek2.png)",
           backgroundSize: "cover",
@@ -15,20 +15,20 @@ export default function LoginPanel() {
         }}
       />
       <div
-        className="absolute inset-0 pointer-events-none z-[1]"
+        className="absolute inset-0 pointer-events-none z-[2]"
         style={{
           backgroundColor: "rgba(0, 0, 0, 0.90)",
         }}
       />
 
-      <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2 z-30">
+      <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2 z-[3]">
         <div className="h-8 w-8 rounded-md bg-blue-600 flex items-center justify-center">
           <Building2 className="h-4 w-4 text-white" />
         </div>
         <span className="text-lg font-bold text-white">Tableicity</span>
       </div>
 
-      <div className="absolute inset-0 overflow-y-auto flex items-center justify-center p-6">
+      <div className="absolute inset-0 overflow-y-auto flex items-center justify-center p-6 z-[3]">
         <div
           className="w-full max-w-[420px] rounded-2xl p-8 cursor-pointer transition-transform hover:scale-[1.02]"
           style={{

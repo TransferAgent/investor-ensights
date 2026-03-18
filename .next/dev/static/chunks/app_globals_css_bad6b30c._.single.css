@@ -1213,6 +1213,14 @@ body {
   z-index: 0;
 }
 
+.z-\[2\] {
+  z-index: 2;
+}
+
+.z-\[3\] {
+  z-index: 3;
+}
+
 .-mx-1 {
   margin-left: -.25rem;
   margin-right: -.25rem;
