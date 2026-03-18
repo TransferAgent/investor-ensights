@@ -1193,10 +1193,6 @@ body {
   z-index: 20;
 }
 
-.z-30 {
-  z-index: 30;
-}
-
 .z-50 {
   z-index: 50;
 }
@@ -1207,10 +1203,6 @@ body {
 
 .z-\[1\] {
   z-index: 1;
-}
-
-.z-0 {
-  z-index: 0;
 }
 
 .z-\[2\] {
@@ -1308,10 +1300,6 @@ body {
   margin-left: .5rem;
 }
 
-.ml-\[1px\] {
-  margin-left: 1px;
-}
-
 .ml-auto {
   margin-left: auto;
 }
@@ -1370,10 +1358,6 @@ body {
 
 .block {
   display: block;
-}
-
-.inline-block {
-  display: inline-block;
 }
 
 .flex {
@@ -1471,10 +1455,6 @@ body {
 
 .h-9 {
   height: 2.25rem;
-}
-
-.h-\[1\.1em\] {
-  height: 1.1em;
 }
 
 .h-\[18px\] {
@@ -1691,10 +1671,6 @@ body {
 
 .w-\[1px\] {
   width: 1px;
-}
-
-.w-\[2px\] {
-  width: 2px;
 }
 
 .w-\[var\(--sidebar-width\)\] {
@@ -2400,11 +2376,6 @@ body {
   background-color: #0000;
 }
 
-.bg-white {
-  --tw-bg-opacity: 1;
-  background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
-}
-
 .bg-white\/5 {
   background-color: #ffffff0d;
 }
@@ -2756,10 +2727,6 @@ body {
 
 .uppercase {
   text-transform: uppercase;
-}
-
-.italic {
-  font-style: italic;
 }
 
 .tabular-nums {
