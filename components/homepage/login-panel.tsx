@@ -18,7 +18,7 @@ export default function LoginPanel() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundColor: "rgba(0, 0, 0, 0.25)",
+          backgroundColor: "rgba(0, 0, 0, 0.35)",
         }}
       />
 
