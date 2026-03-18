@@ -14,12 +14,6 @@ export default function LoginPanel() {
           backgroundPosition: "0% center",
         }}
       />
-      <div
-        className="absolute inset-0 pointer-events-none z-[2]"
-        style={{
-          backgroundColor: "rgba(0, 0, 0, 0.80)",
-        }}
-      />
 
       <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2 z-[3]">
         <div className="h-8 w-8 rounded-md bg-blue-600 flex items-center justify-center">
