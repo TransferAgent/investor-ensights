@@ -8,7 +8,7 @@ export default function LoginPanel() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: "url(/peek.png)",
+          backgroundImage: "url(/peek2.png)",
           backgroundSize: "cover",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "0% center",
