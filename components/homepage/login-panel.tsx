@@ -12,7 +12,7 @@ export default function LoginPanel() {
           backgroundSize: "cover",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "0% center",
-          opacity: 0.5,
+          opacity: 0.4,
         }}
       />
 
