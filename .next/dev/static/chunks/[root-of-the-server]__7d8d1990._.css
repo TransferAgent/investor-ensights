@@ -1596,6 +1596,10 @@ body {
   height: 1px;
 }
 
+.h-\[85px\] {
+  height: 85px;
+}
+
 .h-\[var\(--radix-navigation-menu-viewport-height\)\] {
   height: var(--radix-navigation-menu-viewport-height);
 }

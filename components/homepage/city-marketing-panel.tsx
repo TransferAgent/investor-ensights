@@ -186,7 +186,7 @@ export default function CityMarketingPanel({
             <p className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3">
               Contact Info
             </p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 items-start">
               <div className="space-y-2.5">
                 {streetAddress && (
                   <div className="flex items-start gap-2.5">
@@ -228,11 +228,11 @@ export default function CityMarketingPanel({
                 )}
               </div>
               {mapSrc && (
-                <div className="overflow-hidden rounded-lg" data-testid="section-map">
+                <div className="overflow-hidden rounded-lg h-[85px]" data-testid="section-map">
                   <iframe
                     src={mapSrc}
                     width="100%"
-                    height="150"
+                    height="85"
                     style={{ border: 0 }}
                     allowFullScreen
                     loading="lazy"
