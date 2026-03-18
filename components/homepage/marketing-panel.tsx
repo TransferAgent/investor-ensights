@@ -140,9 +140,7 @@ export default function MarketingPanel() {
         </div>
 
         <p className="text-sm leading-relaxed mb-4 text-blue-200/80">
-          Privacy-First Cap Table Management Solution. Leveraging zero-knowledge
-          proofs and encrypted hashes, we ensure your equity ownership remains
-          pseudonymous with on-demand auditor reveal.
+          One leaked or hacked screenshot of your Cap Table can cost millions in a lost deal or trigger a tax event. The risk is mitigated by ensuring your equity ownership remains pseudonymous with on-demand auditor reveal.
         </p>
 
         <div className="mb-8 w-full">
