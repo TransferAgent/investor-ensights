@@ -1,0 +1,43 @@
+Left Panel (Pitch Panel):
+
+Background color: #0f1b2d (very dark navy blue)
+Width: 45% of the screen (hidden on mobile)
+Text color: white, with secondary text in blue-200 at various opacities (60%, 70%, 80%)
+Accent colors: Blue-400 for highlights, Green-400 for checkmarks, Yellow-400 for the lightning bolt
+Brand icon: Blue-600 (#2563EB) rounded square with a Building2 icon inside
+Section dividers: border-white/10 (white at 10% opacity)
+Padding: 40px (p-10), 48px on XL screens (xl:p-12)
+Right Panel (Login Form Side):
+
+Background color: #0a1628 (even darker navy)
+Background image: a screenshot of the app's dashboard, positioned at 0% center, at 50% opacity (opacity-[0.50])
+Form cards: shadow-2xl border-0 styling
+Slideshow (the PNGs):
+
+Container: 16:10 aspect ratio, rounded-xl corners
+Overlay gradient: linear-gradient(135deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 50%, transparent 100%) — a diagonal dark-to-transparent sweep from top-left
+Animation: Crossfade between slides with a subtle Ken Burns zoom — starts at scale 1.0 and slowly zooms to 1.08 over the slide duration
+Slide timing: 7200ms per slide (7.2 seconds)
+Fade duration: 1 second ease-in-out
+Slide order: F (shield) → A (code) → B (padlock) → C (data center)
+Text overlay: "Own Your Equity," on line 1, then "Privately." types and deletes in a loop (typing speed 120ms/char, delete speed 80ms/char, 2s pause after typing, 0.5s pause after deleting)
+The PNGs themselves — these look like they were generated with an AI image tool. The shared visual language across all four:
+
+Dark background tone — deep navy/charcoal blacks
+Cyan/teal glow accents — the neon circuit lines, data visualizations, and holographic effects
+Security iconography — shields, padlocks, encryption symbols
+Warm amber/gold secondary accents — used sparingly for contrast (bokeh lights in B, overhead lights in C)
+Key hex values to match on your marketing site:
+
+Element	Hex
+Dark panel background	#0f1b2d
+Darker right panel	#0a1628
+Primary blue accent	#60A5FA (blue-400)
+Brand button blue	#2563EB (blue-600)
+CTA button blue	#2B6CB0
+Green checkmarks	#4ADE80 (green-400)
+Yellow flash icon	#FACC15 (yellow-400)
+Body text (muted)	rgba(191, 219, 254, 0.7) (blue-200 at 70%)
+Headline text	#FFFFFF
+Does this give you what you need to match on your marketing site, or were you asking about a specific image or element?
+

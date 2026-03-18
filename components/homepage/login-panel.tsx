@@ -12,7 +12,13 @@ export default function LoginPanel() {
           backgroundSize: "cover",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "0% center",
-          opacity: 0.4,
+          opacity: 0.5,
+        }}
+      />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundColor: "rgba(0, 0, 0, 0.25)",
         }}
       />
 
