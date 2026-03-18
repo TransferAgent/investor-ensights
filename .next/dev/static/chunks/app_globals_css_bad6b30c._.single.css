@@ -1173,10 +1173,6 @@ body {
   top: 1px;
 }
 
-.top-\[25\%\] {
-  top: 25%;
-}
-
 .top-\[50\%\] {
   top: 50%;
 }
@@ -4517,10 +4513,6 @@ input[type="search"]::-webkit-search-cancel-button {
 
   .xl\:text-\[1\.75rem\] {
     font-size: 1.75rem;
-  }
-
-  .xl\:text-\[2rem\] {
-    font-size: 2rem;
   }
 }
 

@@ -65,43 +65,6 @@ const SECURITY = [
   },
 ]
 
-function Typewriter() {
-  const word = "Privately."
-  const [displayed, setDisplayed] = useState("")
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>
-
-    if (!isDeleting) {
-      if (displayed.length < word.length) {
-        timeout = setTimeout(() => {
-          setDisplayed(word.slice(0, displayed.length + 1))
-        }, 120)
-      } else {
-        timeout = setTimeout(() => setIsDeleting(true), 2000)
-      }
-    } else {
-      if (displayed.length > 0) {
-        timeout = setTimeout(() => {
-          setDisplayed(word.slice(0, displayed.length - 1))
-        }, 80)
-      } else {
-        timeout = setTimeout(() => setIsDeleting(false), 500)
-      }
-    }
-
-    return () => clearTimeout(timeout)
-  }, [displayed, isDeleting])
-
-  return (
-    <span className="italic">
-      {displayed}
-      <span className="inline-block w-[2px] h-[1.1em] bg-white ml-[1px] align-middle animate-pulse" />
-    </span>
-  )
-}
-
 export default function MarketingPanel() {
   const [currentSlide, setCurrentSlide] = useState(0)
 
