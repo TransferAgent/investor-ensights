@@ -16,7 +16,6 @@ import {
 
 const SLIDES = [
   "/slideshow-f2.png",
-  "/slideshow-g.png",
   "/slideshow-a.png",
   "/slideshow-b.png",
   "/slideshow-c.png",
@@ -170,14 +169,6 @@ export default function MarketingPanel() {
               }}
             />
 
-            <div className="absolute z-20 top-[25%] left-0 right-0 text-center">
-              <div className="text-2xl xl:text-[2rem] font-bold leading-tight text-white">
-                Own Your Equity,
-              </div>
-              <div className="text-2xl xl:text-[2rem] font-bold leading-tight text-white">
-                <Typewriter />
-              </div>
-            </div>
           </div>
         </div>
 
