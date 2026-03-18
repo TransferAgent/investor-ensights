@@ -6,19 +6,18 @@ export default function LoginPanel() {
   return (
     <div className="flex-1 relative" style={{ backgroundColor: "#0a1628" }}>
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none z-0"
         style={{
           backgroundImage: "url(/peek2.png)",
           backgroundSize: "cover",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "0% center",
-          opacity: 1,
         }}
       />
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none z-[1]"
         style={{
-          backgroundColor: "rgba(0, 0, 0, 0.60)",
+          backgroundColor: "rgba(0, 0, 0, 0.90)",
         }}
       />
 
