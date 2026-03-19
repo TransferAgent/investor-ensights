@@ -1,8 +1,4 @@
 {
-  "/api/admin/knowledge/[id]/publish/route": "app/api/admin/knowledge/[id]/publish/route.js",
-  "/api/admin/knowledge/route": "app/api/admin/knowledge/route.js",
-  "/api/admin/login/route": "app/api/admin/login/route.js",
-  "/discovery/knowledge/[slug]/page": "app/discovery/knowledge/[slug]/page.js",
-  "/page": "app/page.js",
-  "/sitemap.xml/route": "app/sitemap.xml/route.js"
+  "/[slug]/page": "app/[slug]/page.js",
+  "/page": "app/page.js"
 }
