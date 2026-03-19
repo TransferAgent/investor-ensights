@@ -1,0 +1,41 @@
+Here's the complete evidence package for the architect:
+
+Proof 1 — Published test slug and public URL:
+
+Slug: tableicity-test-press-001
+Public URL: https://tableicity.com/discovery/knowledge/tableicity-test-press-001
+Status: published (published at 2026-03-19T01:51:25.989Z)
+Proof 2 — View-source <head> items:
+
+<title>Tableicity Launches Privacy-First Cap Table Platform | Tableicity</title>
+<meta name="description" content="Tableicity announces the launch of its privacy-first cap table management platform, featuring SHA-256 encrypted hashes, zero-knowledge proofs, and on-demand auditor reveal for secure equity management."/>
+<meta name="robots" content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"/>
+<link rel="canonical" href="https://www.tableicity.com/discovery/knowledge/tableicity-test-press-001"/>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "NewsArticle",
+  "headline": "Tableicity Launches Privacy-First Cap Table Management Platform for Startups",
+  "description": "Tableicity announces the launch of its privacy-first cap table...",
+  "datePublished": "2026-03-19T01:51:25.989Z",
+  "dateModified": "2026-03-19T01:51:25.989Z",
+  "author": {"@type": "Person", "name": "Tableicity"},
+  "publisher": {"@type": "Organization", "name": "Tableicity", "url": "https://www.tableicity.com"},
+  "mainEntityOfPage": {"@type": "WebPage", "@id": "https://www.tableicity.com/discovery/knowledge/tableicity-test-press-001"}
+}
+</script>
+Proof 3 — Gating (pending slug returns 404):
+
+Created pending-test-article with status pending
+GET /discovery/knowledge/pending-test-article → HTTP 404 — not publicly accessible, not indexable
+Proof 4 — Sitemap excerpt:
+
+Published slug present: <loc>https://www.tableicity.com/discovery/knowledge/tableicity-test-press-001</loc> ✓
+Pending slug absent from sitemap ✓
+Proof 5 — DB schema:
+
+Both tables confirmed in PostgreSQL: knowledge_articles and knowledge_article_versions
+Schema managed by Drizzle ORM in shared/schema.ts, applied via drizzle-kit push (direct schema diff, no numbered migration files)
+Admin workflow (draft → publish → archive) is live at /admin/knowledge with full audit logging, version history, and status filtering.
+
+The Rich Results Test can be run once published by pasting https://tableicity.com/discovery/knowledge/tableicity-test-press-001
