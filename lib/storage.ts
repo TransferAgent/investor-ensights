@@ -6,6 +6,8 @@ import {
   adminAuditLog,
   customPages,
   pageSlides,
+  knowledgeArticles,
+  knowledgeArticleVersions,
   type CityLocation,
   type InsertCityLocation,
   type ContentTemplate,
@@ -20,6 +22,10 @@ import {
   type InsertCustomPage,
   type PageSlide,
   type InsertPageSlide,
+  type KnowledgeArticle,
+  type InsertKnowledgeArticle,
+  type KnowledgeArticleVersion,
+  type InsertKnowledgeArticleVersion,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray, sql, desc, asc, gt, lt } from "drizzle-orm";
@@ -71,7 +77,19 @@ export interface IStorage {
     assignedCities: number;
     totalPages: number;
     publishedPages: number;
+    totalArticles: number;
+    publishedArticles: number;
   }>;
+
+  getKnowledgeArticles(status?: string): Promise<KnowledgeArticle[]>;
+  getKnowledgeArticleBySlug(slug: string): Promise<KnowledgeArticle | undefined>;
+  getKnowledgeArticleById(id: string): Promise<KnowledgeArticle | undefined>;
+  createKnowledgeArticle(article: InsertKnowledgeArticle): Promise<KnowledgeArticle>;
+  updateKnowledgeArticle(id: string, data: Partial<InsertKnowledgeArticle>): Promise<KnowledgeArticle | undefined>;
+  deleteKnowledgeArticle(id: string): Promise<void>;
+  publishKnowledgeArticle(id: string, username: string): Promise<KnowledgeArticle | undefined>;
+  archiveKnowledgeArticle(id: string, username: string): Promise<KnowledgeArticle | undefined>;
+  getKnowledgeArticleVersions(articleId: string): Promise<KnowledgeArticleVersion[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -278,6 +296,14 @@ export class DatabaseStorage implements IStorage {
       .from(customPages)
       .where(eq(customPages.isPublished, true));
 
+    const [articlesResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(knowledgeArticles);
+    const [publishedArticlesResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(knowledgeArticles)
+      .where(eq(knowledgeArticles.status, "published"));
+
     return {
       totalCities: Number(totalResult.count),
       publishedCities: Number(publishedResult.count),
@@ -285,6 +311,8 @@ export class DatabaseStorage implements IStorage {
       assignedCities: Number(assignedResult.count),
       totalPages: Number(pagesResult.count),
       publishedPages: Number(publishedPagesResult.count),
+      totalArticles: Number(articlesResult.count),
+      publishedArticles: Number(publishedArticlesResult.count),
     };
   }
 
@@ -361,6 +389,95 @@ export class DatabaseStorage implements IStorage {
     const swapOrder = slides[swapIdx].slideOrder;
     await db.update(pageSlides).set({ slideOrder: swapOrder, updatedAt: new Date() }).where(eq(pageSlides.id, slides[idx].id));
     await db.update(pageSlides).set({ slideOrder: currentOrder, updatedAt: new Date() }).where(eq(pageSlides.id, slides[swapIdx].id));
+  }
+
+  async getKnowledgeArticles(status?: string): Promise<KnowledgeArticle[]> {
+    if (status) {
+      return db.select().from(knowledgeArticles).where(eq(knowledgeArticles.status, status)).orderBy(desc(knowledgeArticles.updatedAt));
+    }
+    return db.select().from(knowledgeArticles).orderBy(desc(knowledgeArticles.updatedAt));
+  }
+
+  async getKnowledgeArticleBySlug(slug: string): Promise<KnowledgeArticle | undefined> {
+    const [article] = await db.select().from(knowledgeArticles).where(eq(knowledgeArticles.slug, slug)).limit(1);
+    return article;
+  }
+
+  async getKnowledgeArticleById(id: string): Promise<KnowledgeArticle | undefined> {
+    const [article] = await db.select().from(knowledgeArticles).where(eq(knowledgeArticles.id, id)).limit(1);
+    return article;
+  }
+
+  async createKnowledgeArticle(article: InsertKnowledgeArticle): Promise<KnowledgeArticle> {
+    const canonicalUrl = `https://www.tableicity.com/discovery/knowledge/${article.slug}`;
+    const [created] = await db.insert(knowledgeArticles).values({ ...article, canonicalUrl }).returning();
+    return created;
+  }
+
+  async updateKnowledgeArticle(id: string, data: Partial<InsertKnowledgeArticle>): Promise<KnowledgeArticle | undefined> {
+    const updateData: any = { ...data, updatedAt: new Date(), dateModified: new Date() };
+    if (data.slug) {
+      updateData.canonicalUrl = `https://www.tableicity.com/discovery/knowledge/${data.slug}`;
+    }
+    const [updated] = await db.update(knowledgeArticles).set(updateData).where(eq(knowledgeArticles.id, id)).returning();
+    return updated;
+  }
+
+  async deleteKnowledgeArticle(id: string): Promise<void> {
+    await db.delete(knowledgeArticles).where(eq(knowledgeArticles.id, id));
+  }
+
+  async publishKnowledgeArticle(id: string, username: string): Promise<KnowledgeArticle | undefined> {
+    const article = await this.getKnowledgeArticleById(id);
+    if (!article) return undefined;
+
+    const [versionCount] = await db.select({ count: sql<number>`count(*)` }).from(knowledgeArticleVersions).where(eq(knowledgeArticleVersions.articleId, id));
+    const nextVersion = Number(versionCount.count) + 1;
+
+    await db.insert(knowledgeArticleVersions).values({
+      articleId: id,
+      versionNumber: nextVersion,
+      snapshotJson: JSON.parse(JSON.stringify(article)),
+      snapshotReason: "publish",
+      createdBy: username,
+    });
+
+    const now = new Date();
+    const [updated] = await db.update(knowledgeArticles).set({
+      status: "published",
+      datePublished: article.datePublished || now,
+      dateModified: now,
+      updatedAt: now,
+    }).where(eq(knowledgeArticles.id, id)).returning();
+    return updated;
+  }
+
+  async archiveKnowledgeArticle(id: string, username: string): Promise<KnowledgeArticle | undefined> {
+    const article = await this.getKnowledgeArticleById(id);
+    if (!article) return undefined;
+
+    const [versionCount] = await db.select({ count: sql<number>`count(*)` }).from(knowledgeArticleVersions).where(eq(knowledgeArticleVersions.articleId, id));
+    const nextVersion = Number(versionCount.count) + 1;
+
+    await db.insert(knowledgeArticleVersions).values({
+      articleId: id,
+      versionNumber: nextVersion,
+      snapshotJson: JSON.parse(JSON.stringify(article)),
+      snapshotReason: "archive",
+      createdBy: username,
+    });
+
+    const now = new Date();
+    const [updated] = await db.update(knowledgeArticles).set({
+      status: "archived",
+      dateModified: now,
+      updatedAt: now,
+    }).where(eq(knowledgeArticles.id, id)).returning();
+    return updated;
+  }
+
+  async getKnowledgeArticleVersions(articleId: string): Promise<KnowledgeArticleVersion[]> {
+    return db.select().from(knowledgeArticleVersions).where(eq(knowledgeArticleVersions.articleId, articleId)).orderBy(desc(knowledgeArticleVersions.versionNumber));
   }
 }
 

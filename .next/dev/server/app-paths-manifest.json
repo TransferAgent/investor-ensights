@@ -1,3 +1,5 @@
 {
+  "/admin/knowledge/page": "app/admin/knowledge/page.js",
+  "/discovery/knowledge/[slug]/page": "app/discovery/knowledge/[slug]/page.js",
   "/page": "app/page.js"
 }

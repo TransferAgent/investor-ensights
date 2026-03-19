@@ -30,7 +30,9 @@ Preferred communication style: Simple, everyday language.
 - `app/admin/templates/page.tsx` — Template management CRUD (Client Component)
 - `app/admin/pages/page.tsx` — Page Builder list view (Client Component)
 - `app/admin/pages/[id]/edit/page.tsx` — Page Builder editor with slide management (Client Component)
-- `app/sitemap.ts` — Dynamic sitemap (includes cities + custom pages)
+- `app/admin/knowledge/page.tsx` — Knowledge/Press Release management (Client Component) — create, edit, publish, archive, version history
+- `app/discovery/knowledge/[slug]/page.tsx` — Public press release page (SSR) with full SEO (title, description, canonical, robots, JSON-LD NewsArticle)
+- `app/sitemap.ts` — Dynamic sitemap (includes cities + custom pages + published knowledge articles)
 - `app/robots.ts` — Dynamic robots.txt
 
 ### API Routes (App Router)
@@ -49,6 +51,11 @@ All under `app/api/`:
 - `admin/pages/[id]/slides/route.ts` — GET/POST slides for a page
 - `admin/pages/[id]/slides/[slideId]/route.ts` — PATCH/DELETE slide
 - `admin/pages/[id]/slides/reorder/route.ts` — POST reorder slides
+- `admin/knowledge/route.ts` — GET/POST knowledge articles
+- `admin/knowledge/[id]/route.ts` — GET/PATCH/DELETE knowledge article
+- `admin/knowledge/[id]/publish/route.ts` — POST publish article (creates version snapshot)
+- `admin/knowledge/[id]/archive/route.ts` — POST archive article (creates version snapshot)
+- `admin/knowledge/[id]/versions/route.ts` — GET version history
 - `admin/stats/route.ts` — GET dashboard stats
 - `locations/route.ts` — GET public published cities
 - `locations/[slug]/route.ts` — GET public city detail
@@ -73,6 +80,8 @@ All under `app/api/`:
 5. **admin_audit_log** — Tracks all admin actions (login, create, update, delete) with username, action, entity type/id, and timestamp
 6. **custom_pages** — Page Builder pages with slug, title, SEO metadata, publish status
 7. **page_slides** — Individual content blocks (slides) for custom pages with JSON content, type, order, and styling options
+8. **knowledge_articles** — Press releases/articles with tri-state status (pending/published/archived), SEO fields, body HTML, author/publisher, JSON-LD support
+9. **knowledge_article_versions** — Append-only immutable archive trail capturing full article snapshots on publish/archive actions
 
 ### Security Features
 - **Password hashing**: scrypt with random salt (Node.js built-in)

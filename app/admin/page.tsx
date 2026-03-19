@@ -9,6 +9,7 @@ import {
   CheckCircle,
   Globe,
   ArrowRight,
+  Newspaper,
 } from "lucide-react"
 
 interface DashboardStats {
@@ -16,6 +17,8 @@ interface DashboardStats {
   publishedCities: number
   activeTemplates: number
   assignedCities: number
+  totalArticles: number
+  publishedArticles: number
 }
 
 function StatCard({
@@ -100,10 +103,16 @@ export default function AdminDashboard() {
             icon={Globe}
             color="#f97316"
           />
+          <StatCard
+            label="Articles Published"
+            value={stats.publishedArticles}
+            icon={Newspaper}
+            color="#06b6d4"
+          />
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Link href="/admin/cities" data-testid="link-manage-cities">
           <Card className="group cursor-pointer p-6 hover-elevate">
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -134,6 +143,25 @@ export default function AdminDashboard() {
                   <h3 className="font-semibold">Content Templates</h3>
                   <p className="text-sm text-muted-foreground">
                     Create and manage content templates
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            </div>
+          </Card>
+        </Link>
+
+        <Link href="/admin/knowledge" data-testid="link-manage-knowledge">
+          <Card className="group cursor-pointer p-6 hover-elevate">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
+                  <Newspaper className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Knowledge / Press Releases</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Create and publish press releases
                   </p>
                 </div>
               </div>

@@ -15,6 +15,7 @@ import {
   LogOut,
   Shield,
   ExternalLink,
+  Newspaper,
 } from "lucide-react"
 
 const navItems = [
@@ -22,6 +23,7 @@ const navItems = [
   { title: "Cities", url: "/admin/cities", icon: MapPin },
   { title: "Templates", url: "/admin/templates", icon: FileText },
   { title: "Pages", url: "/admin/pages", icon: Layers },
+  { title: "Knowledge", url: "/admin/knowledge", icon: Newspaper },
 ]
 
 interface AdminUser {

@@ -4,9 +4,10 @@ import { storage } from "@/lib/storage"
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://yourcompany.com"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [cities, pages] = await Promise.all([
+  const [cities, pages, articles] = await Promise.all([
     storage.getCities(true),
     storage.getPages(),
+    storage.getKnowledgeArticles("published"),
   ])
 
   const cityEntries: MetadataRoute.Sitemap = cities.map((city) => ({
@@ -25,6 +26,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }))
 
+  const articleEntries: MetadataRoute.Sitemap = articles.map((article) => ({
+    url: `${BASE_URL}/discovery/knowledge/${article.slug}`,
+    lastModified: article.dateModified,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }))
+
   return [
     {
       url: BASE_URL,
@@ -34,5 +42,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     ...cityEntries,
     ...pageEntries,
+    ...articleEntries,
   ]
 }

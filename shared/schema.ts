@@ -282,3 +282,65 @@ export type InsertPageSlide = z.infer<typeof insertPageSlideSchema>;
 export const insertAdminAuditLogSchema = createInsertSchema(adminAuditLog).omit({ id: true, createdAt: true });
 export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
 export type InsertAdminAuditLog = z.infer<typeof insertAdminAuditLogSchema>;
+
+export const knowledgeArticles = pgTable(
+  "knowledge_articles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull().unique(),
+    status: text("status").notNull().default("pending"),
+    title: text("title").notNull(),
+    metaDescription: text("meta_description"),
+    canonicalUrl: text("canonical_url"),
+    robots: text("robots").notNull().default("index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"),
+    ogImageUrl: text("og_image_url"),
+    headline: text("headline").notNull(),
+    subheadline: text("subheadline"),
+    dateline: text("dateline"),
+    bodyHtml: text("body_html").notNull(),
+    boilerplateHtml: text("boilerplate_html"),
+    datePublished: timestamp("date_published", { withTimezone: true }),
+    dateModified: timestamp("date_modified", { withTimezone: true }).defaultNow().notNull(),
+    authorName: text("author_name").notNull().default("Tableicity"),
+    publisherName: text("publisher_name").notNull().default("Tableicity"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("knowledge_articles_slug_idx").on(table.slug),
+    index("knowledge_articles_status_idx").on(table.status),
+  ]
+);
+
+export const knowledgeArticleVersions = pgTable(
+  "knowledge_article_versions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    articleId: uuid("article_id").notNull().references(() => knowledgeArticles.id, { onDelete: "cascade" }),
+    versionNumber: integer("version_number").notNull(),
+    snapshotJson: jsonb("snapshot_json").notNull(),
+    snapshotReason: text("snapshot_reason").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdBy: text("created_by"),
+  },
+  (table) => [
+    index("knowledge_versions_article_idx").on(table.articleId),
+  ]
+);
+
+export const insertKnowledgeArticleSchema = createInsertSchema(knowledgeArticles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  dateModified: true,
+});
+
+export const insertKnowledgeArticleVersionSchema = createInsertSchema(knowledgeArticleVersions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type KnowledgeArticle = typeof knowledgeArticles.$inferSelect;
+export type InsertKnowledgeArticle = z.infer<typeof insertKnowledgeArticleSchema>;
+export type KnowledgeArticleVersion = typeof knowledgeArticleVersions.$inferSelect;
+export type InsertKnowledgeArticleVersion = z.infer<typeof insertKnowledgeArticleVersionSchema>;
