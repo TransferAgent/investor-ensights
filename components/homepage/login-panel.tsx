@@ -34,7 +34,7 @@ export default function LoginPanel() {
             background: "rgba(13, 20, 35, 0.92)",
           }}
           onMouseEnter={() => {
-            window.location.href = "https://equity-manager-pro.replit.app"
+            window.location.href = "https://app.tableicity.com/login"
           }}
         >
           <div className="text-center mb-6">
