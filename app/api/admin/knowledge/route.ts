@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 import { storage } from "@/lib/storage";
 import { logAuditEvent } from "@/lib/audit";
-import { sanitizeInput } from "@/lib/sanitize";
+import { sanitizeString } from "@/lib/sanitize";
 
 export async function GET(req: NextRequest) {
   const session = await verifySession(req);
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const slug = sanitizeInput(body.slug || "").toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  const slug = sanitizeString(body.slug || "").toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
   if (!slug) return NextResponse.json({ error: "Slug is required" }, { status: 400 });
 
   const existing = await storage.getKnowledgeArticleBySlug(slug);
@@ -26,11 +26,11 @@ export async function POST(req: NextRequest) {
 
   const article = await storage.createKnowledgeArticle({
     slug,
-    title: sanitizeInput(body.title || body.headline || "Untitled"),
-    headline: sanitizeInput(body.headline || body.title || "Untitled"),
-    subheadline: body.subheadline ? sanitizeInput(body.subheadline) : null,
-    dateline: body.dateline ? sanitizeInput(body.dateline) : null,
-    metaDescription: body.metaDescription ? sanitizeInput(body.metaDescription) : null,
+    title: sanitizeString(body.title || body.headline || "Untitled"),
+    headline: sanitizeString(body.headline || body.title || "Untitled"),
+    subheadline: body.subheadline ? sanitizeString(body.subheadline) : null,
+    dateline: body.dateline ? sanitizeString(body.dateline) : null,
+    metaDescription: body.metaDescription ? sanitizeString(body.metaDescription) : null,
     bodyHtml: body.bodyHtml || "<p></p>",
     boilerplateHtml: body.boilerplateHtml || null,
     ogImageUrl: body.ogImageUrl || null,

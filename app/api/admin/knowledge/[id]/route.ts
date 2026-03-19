@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 import { storage } from "@/lib/storage";
 import { logAuditEvent } from "@/lib/audit";
-import { sanitizeInput } from "@/lib/sanitize";
+import { sanitizeString } from "@/lib/sanitize";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await verifySession(req);
@@ -22,11 +22,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json();
   const data: any = {};
 
-  if (body.title !== undefined) data.title = sanitizeInput(body.title);
-  if (body.headline !== undefined) data.headline = sanitizeInput(body.headline);
-  if (body.subheadline !== undefined) data.subheadline = body.subheadline ? sanitizeInput(body.subheadline) : null;
-  if (body.dateline !== undefined) data.dateline = body.dateline ? sanitizeInput(body.dateline) : null;
-  if (body.metaDescription !== undefined) data.metaDescription = body.metaDescription ? sanitizeInput(body.metaDescription) : null;
+  if (body.title !== undefined) data.title = sanitizeString(body.title);
+  if (body.headline !== undefined) data.headline = sanitizeString(body.headline);
+  if (body.subheadline !== undefined) data.subheadline = body.subheadline ? sanitizeString(body.subheadline) : null;
+  if (body.dateline !== undefined) data.dateline = body.dateline ? sanitizeString(body.dateline) : null;
+  if (body.metaDescription !== undefined) data.metaDescription = body.metaDescription ? sanitizeString(body.metaDescription) : null;
   if (body.bodyHtml !== undefined) data.bodyHtml = body.bodyHtml;
   if (body.boilerplateHtml !== undefined) data.boilerplateHtml = body.boilerplateHtml || null;
   if (body.ogImageUrl !== undefined) data.ogImageUrl = body.ogImageUrl || null;
@@ -34,7 +34,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.publisherName !== undefined) data.publisherName = body.publisherName;
   if (body.robots !== undefined) data.robots = body.robots;
   if (body.slug !== undefined) {
-    data.slug = sanitizeInput(body.slug).toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+    data.slug = sanitizeString(body.slug).toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
   }
 
   const updated = await storage.updateKnowledgeArticle(id, data);
