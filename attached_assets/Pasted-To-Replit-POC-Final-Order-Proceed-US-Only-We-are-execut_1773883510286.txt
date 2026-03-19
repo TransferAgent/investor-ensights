@@ -1,0 +1,46 @@
+To: Replit (POC) — Final Order: Proceed US‑Only
+We are executing a course correction: Discovery/Knowledge (Press Releases) is US‑only for this assignment.
+EU introduces hreflang and localization surface area (self-referencing + bidirectional rules) that increases drift risk; we will fork EU later under a separate URL + Germany hosting.
+
+1) Scope (Do NOT touch Locations/City)
+Locations/City remains live and unchanged.
+Build a new fork only: Discovery/Knowledge.
+2) Public route (SSR only)
+Implement:
+
+GET /discovery/knowledge/:slug
+This must SSR-render HTML by hydrating the legacy template from:
+./data/knowledge/live/:slug.json
+Rules:
+
+Never serve pending content publicly.
+If live JSON missing → return 404.
+3) Directory structure (Tri-state pipeline)
+Create:
+
+./templates/knowledge-legacy.html (legacy artifact; replace hardcoded copy with placeholders)
+./data/knowledge/pending/
+./data/knowledge/live/
+./data/knowledge/archive/
+4) SEO head injection (per-page, from JSON)
+Inject into <head>:
+
+<title> from seo_meta.title
+<meta name="description"> from seo_meta.description
+<link rel="canonical"> from seo_meta.canonical_url
+which must be https://tableicity.com/discovery/knowledge/:slug
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"> (Google-supported preview directives)
+Reference: https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag
+JSON-LD structured data @type: NewsArticle using recommended Article properties (headline, image, datePublished/dateModified, author/publisher).
+Reference: https://developers.google.com/search/docs/appearance/structured-data/article
+Semantic type: https://schema.org/NewsArticle
+5) Conductor gate (internal routes)
+Implement:
+
+GET /conductor/knowledge → list pending drafts (from ./data/knowledge/pending)
+POST /conductor/knowledge/approve → atomic publish:
+archive original draft into ./data/knowledge/archive/{timestamp}-{slug}.json
+apply Conductor edits (title/description at minimum)
+set status = "published" + update human_oversight.review_timestamp
+write to ./data/knowledge/live/:slug.json
+delete ./data/knowledge/pending/:slug.json
