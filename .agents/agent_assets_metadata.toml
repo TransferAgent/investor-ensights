@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "H8VCHfKuHDt6JHRR47nJz"
+uri = "file://John/STATUS_REPORT.md"
+type = "text"
+title = "Tableicity Status Report — March 20, 2026"
