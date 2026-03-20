@@ -142,6 +142,7 @@ export default function KnowledgeAdmin() {
     mutationFn: async () => {
       if (!editArticle) return
       return apiRequest("PATCH", `/api/admin/knowledge/${editArticle.id}`, {
+        slug: formSlug,
         title: formTitle,
         headline: formHeadline,
         subheadline: formSubheadline || null,
@@ -210,6 +211,7 @@ export default function KnowledgeAdmin() {
   }
 
   function openEdit(a: KnowledgeArticle) {
+    setFormSlug(a.slug)
     setFormTitle(a.title)
     setFormHeadline(a.headline)
     setFormSubheadline(a.subheadline || "")
@@ -225,12 +227,10 @@ export default function KnowledgeAdmin() {
 
   const articleForm = (isEdit: boolean) => (
     <div className="grid gap-4 max-h-[70vh] overflow-y-auto pr-2">
-      {!isEdit && (
-        <div>
-          <Label htmlFor="slug">Slug</Label>
-          <Input id="slug" value={formSlug} onChange={(e) => setFormSlug(e.target.value)} placeholder="my-press-release" data-testid="input-slug" />
-        </div>
-      )}
+      <div>
+        <Label htmlFor="slug">Slug</Label>
+        <Input id="slug" value={formSlug} onChange={(e) => setFormSlug(e.target.value)} placeholder="my-press-release" data-testid="input-slug" />
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="title">SEO Title</Label>
