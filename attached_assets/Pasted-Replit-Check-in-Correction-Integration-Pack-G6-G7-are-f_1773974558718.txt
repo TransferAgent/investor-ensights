@@ -1,0 +1,185 @@
+Replit Check‑in — Correction + Integration Pack (G6/G7 are for you to implement)
+You did not overstep by building; you misread the chain of command.
+
+In this mission, “Awaken 3 Engineers” means three parallel workstreams that must land inside your codebase. You are the integration surface. The Conductor does not deliver code artifacts; the Architect provides the hard-walled specs + drop-in code, and you implement/merge.
+
+Safety locks remain permanent:
+
+Knowledge ≠ Locations (read city data only; no schema coupling)
+pending-only via internal POST /api/knowledge/draft (no DB direct write)
+Below is the complete integration pack (what you said you needed): service design, prompt templates, Zod schema, UI spec, and the Fontana test.
+
+A) Generation Service Engineer — generateDraft(cityRecord, manualDirective)
+1) Add Zod payload contract (single source of truth)
+File: lib/knowledge/payloadContract.ts
+
+Copyimport { z } from "zod";
+
+export const KnowledgeDraftPayloadV1 = z.object({
+  slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).min(5).max(120),
+  locale: z.literal("en-US"),
+  seo: z.object({
+    title: z.string().min(10).max(80),
+    description: z.string().min(50).max(200),
+    ogImageUrl: z.string().url().optional(),
+  }),
+  article: z.object({
+    headline: z.string().min(10).max(140),
+    subheadline: z.string().optional(),
+    dateline: z.string().optional(),
+    bodyHtml: z.string().min(600),
+    boilerplateHtml: z.string().optional(),
+  }),
+  attribution: z.object({
+    authorName: z.string().min(1),
+    authorType: z.enum(["Organization", "Person"]),
+    publisherName: z.literal("Tableicity"),
+  }),
+  conductor: z.object({
+    manualDirective: z.string().optional(),
+    sourceUrl: z.string().url().optional(),
+  }),
+});
+
+export type KnowledgeDraftPayloadV1 = z.infer<typeof KnowledgeDraftPayloadV1>;
+2) Versioned prompt template library (config, not hardcoded)
+File: config/localVibePrompts.ts
+
+Copyexport type PromptVersion = "v1";
+
+export const LOCAL_VIBE_PROMPTS: Record<PromptVersion, string> = {
+  v1: `
+You are writing a Tableicity press-release-style knowledge article for US founders and finance operators.
+
+CITY CONTEXT:
+- cityName: {{cityName}}
+- stateCode: {{stateCode}}
+- stateName: {{stateName}}
+- citySlug: {{citySlug}}
+- landmarks: {{landmarks}}
+- nearbyCities: {{nearbyCities}}
+
+CONDUCTOR DIRECTIVE (optional):
+{{manualDirective}}
+
+OUTPUT REQUIREMENTS:
+Return ONLY valid JSON for the following schema:
+{
+  "slug": "string",
+  "locale": "en-US",
+  "seo": { "title": "string", "description": "string", "ogImageUrl": "https://www.tableicity.com/... (optional)" },
+  "article": {
+    "headline": "string",
+    "subheadline": "string (optional)",
+    "dateline": "UNITED STATES — (optional)",
+    "bodyHtml": "string (HTML, no <script>, minimum 600 chars)",
+    "boilerplateHtml": "string (optional)"
+  },
+  "attribution": { "authorName": "Tableicity", "authorType": "Organization", "publisherName": "Tableicity" },
+  "conductor": { "manualDirective": "string (optional)", "sourceUrl": "string url (optional)" }
+}
+
+CONTENT RULES:
+- Must be unique and city-specific (use landmarks/nearbyCities naturally).
+- Must include Tableicity narrative (privacy, accuracy, cap table readiness).
+- Keep SEO title under ~60 chars if possible.
+- Do NOT mention you are an AI.
+`
+};
+Copy
+3) Server route that generates + calls internal /api/knowledge/draft
+File: app/api/knowledge/generate-local-vibe/route.ts
+
+Copyimport { NextRequest, NextResponse } from "next/server";
+import { verifySession } from "@/lib/auth";
+import { KnowledgeDraftPayloadV1 } from "@/lib/knowledge/payloadContract";
+import { LOCAL_VIBE_PROMPTS } from "@/config/localVibePrompts";
+// import { db } from "@/lib/db"; // your drizzle db
+// import { city_locations } from "@/shared/schema"; // example
+
+function renderTemplate(tpl: string, vars: Record<string, string>) {
+  return Object.entries(vars).reduce(
+    (acc, [k, v]) => acc.replaceAll(`{{${k}}}`, v ?? ""),
+    tpl
+  );
+}
+
+export async function POST(req: NextRequest) {
+  const session = await verifySession(req); // must throw/return 401 if not authed
+  const { citySlug, manualDirective = "", promptVersion = "v1" } = await req.json();
+
+  // 1) Load city record (READ ONLY)
+  // const city = await db.select().from(city_locations).where(eq(city_locations.slug, citySlug)).limit(1);
+  // if (!city) return NextResponse.json({ error: "City not found" }, { status: 404 });
+
+  // Mock shape: replace with real city record
+  const city = {
+    name: "Fontana",
+    stateCode: "CA",
+    stateName: "California",
+    slug: citySlug,
+    landmarks: "…",
+    nearbyCities: "…",
+  };
+
+  const prompt = renderTemplate(LOCAL_VIBE_PROMPTS[promptVersion], {
+    cityName: city.name,
+    stateCode: city.stateCode,
+    stateName: city.stateName,
+    citySlug: city.slug,
+    landmarks: String(city.landmarks ?? ""),
+    nearbyCities: String(city.nearbyCities ?? ""),
+    manualDirective,
+  });
+
+  // 2) Call your AI provider here (OpenAI/etc.)
+  // const aiJsonText = await callLLM(prompt)
+  // const parsed = JSON.parse(aiJsonText);
+
+  // TEMP stub to wire plumbing; replace with real model output:
+  const parsed = {
+    slug: `${city.slug}-local-vibe-audit-readiness`,
+    locale: "en-US",
+    seo: { title: `Cap Table Audit Readiness in ${city.name}`, description: "..." },
+    article: { headline: "...", bodyHtml: "<p>...</p>" },
+    attribution: { authorName: "Tableicity", authorType: "Organization", publisherName: "Tableicity" },
+    conductor: { manualDirective }
+  };
+
+  const payload = KnowledgeDraftPayloadV1.parse(parsed);
+
+  // 3) MUST call internal /api/knowledge/draft (never DB write)
+  const draftUrl = new URL("/api/knowledge/draft", req.url);
+  const res = await fetch(draftUrl, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: req.headers.get("cookie") ?? "", // preserve JWT cookie
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await res.json();
+  return NextResponse.json(result, { status: res.status });
+}
+Copy
+B) Admin UI Engineer — Button + dropdown + directive box
+File: app/admin/knowledge/page.tsx (client component; React Query already) Add a small panel:
+
+City dropdown (from city_locations where published=true)
+Directive textbox
+Button calls /api/knowledge/generate-local-vibe
+Expected response: the existing draft endpoint response (adminUrl), so you can route immediately.
+
+C) Prompt/Asset/Config Engineer — OG image flow (1200px+)
+For G6/G7, keep it simple:
+
+Draft generation may omit ogImageUrl
+Conductor assigns OG image in admin (must be ≥1200px wide)
+The published page already emits JSON‑LD image when ogImageUrl exists (validated in G2)
+Required test (single handoff)
+Generate for:
+
+city: fontana-ca
+directive: “Focus on cap table audit readiness for US founders and CFOs” Expected: pending article created + link in admin.
+If you want, say “Output UI snippet” and I’ll provide the exact React Query mutation + component code for /admin/knowledge.

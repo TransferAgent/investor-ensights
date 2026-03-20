@@ -26,6 +26,13 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient"
 import { useToast } from "@/hooks/use-toast"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Plus,
   Pencil,
   Trash2,
@@ -34,7 +41,16 @@ import {
   History,
   ExternalLink,
   Eye,
+  Sparkles,
+  Loader2,
 } from "lucide-react"
+
+interface CityRecord {
+  id: string
+  slug: string
+  cityName: string
+  stateCode: string
+}
 
 interface KnowledgeArticle {
   id: string
@@ -78,6 +94,9 @@ export default function KnowledgeAdmin() {
   const [editArticle, setEditArticle] = useState<KnowledgeArticle | null>(null)
   const [versionsArticle, setVersionsArticle] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>("")
+  const [generateOpen, setGenerateOpen] = useState(false)
+  const [generateCitySlug, setGenerateCitySlug] = useState("")
+  const [generateDirective, setGenerateDirective] = useState("")
 
   const [formSlug, setFormSlug] = useState("")
   const [formTitle, setFormTitle] = useState("")
@@ -109,6 +128,39 @@ export default function KnowledgeAdmin() {
       return res.json()
     },
     enabled: !!versionsArticle,
+  })
+
+  const { data: cities } = useQuery<CityRecord[]>({
+    queryKey: ["/api/locations"],
+    queryFn: async () => {
+      const res = await fetch("/api/locations", { credentials: "include" })
+      if (!res.ok) throw new Error("Failed to load cities")
+      return res.json()
+    },
+  })
+
+  const generateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/knowledge/generate-local-vibe", {
+        citySlug: generateCitySlug,
+        manualDirective: generateDirective || undefined,
+        promptVersion: "v1",
+      })
+      return res.json()
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      setGenerateOpen(false)
+      setGenerateCitySlug("")
+      setGenerateDirective("")
+      toast({
+        title: "Local Vibe draft created",
+        description: data.slug ? `Pending article: ${data.slug}` : "Draft created successfully",
+      })
+    },
+    onError: (err: any) => {
+      toast({ title: "Generation failed", description: err.message, variant: "destructive" })
+    },
   })
 
   const createMutation = useMutation({
@@ -292,19 +344,79 @@ export default function KnowledgeAdmin() {
           <h1 className="text-2xl font-bold" data-testid="text-page-title">Knowledge / Press Releases</h1>
           <p className="text-sm text-muted-foreground mt-1">Create, edit, publish, and archive press releases</p>
         </div>
-        <Dialog open={createOpen} onOpenChange={(o) => { setCreateOpen(o); if (!o) resetForm() }}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-create-article">
-              <Plus className="mr-2 h-4 w-4" /> New Article
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Create New Article</DialogTitle>
-            </DialogHeader>
-            {articleForm(false)}
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Dialog open={generateOpen} onOpenChange={(o) => { setGenerateOpen(o); if (!o) { setGenerateCitySlug(""); setGenerateDirective("") } }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" data-testid="button-generate-local-vibe">
+                <Sparkles className="mr-2 h-4 w-4" /> Generate Local Vibe
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Generate Local Vibe Draft</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4">
+                <div>
+                  <Label htmlFor="generate-city">Select City</Label>
+                  <Select value={generateCitySlug} onValueChange={setGenerateCitySlug}>
+                    <SelectTrigger data-testid="select-generate-city">
+                      <SelectValue placeholder="Choose a city..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cities?.sort((a, b) => a.cityName.localeCompare(b.cityName)).map((c) => (
+                        <SelectItem key={c.slug} value={c.slug}>
+                          {c.cityName}, {c.stateCode}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="generate-directive">Directive (optional, 20% human oversight)</Label>
+                  <Textarea
+                    id="generate-directive"
+                    value={generateDirective}
+                    onChange={(e) => setGenerateDirective(e.target.value)}
+                    placeholder="e.g. Focus on cap table audit readiness for US founders and CFOs"
+                    rows={3}
+                    data-testid="input-generate-directive"
+                  />
+                </div>
+                <Button
+                  onClick={() => generateMutation.mutate()}
+                  disabled={!generateCitySlug || generateMutation.isPending}
+                  data-testid="button-generate-submit"
+                >
+                  {generateMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" /> Generate Draft
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Creates a <strong>pending</strong> article via the draft pipeline. Must be reviewed and published manually.
+                </p>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={createOpen} onOpenChange={(o) => { setCreateOpen(o); if (!o) resetForm() }}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-create-article">
+                <Plus className="mr-2 h-4 w-4" /> New Article
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create New Article</DialogTitle>
+              </DialogHeader>
+              {articleForm(false)}
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="flex gap-2 mb-4">

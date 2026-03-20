@@ -89,6 +89,15 @@ function validatePayload(body: any): { valid: boolean; errors: string[] } {
       if (/<script[\s>]/i.test(body.article.bodyHtml)) {
         errors.push("article.bodyHtml must not contain <script> tags");
       }
+      if (/\bon\w+\s*=/i.test(body.article.bodyHtml)) {
+        errors.push("article.bodyHtml must not contain inline event handlers (e.g. onclick, onerror)");
+      }
+      if (/javascript\s*:/i.test(body.article.bodyHtml)) {
+        errors.push("article.bodyHtml must not contain javascript: URLs");
+      }
+      if (/<iframe[\s>]/i.test(body.article.bodyHtml)) {
+        errors.push("article.bodyHtml must not contain <iframe> tags");
+      }
     }
   }
 

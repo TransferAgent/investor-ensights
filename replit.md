@@ -60,6 +60,7 @@ All under `app/api/`:
 - `admin/knowledge/[id]/archive/route.ts` — POST archive article (creates version snapshot)
 - `admin/knowledge/[id]/versions/route.ts` — GET version history
 - `knowledge/draft/route.ts` — POST structured draft ingestion (G5 contract v1: pending-only, validated, audited, rate-limited)
+- `knowledge/generate-local-vibe/route.ts` — POST generate Local Vibe draft for a city (G6/G7: uses versioned prompt template, calls /api/knowledge/draft internally, pending-only)
 - `admin/stats/route.ts` — GET dashboard stats
 - `locations/route.ts` — GET public published cities
 - `locations/[slug]/route.ts` — GET public city detail
@@ -104,6 +105,8 @@ All under `app/api/`:
 - `lib/sanitize.ts` — Input sanitization for XSS prevention
 - `lib/geocoding.ts` — OpenCage geocoding (auto-fills lat/lng from address)
 - `lib/seed.ts` — Database seeding (cities + templates + admin user)
+- `lib/knowledge/payloadContract.ts` — Zod schema (KnowledgeDraftPayloadV1) for draft ingestion contract
+- `config/localVibePrompts.ts` — Versioned prompt template library (v1+) for Local Vibe generation
 - `lib/placeholder-replacer.ts` — Template placeholder substitution
 - `lib/queryClient.ts` — React Query client + apiRequest helper
 - `components/homepage/hero-home.tsx` — Two-panel homepage wrapper

@@ -1,4 +1,6 @@
 {
-  "/[slug]/page": "app/[slug]/page.js",
+  "/admin/knowledge/page": "app/admin/knowledge/page.js",
+  "/api/knowledge/draft/route": "app/api/knowledge/draft/route.js",
+  "/api/knowledge/generate-local-vibe/route": "app/api/knowledge/generate-local-vibe/route.js",
   "/page": "app/page.js"
 }
