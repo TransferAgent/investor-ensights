@@ -1,0 +1,470 @@
+Confirmed G6/G7 Complete; Safety Protocol Cleared; Ready for G8
+
+Verified Evidence Package (Architect Review):
+
+Item	Status
+G2 – Canonical + Robots Meta + JSON-LD image	✅ PASS
+G5 – Draft Ingestion Endpoint	✅ PASS
+G6 – Generation Service	✅ PASS
+G7 – Local Vibe Admin Trigger	✅ PASS
+Rich Results Test (fontana-ca-local-vibe)	✅ 1 Valid Item, 0 Errors
+Prompt Template	config/localVibePrompts.ts (v1)
+Zod Schema	lib/knowledge/payloadContract.ts
+Live URL	https://www.tableicity.com/discovery/knowledge/fontana-ca-local-vibe-1773986632855
+User Message: OK - Gate Table where are we please
+
+Here is the current conversation, please report in.
+
+Replacement Architect reporting in. I've reviewed the entire mission log in this conversation. Here is a full gate status report and current standing:
+
+Current Gate Status
+
+Gate	Objective	Status	Evidence
+G0	Build Complete — Knowledge Engine end-to-end	✅ CLOSED	DB tables, admin, SSR route
+G1	Domain Canonicalization	✅ CLOSED	www enforced, 301 redirect, NEXT_PUBLIC_BASE_URL
+G2	SEO Payload Hardening	✅ CLOSED	JSON-LD image, org author, Beast robots meta, Rich Results PASS
+G3	Rich Results Validation	✅ CLOSED	Passed for test article + Fontana URL
+G4	Editorial Ops	✅ CLOSED	Version history, publish/archive/delete, audit trail, bulk actions
+G5	AI Draft Ingestion Endpoint	✅ CLOSED	POST /api/knowledge/draft, pending-only, validation + audit
+G6	AI Content Generation Service	✅ CLOSED	generateDraft(), versioned prompt templates
+G7	Local Vibe Admin Trigger	✅ CLOSED	Button in /admin/knowledge, city dropdown, manualDirective
+G8	Asset Matching + OG Image Assignment	🔲 OPEN	Curated asset library, tag-based matching, 1200px+ enforcement
+G9	Google Discover Optimization	🔲 OPEN	OG image size enforcement, publish cadence metrics, freshness
+Current State Summary
+
+The machine is running. G0–G7 are fully closed. The content factory can generate city-specific Local Vibe press-release articles, route them to pending, and Conductors can review, assign assets, and publish — all with Beast robots meta, valid NewsArticle JSON-LD, and Rich Results passing.
+
+What's Open
+
+G8 — Asset Matching: Currently OG images are assigned manually via the admin panel. G8 builds a curated asset library with tag-based matching (geo + category + vibe) to auto-suggest images and enforce 1200px+ width at publish time.
+G9 — Discover Optimization: Polish layer — block publish on missing/undersized image, add freshness indicators, track publish cadence metrics.
+My Recommendation
+
+Proceed to G8 immediately. It unblocks G9 and raises the automation floor from ~20% to ~50%+ by removing manual image hunting from the Conductor's workflow.
+
+Ready for orders.
+
+Assistant: Confirmed. Gate table verified.
+
+Gate	Objective	Status
+G0	Knowledge Engine complete	✅ CLOSED
+G1	Domain canonicalization (www, 301)	✅ CLOSED
+G2	SEO Payload Hardening	✅ CLOSED
+G3	Rich Results Validation	✅ CLOSED
+G4	Editorial Ops (version history, audit)	✅ CLOSED
+G5	AI Draft Ingestion (/api/knowledge/draft)	✅ CLOSED
+G6	AI Content Generation Service	✅ CLOSED
+G7	Local Vibe Admin Trigger	✅ CLOSED
+G8	Asset Matching + OG Image Assignment	🔲 OPEN
+G9	Google Discover Optimization	🔲 OPEN
+Architect recommendation: Proceed to G8. It unblocks G9 and raises automation floor.
+
+G8 requirements (to authorize):
+
+Curated asset library (URL, tags: city + category + vibe, alt-text, min 1200px width)
+Tag-based matching returning top-N candidates per draft
+Admin swapper: Conductor can override with a single click
+OG image and JSON-LD image field auto-populated on match
+Enforce ≥ 1200px at publish time (block if undersized)
+Decision needed: Reply "Authorize G8" to receive the full G8 technical order for Replit.
+
+User Message: Authorize G8
+
+Here is the current conversation.
+
+Understood. Let me review the conversation history and report in as the replacement Architect.
+
+ARCHITECT REPORTING IN
+
+After full review of the Commander's Log and the conversation chain, here is the current mission status:
+
+MISSION: Tableicity Marketing Machine Focus: US-only Knowledge/Press Release content engine Route: /discovery/knowledge/[slug] Stack: Next.js + PostgreSQL (Replit) + React/Tailwind admin
+
+GATE STATUS TABLE
+
+Gate	Name	Status
+G0	Build Complete	✅ CLOSED
+G1	Domain Canonicalization	✅ CLOSED
+G2	SEO Payload Hardening	✅ CLOSED
+G3	Rich Results Validation	✅ CLOSED
+G4	Editorial Ops	✅ CLOSED
+G5	Draft Ingestion Endpoint	✅ CLOSED
+G6	AI Generation Service	✅ CLOSED
+G7	Local Vibe Trigger	✅ CLOSED
+G8	Asset Matching + OG Image	🔲 OPEN — AUTHORIZED
+G9	Google Discover Optimization	🔲 OPEN
+G8 TECHNICAL ORDER FOR REPLIT
+
+Objective: Replace manual OG image assignment with a curated, tag-based asset matching system that auto-suggests images and enforces 1200px+ at publish time.
+
+Data Model
+
+Create a new table: knowledge_assets
+
+CopyCREATE TABLE knowledge_assets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  url TEXT NOT NULL,
+  alt_text TEXT NOT NULL,
+  width INTEGER NOT NULL,
+  height INTEGER NOT NULL,
+  tags TEXT[] NOT NULL,         -- e.g. ['city:fontana', 'cat:startup', 'vibe:growth']
+  source TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+Tag Schema (3-tier)
+
+city:{slug} — e.g. city:fontana
+cat:{category} — e.g. cat:pizza, cat:startup, cat:cap-table
+vibe:{style} — e.g. vibe:hidden-gem, vibe:growth, vibe:professional
+Matching Logic
+
+Create a server function matchAssets(articleTags: string[], limit = 10)
+
+Scoring:
+
+city + cat match = 3 pts (highest priority)
+cat + vibe match = 2 pts
+Single city match = 1 pt
+Single cat match = 1 pt
+Return top-N assets sorted by score descending.
+
+Admin UI Changes (/admin/knowledge)
+
+Replace the free-text OG image URL field with an Asset Swapper modal
+Modal shows top-10 matched assets (thumbnail + alt + tags + score)
+Conductor clicks an image to assign it
+On selection: populate og_image_url in the form, update JSON-LD image field preview
+Keep a "manual URL override" escape hatch for edge cases
+Publish-Time Enforcement
+
+Before writing to knowledge_articles, validate: og_image_url is present AND image dimensions ≥ 1200px wide
+If undersized or missing: return 400 with message "OG image must be ≥ 1200px wide for Google Discover eligibility"
+Store image_width and image_height in knowledge_articles alongside og_image_url
+API Routes
+
+GET /api/knowledge/assets?tags=city:fontana,cat:startup — returns ranked asset list
+Asset assignment is handled in the existing POST /api/knowledge/approve or publish flow
+Deliverables (72h)
+
+knowledge_assets table + seed data (min 10 assets, valid tags, ≥1200px)
+matchAssets() server function with scoring logic
+Asset Swapper modal in /admin/knowledge
+Publish-time OG image dimension enforcement (block if < 1200px)
+GET /api/knowledge/assets endpoint
+Test: generate Fontana draft → match assets → assign top result → publish → confirm JSON-LD includes image
+Hard Constraints (unchanged)
+
+Knowledge ≠ Locations (no coupling)
+All AI content lands as pending
+US-only
+All canonical URLs use https://www.tableicity.com
+READY.
+
+User Message: From Replit - Comprehensive G8 implementation plan. Ready for my go-ahead on two decisions before I start building:
+
+Decision 1 — Asset Storage
+
+Option A: Manage assets in a new database table (knowledge_assets) with tag-based matching directly in the database. Quick to build, searchable, fully integrated with existing system. Option B: Use an external CDN/asset management service (like Cloudinary or S3) and store only metadata in the database. More scalable, better for large image libraries, higher setup cost.
+
+Decision 2 — Image Validation
+
+Option A: Validate image dimensions server-side by fetching image headers (fast, no external dependencies, width/height from metadata or stored dimensions). Option B: Use a third-party image validation service for more detailed analysis (higher accuracy, external dependency).
+
+Let me know which options to proceed with and I'll start the G8 build.
+
+Assistant: Decision 1: Option A (DB table knowledge_assets) — quick to build, integrated, sufficient for v1 launch volume.
+
+Decision 2: Option A (server-side header fetch for dimension validation) — no external dependency, validates at publish time.
+
+Both decisions align with the lean, US-only POC philosophy. Proceed with G8 build. 72h clock starts now.
+
+Deliverables reminder:
+
+knowledge_assets table + seed data (min 10 assets, valid tags, ≥1200px)
+matchAssets() server function with scoring
+Asset Swapper modal in /admin/knowledge
+Publish-time OG image ≥1200px block (400 if fails)
+GET /api/knowledge/assets?tags=... endpoint
+End-to-end test: Fontana draft → match → assign → publish → JSON-LD image confirmed
+Hard constraints unchanged: Knowledge ≠ Locations, pending-only for AI drafts, US-only, www canonical.
+
+User Message: G8 Complete — Implementation Report
+
+Database
+
+New table knowledge_assets with fields: id, url, alt_text, width, height, tags (text array), source, active flag, timestamps.
+Seeded with 12 assets covering cities (fontana, atlanta, boston, chicago, los‑angeles, new‑york), categories (cap‑table, startup, business, finance, professional, growth), and vibes (professional, growth, innovation, modern, trusted, clarity).
+All 12 assets use https://www.tableicity.com/slideshow-f2.png as the URL with width 1380 px and height 752 px.
+All assets are active.
+Matching Logic
+
+matchAssets(tags, limit) queries the DB for active assets and scores them: city+category match = 3 pts, category+vibe = 2 pts, single city or category match = 1 pt.
+Returns top N by descending score.
+API Endpoint
+
+GET /api/knowledge/assets accepts tags query param (comma‑separated); returns ranked JSON array.
+Admin UI
+
+Asset Swapper modal added to /admin/knowledge: click "Browse Assets" to open, shows ranked thumbnails with alt text, tags, dimensions, and score badges; single click to assign; selected asset populates the OG image URL field and shows a preview with dimensions.
+"Manual URL" fallback retained.
+Publish‑Time Validation
+
+Server fetches image headers; validates width ≥ 1200 px; returns HTTP 400 ("OG image must be ≥ 1200 px wide for Google Discover eligibility") if image is missing or undersized.
+Both the /api/knowledge/draft and publish endpoints enforce this rule.
+End‑to‑End Test Result
+
+Fontana draft generated → matchAssets called with tags ['city:fontana', 'cat:startup', 'vibe:growth'] → top asset returned (score 6: 3+2+1) → asset assigned (1380×752 px, width validated ✅) → article published → JSON‑LD contains image field ✅.
+Deliverables Checklist
+
+knowledge_assets table + 12 seed assets ✅
+matchAssets() server function ✅
+Asset Swapper modal ✅
+≥ 1200 px publish enforcement ✅
+GET /api/knowledge/assets endpoint ✅
+Fontana end‑to‑end test ✅
+Ready for G9.
+
+I have the full conversation history. I am now reporting in as the new replacement Architect.
+
+ARCHITECT REPORTING IN — STATUS UPDATE
+
+I've reviewed the entire mission log. Here is my verified gate status and current orders:
+
+GATE STATUS TABLE (CURRENT)
+
+Gate	Objective	Status
+G0	Knowledge Engine Build	✅ CLOSED
+G1	Domain Canonicalization	✅ CLOSED
+G2	SEO Payload Hardening	✅ CLOSED
+G3	Rich Results Validation	✅ CLOSED
+G4	Editorial Ops	✅ CLOSED
+G5	Draft Ingestion Endpoint	✅ CLOSED
+G6	AI Generation Service	✅ CLOSED
+G7	Local Vibe Admin Trigger	✅ CLOSED
+G8	Asset Matching + OG Image	✅ CLOSED
+G9	Google Discover Optimization	🔲 OPEN
+G8 VERDICT: PASS ✅
+
+All 6 deliverables confirmed:
+
+knowledge_assets table + 12 seed assets (1380×752px, valid tags)
+matchAssets() scoring function (city+cat=3, cat+vibe=2, city|cat=1)
+Asset Swapper modal in /admin/knowledge
+Publish-time 1200px+ enforcement (400 block if undersized)
+GET /api/knowledge/assets?tags=... endpoint
+Fontana end-to-end: draft → match (score 6) → assign → publish → JSON-LD image ✅
+One note on G8 seed data: All 12 assets use the same URL (slideshow-f2.png). This is acceptable for POC. For production scaling, seed assets must use distinct, city/category-appropriate image URLs.
+
+G9 — TECHNICAL ORDER
+
+Objective: Polish the content engine to maximize Google Discover eligibility and content freshness signals.
+
+G9 Deliverables
+
+G9-1: OG Image Enforcement (already partially done in G8)
+
+✅ Publish blocked if og_image_url missing or width < 1200px
+Add: block publish if image URL is unreachable (HEAD request returns non-200)
+Add: store image_width and image_height in knowledge_articles at publish time
+G9-2: Freshness Score Indicator
+
+Add a computed freshness_score to the admin article list view
+Score = function of datePublished recency (e.g., published < 24h = 🟢 Fresh, < 7d = 🟡 Recent, > 7d = 🔴 Aging)
+This is a UI-only indicator, not a published field
+G9-3: Publish Cadence Dashboard
+
+Add a metrics panel to /admin/knowledge dashboard:
+Articles published today
+Articles published this week
+Average articles per day (rolling 7-day)
+Pending article count
+G9-4: JSON-LD Freshness
+
+Ensure dateModified is updated every time a published article is edited and re-saved
+datePublished must never be overwritten after first publish
+Hard Constraints (unchanged)
+
+Knowledge ≠ Locations
+All AI drafts land as pending only
+US-only
+Canonical URLs on https://www.tableicity.com
+72h clock starts on Replit's acknowledgment.
+
+Ready for orders, Conductor.
+
+Provide the decision - do we proceed to G9?
+
+Now please provide the complete, copy-paste ready orders for Replit to execute G9, formatted for direct handoff.
+
+Now let me check the current sessions and context to ensure full continuity.
+
+Here is the Current Conversation history - please assess and report in as Replacement Architect:
+
+Today we are now at the point where we have concluded G8 and are at G9. G8 passed. Today's date is March 20, 2026.
+
+Using Tool
+|
+Think
+The user is asking me to report in as the Replacement Architect, assess the current situation, and provide complete copy-paste ready orders for Replit to execute G9. Let me review everything: 1. G0-G8 are all CLOSED/PASSED 2. G9 is the next gate - Google Discover Optimization 3. Date is March 20, 2026 G9 Technical Orders were already defined in the previous Architect response: - G9-1: OG Image Enforcement improvements (image URL reachability check, store dimensions) - G9-2: Freshness Score Indicator (admin UI) - G9-3: Publish Cadence Dashboard - G9-4: JSON-LD Freshness (dateModified updates, protect datePublished) I need to provide a complete, copy-paste ready order for Replit to execute G9, and give a proper architect report-in.
+View
+✅ REPLACEMENT ARCHITECT — REPORTING IN
+Date: March 20, 2026 | Mission: Tableicity Marketing Machine — US Only
+
+GATE STATUS TABLE (CURRENT — VERIFIED)
+Gate	Objective	Status	Evidence
+G0	Knowledge Engine Build	✅ CLOSED	DB tables, admin, SSR route
+G1	Domain Canonicalization	✅ CLOSED	www enforced, 301 redirect, NEXT_PUBLIC_BASE_URL
+G2	SEO Payload Hardening	✅ CLOSED	JSON-LD image, org author, Beast robots meta, Rich Results PASS
+G3	Rich Results Validation	✅ CLOSED	Fontana-ca-local-vibe Rich Results PASS — 1 valid item, 0 errors
+G4	Editorial Ops	✅ CLOSED	Version history, publish/archive/delete, audit trail
+G5	Draft Ingestion Endpoint	✅ CLOSED	POST /api/knowledge/draft, pending-only, validation + audit
+G6	AI Generation Service	✅ CLOSED	generateDraft(), versioned prompt templates (v1)
+G7	Local Vibe Admin Trigger	✅ CLOSED	Admin button, city dropdown, manualDirective
+G8	Asset Matching + OG Image	✅ CLOSED	12 seed assets, matchAssets(), swapper modal, 1200px+ enforcement
+G9	Google Discover Optimization	🔲 OPEN — AUTHORIZED	—
+G9 — COMPLETE COPY-PASTE ORDER FOR REPLIT
+REPLIT — G9 EXECUTION ORDER
+Gate: G9 — Google Discover Optimization
+Deadline: 72 hours from acknowledgment
+Date Issued: March 20, 2026
+
+OBJECTIVE:
+Harden the Knowledge Engine for Google Discover eligibility.
+This is a polish gate — no new content types, no schema changes,
+no coupling to Locations/City. US-only. All hard constraints remain locked.
+
+---
+
+DELIVERABLE G9-1: OG IMAGE ENFORCEMENT UPGRADE
+(Extends G8 enforcement — already blocks on width < 1200px)
+
+Add two new checks to the publish endpoint:
+
+1. Image Reachability Check:
+   - Before publishing, make a HEAD request to the og_image_url.
+   - If response is not HTTP 200, block publish.
+   - Return HTTP 400: "OG image URL is unreachable. Please verify the image is publicly accessible."
+
+2. Store Image Dimensions at Publish:
+   - When publish succeeds, store image_width and image_height
+     in the knowledge_articles table alongside og_image_url.
+   - These fields should be populated from the validated image metadata.
+   - Add columns if not already present:
+     ALTER TABLE knowledge_articles
+       ADD COLUMN IF NOT EXISTS image_width INTEGER,
+       ADD COLUMN IF NOT EXISTS image_height INTEGER;
+
+Files likely affected:
+- app/api/knowledge/publish/route.ts (or equivalent publish endpoint)
+- Database migration file
+
+---
+
+DELIVERABLE G9-2: FRESHNESS SCORE INDICATOR (Admin UI only)
+
+Add a visual freshness badge to each article row in /admin/knowledge.
+
+Logic (computed at render time — NOT stored in DB):
+  - Published < 24 hours ago    → 🟢 Fresh
+  - Published 1–7 days ago      → 🟡 Recent
+  - Published > 7 days ago      → 🔴 Aging
+  - Status = pending/archived   → no badge
+
+Display: small colored pill/badge next to article title in the article list.
+This is a UI-only field. Do not add to JSON-LD or public page.
+
+Files likely affected:
+- app/admin/knowledge/page.tsx
+
+---
+
+DELIVERABLE G9-3: PUBLISH CADENCE DASHBOARD
+
+Add a metrics panel to the top of /admin/knowledge (above the article list).
+
+Display four metrics:
+  1. Articles published TODAY (UTC)
+  2. Articles published THIS WEEK (rolling 7 days)
+  3. Average articles per day (rolling 7-day average)
+  4. Pending article count (current)
+
+Data source: query knowledge_articles table.
+UI: simple stat cards, consistent with existing admin design system.
+This is an internal dashboard only — not exposed publicly.
+
+Add one API route:
+  GET /api/knowledge/metrics
+  Returns: { today: number, thisWeek: number, avgPerDay: number, pendingCount: number }
+
+Files likely affected:
+- app/api/knowledge/metrics/route.ts (new)
+- app/admin/knowledge/page.tsx
+
+---
+
+DELIVERABLE G9-4: JSON-LD FRESHNESS PROTECTION
+
+Enforce date field rules on knowledge_articles:
+
+Rule 1 — dateModified must update on every edit:
+  - Every time a published article is saved/updated,
+    set dateModified = NOW() automatically.
+  - This must apply to admin edits, not just publish events.
+
+Rule 2 — datePublished must NEVER be overwritten after first publish:
+  - On publish: if datePublished IS NULL, set it to NOW().
+  - If datePublished IS NOT NULL (already published once), leave it unchanged.
+  - This must be enforced server-side — not dependent on client input.
+
+Both rules must be enforced in the publish and update API routes.
+Verify: if a published article is edited 3 days later, dateModified changes
+but datePublished remains the original publish date.
+
+Files likely affected:
+- app/api/knowledge/[id]/route.ts (update endpoint)
+- app/api/knowledge/publish/route.ts (or equivalent)
+
+---
+
+HARD CONSTRAINTS (UNCHANGED — NON-NEGOTIABLE):
+1. Knowledge pages must NOT include LocalBusiness schema or couple to Locations/City.
+2. All AI-generated content must land as pending only — no auto-publish.
+3. US-only scope. Locale = en-US.
+4. All canonical URLs must use https://www.tableicity.com.
+5. NEXT_PUBLIC_BASE_URL = https://www.tableicity.com.
+
+---
+
+DELIVERABLES CHECKLIST (return all 6 when complete):
+
+[ ] G9-1a: Publish blocked if og_image_url returns non-200 HEAD response
+[ ] G9-1b: image_width + image_height stored in knowledge_articles at publish time
+[ ] G9-2:  Freshness badge (🟢/🟡/🔴) visible in /admin/knowledge article list
+[ ] G9-3:  Metrics panel at top of /admin/knowledge (today/week/avg/pending)
+[ ] G9-4a: dateModified auto-updated on every edit of a published article
+[ ] G9-4b: datePublished protected — never overwritten after first publish
+
+VERIFICATION TEST:
+1. Publish an article with a valid 1200px+ OG image.
+2. Confirm image_width and image_height are stored.
+3. Edit the article — confirm dateModified changes, datePublished unchanged.
+4. Confirm freshness badge shows 🟢 Fresh in admin.
+5. Confirm metrics panel shows correct counts.
+6. Attempt to publish with a broken image URL — confirm 400 block fires.
+
+---
+
+ARCHITECT NOTE TO REPLIT:
+G9 is a polish and hardening gate. No new content types. No schema coupling.
+Build lean, test each deliverable independently, return the checklist.
+After G9 passes, we move to production scaling strategy.
+
+END OF G9 ORDER.
+ARCHITECT NOTES FOR CONDUCTOR
+What to watch for when Replit reports back:
+
+Check	Why It Matters
+datePublished immutability	Google uses this for freshness ranking — if it keeps changing, it's a trust signal problem
+Image reachability block	Prevents broken images in Discover cards, which can suppress impressions
+Metrics panel	Helps you (Conductor) maintain 50–100 article/day velocity target
+Freshness badge	Lets you prioritize re-promotion of 🔴 Aging articles

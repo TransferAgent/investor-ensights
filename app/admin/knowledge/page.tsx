@@ -39,10 +39,13 @@ import {
   Send,
   Archive,
   History,
-  ExternalLink,
   Eye,
   Sparkles,
   Loader2,
+  BarChart3,
+  Clock,
+  FileText,
+  TrendingUp,
 } from "lucide-react"
 
 interface CityRecord {
@@ -64,6 +67,8 @@ interface KnowledgeArticle {
   bodyHtml: string
   boilerplateHtml: string | null
   ogImageUrl: string | null
+  imageWidth: number | null
+  imageHeight: number | null
   authorName: string
   publisherName: string
   robots: string
@@ -82,10 +87,31 @@ interface ArticleVersion {
   createdBy: string | null
 }
 
+interface KnowledgeMetrics {
+  today: number
+  thisWeek: number
+  avgPerDay: number
+  pendingCount: number
+}
+
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
   published: "bg-green-500/10 text-green-500 border-green-500/20",
   archived: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+}
+
+function getFreshnessBadge(article: KnowledgeArticle) {
+  if (article.status !== "published" || !article.datePublished) return null
+  const now = Date.now()
+  const published = new Date(article.datePublished).getTime()
+  const hoursAgo = (now - published) / (1000 * 60 * 60)
+  if (hoursAgo < 24) {
+    return <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-500" data-testid="badge-fresh">🟢 Fresh</span>
+  }
+  if (hoursAgo < 24 * 7) {
+    return <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500" data-testid="badge-recent">🟡 Recent</span>
+  }
+  return <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-500" data-testid="badge-aging">🔴 Aging</span>
 }
 
 export default function KnowledgeAdmin() {
@@ -116,6 +142,15 @@ export default function KnowledgeAdmin() {
       const url = filterStatus ? `/api/admin/knowledge?status=${filterStatus}` : "/api/admin/knowledge"
       const res = await fetch(url, { credentials: "include" })
       if (!res.ok) throw new Error("Failed to load")
+      return res.json()
+    },
+  })
+
+  const { data: metrics } = useQuery<KnowledgeMetrics>({
+    queryKey: ["/api/admin/knowledge/metrics"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/knowledge/metrics", { credentials: "include" })
+      if (!res.ok) throw new Error("Failed to load metrics")
       return res.json()
     },
   })
@@ -224,7 +259,11 @@ export default function KnowledgeAdmin() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
       toast({ title: "Article published" })
+    },
+    onError: (err: any) => {
+      toast({ title: "Publish blocked", description: err.message, variant: "destructive" })
     },
   })
 
@@ -234,6 +273,7 @@ export default function KnowledgeAdmin() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
       toast({ title: "Article archived" })
     },
   })
@@ -244,6 +284,7 @@ export default function KnowledgeAdmin() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
       toast({ title: "Article deleted" })
     },
   })
@@ -419,6 +460,39 @@ export default function KnowledgeAdmin() {
         </div>
       </div>
 
+      {metrics && (
+        <div className="grid grid-cols-4 gap-4 mb-6" data-testid="metrics-panel">
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <BarChart3 className="h-4 w-4 text-green-500" />
+              <span className="text-xs text-muted-foreground font-medium">Published Today</span>
+            </div>
+            <p className="text-2xl font-bold" data-testid="metric-today">{metrics.today}</p>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="h-4 w-4 text-blue-500" />
+              <span className="text-xs text-muted-foreground font-medium">This Week</span>
+            </div>
+            <p className="text-2xl font-bold" data-testid="metric-week">{metrics.thisWeek}</p>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="h-4 w-4 text-purple-500" />
+              <span className="text-xs text-muted-foreground font-medium">Avg/Day (7d)</span>
+            </div>
+            <p className="text-2xl font-bold" data-testid="metric-avg">{metrics.avgPerDay}</p>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <FileText className="h-4 w-4 text-yellow-500" />
+              <span className="text-xs text-muted-foreground font-medium">Pending</span>
+            </div>
+            <p className="text-2xl font-bold" data-testid="metric-pending">{metrics.pendingCount}</p>
+          </Card>
+        </div>
+      )}
+
       <div className="flex gap-2 mb-4">
         {["", "pending", "published", "archived"].map((s) => (
           <Button
@@ -449,6 +523,7 @@ export default function KnowledgeAdmin() {
                 <TableHead>Headline</TableHead>
                 <TableHead>Slug</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Freshness</TableHead>
                 <TableHead>Modified</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -462,6 +537,9 @@ export default function KnowledgeAdmin() {
                     <Badge variant="outline" className={statusColors[a.status] || ""} data-testid={`badge-status-${a.id}`}>
                       {a.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {getFreshnessBadge(a)}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(a.updatedAt).toLocaleDateString()}

@@ -92,6 +92,43 @@ export interface IStorage {
   getKnowledgeArticleVersions(articleId: string): Promise<KnowledgeArticleVersion[]>;
 }
 
+function extractImageDimensions(buffer: Buffer): { width: number; height: number } | null {
+  try {
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+      const width = buffer.readUInt32BE(16);
+      const height = buffer.readUInt32BE(20);
+      return { width, height };
+    }
+    if (buffer[0] === 0xff && buffer[1] === 0xd8) {
+      let offset = 2;
+      while (offset < buffer.length) {
+        if (buffer[offset] !== 0xff) break;
+        const marker = buffer[offset + 1];
+        if (marker === 0xc0 || marker === 0xc1 || marker === 0xc2) {
+          const height = buffer.readUInt16BE(offset + 5);
+          const width = buffer.readUInt16BE(offset + 7);
+          return { width, height };
+        }
+        const segLen = buffer.readUInt16BE(offset + 2);
+        offset += 2 + segLen;
+      }
+    }
+    if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
+      const width = buffer.readUInt16LE(6);
+      const height = buffer.readUInt16LE(8);
+      return { width, height };
+    }
+    if (buffer.length >= 30 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP") {
+      if (buffer.toString("ascii", 12, 16) === "VP8 ") {
+        const width = buffer.readUInt16LE(26) & 0x3fff;
+        const height = buffer.readUInt16LE(28) & 0x3fff;
+        return { width, height };
+      }
+    }
+  } catch {}
+  return null;
+}
+
 export class DatabaseStorage implements IStorage {
   async getCities(onlyPublished = false): Promise<CityLocation[]> {
     if (onlyPublished) {
@@ -443,12 +480,31 @@ export class DatabaseStorage implements IStorage {
     });
 
     const now = new Date();
-    const [updated] = await db.update(knowledgeArticles).set({
+    const updateData: any = {
       status: "published",
       datePublished: article.datePublished || now,
       dateModified: now,
       updatedAt: now,
-    }).where(eq(knowledgeArticles.id, id)).returning();
+    };
+
+    if (article.ogImageUrl && article.ogImageUrl.startsWith("https://")) {
+      try {
+        const imgRes = await fetch(article.ogImageUrl, { method: "GET", signal: AbortSignal.timeout(15000) });
+        if (imgRes.ok) {
+          const contentType = imgRes.headers.get("content-type") || "";
+          if (contentType.startsWith("image/")) {
+            const buffer = Buffer.from(await imgRes.arrayBuffer());
+            const dims = extractImageDimensions(buffer);
+            if (dims) {
+              updateData.imageWidth = dims.width;
+              updateData.imageHeight = dims.height;
+            }
+          }
+        }
+      } catch {}
+    }
+
+    const [updated] = await db.update(knowledgeArticles).set(updateData).where(eq(knowledgeArticles.id, id)).returning();
     return updated;
   }
 

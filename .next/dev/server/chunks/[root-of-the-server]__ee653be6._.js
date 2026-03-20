@@ -456,6 +456,8 @@ const knowledgeArticles = (0, __TURBOPACK__imported__module__$5b$project$5d2f$no
     canonicalUrl: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$text$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["text"])("canonical_url"),
     robots: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$text$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["text"])("robots").notNull().default("index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"),
     ogImageUrl: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$text$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["text"])("og_image_url"),
+    imageWidth: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$integer$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["integer"])("image_width"),
+    imageHeight: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$integer$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["integer"])("image_height"),
     headline: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$text$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["text"])("headline").notNull(),
     subheadline: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$text$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["text"])("subheadline"),
     dateline: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$pg$2d$core$2f$columns$2f$text$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["text"])("dateline"),
@@ -547,6 +549,54 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$o
 ;
 ;
 ;
+function extractImageDimensions(buffer) {
+    try {
+        if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+            const width = buffer.readUInt32BE(16);
+            const height = buffer.readUInt32BE(20);
+            return {
+                width,
+                height
+            };
+        }
+        if (buffer[0] === 0xff && buffer[1] === 0xd8) {
+            let offset = 2;
+            while(offset < buffer.length){
+                if (buffer[offset] !== 0xff) break;
+                const marker = buffer[offset + 1];
+                if (marker === 0xc0 || marker === 0xc1 || marker === 0xc2) {
+                    const height = buffer.readUInt16BE(offset + 5);
+                    const width = buffer.readUInt16BE(offset + 7);
+                    return {
+                        width,
+                        height
+                    };
+                }
+                const segLen = buffer.readUInt16BE(offset + 2);
+                offset += 2 + segLen;
+            }
+        }
+        if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
+            const width = buffer.readUInt16LE(6);
+            const height = buffer.readUInt16LE(8);
+            return {
+                width,
+                height
+            };
+        }
+        if (buffer.length >= 30 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP") {
+            if (buffer.toString("ascii", 12, 16) === "VP8 ") {
+                const width = buffer.readUInt16LE(26) & 0x3fff;
+                const height = buffer.readUInt16LE(28) & 0x3fff;
+                return {
+                    width,
+                    height
+                };
+            }
+        }
+    } catch  {}
+    return null;
+}
 class DatabaseStorage {
     async getCities(onlyPublished = false) {
         if (onlyPublished) {
@@ -804,12 +854,32 @@ class DatabaseStorage {
             createdBy: username
         });
         const now = new Date();
-        const [updated] = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].update(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["knowledgeArticles"]).set({
+        const updateData = {
             status: "published",
             datePublished: article.datePublished || now,
             dateModified: now,
             updatedAt: now
-        }).where((0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$sql$2f$expressions$2f$conditions$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["eq"])(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["knowledgeArticles"].id, id)).returning();
+        };
+        if (article.ogImageUrl) {
+            try {
+                const imgRes = await fetch(article.ogImageUrl, {
+                    method: "GET",
+                    signal: AbortSignal.timeout(15000)
+                });
+                if (imgRes.ok) {
+                    const contentType = imgRes.headers.get("content-type") || "";
+                    if (contentType.startsWith("image/")) {
+                        const buffer = Buffer.from(await imgRes.arrayBuffer());
+                        const dims = extractImageDimensions(buffer);
+                        if (dims) {
+                            updateData.imageWidth = dims.width;
+                            updateData.imageHeight = dims.height;
+                        }
+                    }
+                }
+            } catch  {}
+        }
+        const [updated] = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].update(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["knowledgeArticles"]).set(updateData).where((0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$drizzle$2d$orm$2f$sql$2f$expressions$2f$conditions$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["eq"])(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["knowledgeArticles"].id, id)).returning();
         return updated;
     }
     async archiveKnowledgeArticle(id, username) {

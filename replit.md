@@ -56,9 +56,10 @@ All under `app/api/`:
 - `admin/pages/[id]/slides/reorder/route.ts` — POST reorder slides
 - `admin/knowledge/route.ts` — GET/POST knowledge articles
 - `admin/knowledge/[id]/route.ts` — GET/PATCH/DELETE knowledge article
-- `admin/knowledge/[id]/publish/route.ts` — POST publish article (creates version snapshot)
+- `admin/knowledge/[id]/publish/route.ts` — POST publish article (creates version snapshot, validates OG image reachability + 1200px+ width, stores image dimensions)
 - `admin/knowledge/[id]/archive/route.ts` — POST archive article (creates version snapshot)
 - `admin/knowledge/[id]/versions/route.ts` — GET version history
+- `admin/knowledge/metrics/route.ts` — GET publish cadence metrics (today, thisWeek, avgPerDay, pendingCount)
 - `knowledge/draft/route.ts` — POST structured draft ingestion (G5 contract v1: pending-only, validated, audited, rate-limited)
 - `knowledge/generate-local-vibe/route.ts` — POST generate Local Vibe draft for a city (G6/G7: uses versioned prompt template, calls /api/knowledge/draft internally, pending-only)
 - `admin/stats/route.ts` — GET dashboard stats

@@ -294,6 +294,8 @@ export const knowledgeArticles = pgTable(
     canonicalUrl: text("canonical_url"),
     robots: text("robots").notNull().default("index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"),
     ogImageUrl: text("og_image_url"),
+    imageWidth: integer("image_width"),
+    imageHeight: integer("image_height"),
     headline: text("headline").notNull(),
     subheadline: text("subheadline"),
     dateline: text("dateline"),
