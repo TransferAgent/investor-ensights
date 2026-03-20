@@ -40,17 +40,19 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
     notFound();
   }
 
-  const jsonLd = {
+  const authorType = article.authorName.toLowerCase() === "tableicity" ? "Organization" : "Person";
+
+  const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
     headline: article.headline,
     description: article.metaDescription || undefined,
-    image: article.ogImageUrl || undefined,
     datePublished: article.datePublished?.toISOString(),
     dateModified: article.dateModified.toISOString(),
     author: {
-      "@type": "Person",
+      "@type": authorType,
       name: article.authorName,
+      ...(authorType === "Organization" ? { url: BASE_URL } : {}),
     },
     publisher: {
       "@type": "Organization",
@@ -62,6 +64,10 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
       "@id": `${BASE_URL}/discovery/knowledge/${article.slug}`,
     },
   };
+
+  if (article.ogImageUrl) {
+    jsonLd.image = [article.ogImageUrl];
+  }
 
   return (
     <div className="min-h-screen bg-[#0f1b2d]">

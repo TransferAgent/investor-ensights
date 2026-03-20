@@ -35,6 +35,9 @@ Preferred communication style: Simple, everyday language.
 - `app/sitemap.ts` — Dynamic sitemap (includes cities + custom pages + published knowledge articles)
 - `app/robots.ts` — Dynamic robots.txt
 
+### Middleware
+- `middleware.ts` — 301 redirect non-www → www (`tableicity.com` → `www.tableicity.com`)
+
 ### API Routes (App Router)
 All under `app/api/`:
 - `admin/login/route.ts` — POST login with JWT
@@ -56,6 +59,7 @@ All under `app/api/`:
 - `admin/knowledge/[id]/publish/route.ts` — POST publish article (creates version snapshot)
 - `admin/knowledge/[id]/archive/route.ts` — POST archive article (creates version snapshot)
 - `admin/knowledge/[id]/versions/route.ts` — GET version history
+- `knowledge/draft/route.ts` — POST structured draft ingestion (G5 contract v1: pending-only, validated, audited, rate-limited)
 - `admin/stats/route.ts` — GET dashboard stats
 - `locations/route.ts` — GET public published cities
 - `locations/[slug]/route.ts` — GET public city detail
@@ -119,9 +123,12 @@ All under `app/api/`:
 
 ### SEO Features
 - Server-side rendered public pages with generateMetadata
-- Canonical URLs on every page (via NEXT_PUBLIC_BASE_URL env var)
-- OpenGraph tags on city pages
+- Canonical URLs on every page (via NEXT_PUBLIC_BASE_URL env var, locked to https://www.tableicity.com)
+- 301 redirect non-www → www via middleware.ts
+- OpenGraph tags on city pages and knowledge articles
+- JSON-LD NewsArticle structured data on knowledge articles (with image array, Organization author for brand, Organization publisher)
 - JSON-LD structured data on city pages
+- Robots "Beast" directive: `index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1`
 - Dynamic sitemap.xml and robots.txt
 - generateStaticParams for city pages
 
@@ -135,4 +142,4 @@ All under `app/api/`:
 - `DATABASE_URL` — PostgreSQL connection string (required)
 - `SESSION_SECRET` — JWT signing secret
 - `OPENCAGE_API_KEY` — OpenCage geocoding API key (for auto-filling lat/lng)
-- `NEXT_PUBLIC_BASE_URL` — Base URL for canonical/OG tags (defaults to https://yourcompany.com)
+- `NEXT_PUBLIC_BASE_URL` — Base URL for canonical/OG tags (defaults to https://yourcompany.com, locked to https://www.tableicity.com)
