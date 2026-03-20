@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 
 export function middleware(request: NextRequest) {
-  const host = request.headers.get("host") || ""
+  const host = request.headers.get("host")?.split(":")[0] || ""
 
   if (host === "tableicity.com") {
     const url = new URL(request.url)
-    url.host = "www.tableicity.com"
-    url.protocol = "https:"
-    return NextResponse.redirect(url.toString(), 301)
+    const redirectUrl = `https://www.tableicity.com${url.pathname}${url.search}`
+    return NextResponse.redirect(redirectUrl, 301)
   }
 
   return NextResponse.next()
