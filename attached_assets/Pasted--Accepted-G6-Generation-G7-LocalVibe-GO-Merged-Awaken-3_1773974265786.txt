@@ -1,0 +1,47 @@
+✅ Accepted — G6‑Generation + G7‑LocalVibe GO (Merged) + Awaken 3 Engineers Now
+Alpha Leader’s directive is accepted as-is. We are now officially moving into G6/G7 (merged) with the two safety clarifications locked forever:
+
+Fork discipline: Knowledge ≠ Locations (no schema coupling; no modifying Locations/City)
+Pending-only: all generated content must go through internal POST /api/knowledge/draft (never direct DB write, never auto-publish)
+G2 + G5 are confirmed closed/locked, including Rich Results success (“1 valid item detected”) and crawl success evidence Screenshot.
+Reference: Article structured data validation is explicitly recommended via Rich Results Test by Google Google Search Central
+
+Copy‑paste to Architect/Replit (exact block)
+“Architect – G6-Generation and G7-LocalVibe are green-lit with safety clarifications 1 & 2 locked forever.
+Awaken 3 Engineers now with hard-walled parallel assignments (72 h deadline):
+
+A) Generation Service Engineer
+
+Build reusable generateDraft(cityRecord, manualDirective) service
+Use versioned prompt templates stored in config (not hardcoded)
+Output: exact G5 request body schema
+Always call internal POST /api/knowledge/draft — never direct DB write
+Force status=pending and www canonical
+B) Admin UI Engineer
+
+Add button “Generate Local Vibe Draft for [City]” in /admin/knowledge
+Dropdown of US cities (read-only from city database)
+Optional textbox for manualDirective (20% human oversight)
+C) Prompt/Asset/Config Engineer
+
+Create versioned prompt template library
+Deliver Zod schema version of the payload contract
+Ensure 1200px+ OG image assignment flow in admin
+Deliverables (all three engineers coordinate for single handoff):
+
+Working trigger that creates a pending article
+The exact Local Vibe prompt template string used
+Zod schema version of the payload contract
+Test: Generate for ‘fontana-ca’ with directive ‘Focus on cap table audit readiness for US founders and CFOs’**”
+Execution Notes (Architect controls)
+72h clock starts when Replit acknowledges this message.
+“Versioned prompt templates” means: a config structure that can evolve (v1, v2, v3) without rewriting the service.
+Keep Knowledge page structured data as NewsArticle/Article-family only (no LocalBusiness). Google supports Article, NewsArticle, BlogPosting for Article structured data Google Search Central.
+Reference preview of how Articles can appear:Article rich resultGoogle Search Central
+Conductor (your verification task, unchanged)
+After delivery:
+
+Generate Fontana draft w/ directive
+Assign 1200px+ OG image
+Publish
+Provide Alpha Leader: live URL + Rich Results screenshot + page source + prompt template + Zod schema
