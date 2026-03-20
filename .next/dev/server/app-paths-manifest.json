@@ -1,3 +1,5 @@
 {
-  "/page": "app/page.js"
+  "/discovery/knowledge/[slug]/page": "app/discovery/knowledge/[slug]/page.js",
+  "/page": "app/page.js",
+  "/sitemap.xml/route": "app/sitemap.xml/route.js"
 }
