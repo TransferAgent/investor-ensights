@@ -60,8 +60,12 @@ All under `app/api/`:
 - `admin/knowledge/[id]/archive/route.ts` — POST archive article (creates version snapshot)
 - `admin/knowledge/[id]/versions/route.ts` — GET version history
 - `admin/knowledge/metrics/route.ts` — GET publish cadence metrics (today, thisWeek, avgPerDay, pendingCount)
-- `knowledge/draft/route.ts` — POST structured draft ingestion (G5 contract v1: pending-only, validated, audited, rate-limited)
-- `knowledge/generate-local-vibe/route.ts` — POST generate Local Vibe draft for a city (G6/G7: uses versioned prompt template, calls /api/knowledge/draft internally, pending-only)
+- `admin/knowledge/analytics/route.ts` — GET analytics (publishedThisMonth, discoverEligible, avgFreshnessScore, pendingCount)
+- `admin/knowledge/coverage/route.ts` — GET city coverage tracker (LEFT JOIN cities with articles)
+- `admin/knowledge/generation-log/route.ts` — GET generation log entries with daily count
+- `knowledge/draft/route.ts` — POST structured draft ingestion (G5 contract v1: pending-only, validated, audited, rate-limited, content quality guards)
+- `knowledge/generate-local-vibe/route.ts` — POST generate Local Vibe draft for a city (G6/G7: versioned prompt template, generation logging)
+- `knowledge/bulk-generate/route.ts` — POST bulk generate Local Vibes (max 50 cities, concurrency 3, 30-day duplicate skip)
 - `admin/stats/route.ts` — GET dashboard stats
 - `locations/route.ts` — GET public published cities
 - `locations/[slug]/route.ts` — GET public city detail
@@ -88,6 +92,7 @@ All under `app/api/`:
 7. **page_slides** — Individual content blocks (slides) for custom pages with JSON content, type, order, and styling options
 8. **knowledge_articles** — Press releases/articles with tri-state status (pending/published/archived), SEO fields, body HTML, author/publisher, JSON-LD support
 9. **knowledge_article_versions** — Append-only immutable archive trail capturing full article snapshots on publish/archive actions
+10. **knowledge_generation_log** — Audit trail for every generation call (city_slug, directive, status, error_message, timestamp)
 
 ### Security Features
 - **Password hashing**: scrypt with random salt (Node.js built-in)

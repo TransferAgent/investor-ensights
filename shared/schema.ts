@@ -6,6 +6,7 @@ import {
   boolean,
   integer,
   decimal,
+  numeric,
   jsonb,
   timestamp,
   uuid,
@@ -306,11 +307,30 @@ export const knowledgeArticles = pgTable(
     authorName: text("author_name").notNull().default("Tableicity"),
     publisherName: text("publisher_name").notNull().default("Tableicity"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    gscImpressions: integer("gsc_impressions").default(0),
+    gscClicks: integer("gsc_clicks").default(0),
+    gscAvgPosition: numeric("gsc_avg_position", { precision: 5, scale: 2 }).default("0"),
+    gscLastSynced: timestamp("gsc_last_synced", { withTimezone: true }),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("knowledge_articles_slug_idx").on(table.slug),
     index("knowledge_articles_status_idx").on(table.status),
+  ]
+);
+
+export const knowledgeGenerationLog = pgTable(
+  "knowledge_generation_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    citySlug: text("city_slug").notNull(),
+    directive: text("directive"),
+    status: text("status").notNull().default("success"),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("knowledge_gen_log_created_idx").on(table.createdAt),
   ]
 );
 

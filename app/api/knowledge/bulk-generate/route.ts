@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
-import { KnowledgeDraftPayloadV1 } from "@/lib/knowledge/payloadContract";
-import { LOCAL_VIBE_PROMPTS, type PromptVersion } from "@/config/localVibePrompts";
 import { storage } from "@/lib/storage";
+import { KnowledgeDraftPayloadV1 } from "@/lib/knowledge/payloadContract";
 import { db } from "@/lib/db";
-import { knowledgeGenerationLog } from "@shared/schema";
-
-function renderTemplate(tpl: string, vars: Record<string, string>) {
-  return Object.entries(vars).reduce(
-    (acc, [k, v]) => acc.replaceAll(`{{${k}}}`, v ?? ""),
-    tpl
-  );
-}
+import { knowledgeArticles, knowledgeGenerationLog } from "@shared/schema";
+import { eq, gte, and, or, sql } from "drizzle-orm";
 
 function generateStubPayload(city: {
   cityName: string;
@@ -30,10 +23,7 @@ function generateStubPayload(city: {
     ? nearby.slice(0, 3).map((n: any) => typeof n === "string" ? n : n.name || "").filter(Boolean).join(", ")
     : "surrounding metro areas";
   const stateName = city.stateName || city.stateCode;
-
-  const directiveAngle = manualDirective
-    ? manualDirective
-    : "cap table management and equity transparency for startups";
+  const directiveAngle = manualDirective || "cap table management and equity transparency for startups";
 
   return {
     slug: `${city.slug}-local-vibe-${Date.now()}`,
@@ -78,6 +68,25 @@ function generateStubPayload(city: {
   };
 }
 
+async function hasDuplicateWithin30Days(citySlug: string): Promise<boolean> {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const results = await db.select({ id: knowledgeArticles.id })
+    .from(knowledgeArticles)
+    .where(and(
+      sql`${knowledgeArticles.slug} LIKE ${citySlug + '-local-vibe-%'}`,
+      or(
+        eq(knowledgeArticles.status, "pending"),
+        eq(knowledgeArticles.status, "published")
+      ),
+      gte(knowledgeArticles.createdAt, thirtyDaysAgo)
+    ))
+    .limit(1);
+  return results.length > 0;
+}
+
+const MAX_BATCH = 50;
+const CONCURRENCY = 3;
+
 export async function POST(req: NextRequest) {
   const session = await verifySession();
   if (!session) {
@@ -91,96 +100,98 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { citySlug, manualDirective = "", promptVersion = "v1" } = body;
+  const { citySlugs, manualDirective = "" } = body;
 
-  if (!citySlug || typeof citySlug !== "string") {
-    return NextResponse.json({ error: "citySlug is required" }, { status: 400 });
+  if (!Array.isArray(citySlugs) || citySlugs.length === 0) {
+    return NextResponse.json({ error: "citySlugs array is required" }, { status: 400 });
   }
 
-  if (!(promptVersion in LOCAL_VIBE_PROMPTS)) {
-    return NextResponse.json({ error: `Invalid promptVersion: ${promptVersion}. Available: ${Object.keys(LOCAL_VIBE_PROMPTS).join(", ")}` }, { status: 400 });
+  const dedupedSlugs = [...new Set(citySlugs.filter((s: any) => typeof s === "string" && s.length > 0))];
+
+  if (dedupedSlugs.length > MAX_BATCH) {
+    return NextResponse.json({ error: `Maximum ${MAX_BATCH} cities per batch. Received ${dedupedSlugs.length}.` }, { status: 400 });
   }
 
-  const city = await storage.getCityBySlug(citySlug);
-  if (!city) {
-    return NextResponse.json({ error: `City not found: ${citySlug}` }, { status: 404 });
-  }
+  const pLimitModule = await import("p-limit");
+  const limit = pLimitModule.default(CONCURRENCY);
 
-  const renderedPrompt = renderTemplate(LOCAL_VIBE_PROMPTS[promptVersion as PromptVersion], {
-    cityName: city.cityName,
-    stateCode: city.stateCode,
-    stateName: city.stateName || city.stateCode,
-    citySlug: city.slug,
-    landmarks: JSON.stringify(city.localLandmarks || []),
-    nearbyCities: JSON.stringify(city.nearbyCities || []),
-    manualDirective,
-  });
-
-  const parsed = generateStubPayload(
-    {
-      cityName: city.cityName,
-      stateCode: city.stateCode,
-      stateName: city.stateName,
-      slug: city.slug,
-      localLandmarks: city.localLandmarks,
-      nearbyCities: city.nearbyCities,
-    },
-    manualDirective
-  );
-
-  const validationResult = KnowledgeDraftPayloadV1.safeParse(parsed);
-  if (!validationResult.success) {
-    return NextResponse.json(
-      {
-        error: "Generated payload failed validation",
-        details: validationResult.error.issues,
-        promptVersionUsed: promptVersion,
-      },
-      { status: 500 }
-    );
-  }
-
-  const payload = validationResult.data;
+  const generated: string[] = [];
+  const skipped: string[] = [];
+  const failed: { slug: string; reason: string }[] = [];
 
   const internalPort = process.env.PORT || "5000";
   const internalDraftUrl = `http://localhost:${internalPort}/api/knowledge/draft`;
 
-  const res = await fetch(internalDraftUrl, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      cookie: req.headers.get("cookie") ?? "",
-    },
-    body: JSON.stringify(payload),
-  });
+  const tasks = dedupedSlugs.map((citySlug: string) =>
+    limit(async () => {
+      try {
+        const city = await storage.getCityBySlug(citySlug);
+        if (!city) {
+          failed.push({ slug: citySlug, reason: "City not found" });
+          await db.insert(knowledgeGenerationLog).values({ citySlug, directive: manualDirective || null, status: "fail", errorMessage: "City not found" });
+          return;
+        }
 
-  const result = await res.json();
+        const isDupe = await hasDuplicateWithin30Days(citySlug);
+        if (isDupe) {
+          skipped.push(citySlug);
+          await db.insert(knowledgeGenerationLog).values({ citySlug, directive: manualDirective || null, status: "skipped", errorMessage: "Duplicate within 30 days" });
+          return;
+        }
 
-  if (res.ok) {
-    await db.insert(knowledgeGenerationLog).values({
-      citySlug: city.slug,
-      directive: manualDirective || null,
-      status: "success",
-    });
-  } else {
-    await db.insert(knowledgeGenerationLog).values({
-      citySlug: city.slug,
-      directive: manualDirective || null,
-      status: "fail",
-      errorMessage: result.errors?.[0] || `HTTP ${res.status}`,
-    });
-  }
+        const payload = generateStubPayload({
+          cityName: city.cityName,
+          stateCode: city.stateCode,
+          stateName: city.stateName,
+          slug: city.slug,
+          localLandmarks: city.localLandmarks,
+          nearbyCities: city.nearbyCities,
+        }, manualDirective);
 
-  return NextResponse.json(
-    {
-      ...result,
-      _meta: {
-        promptVersionUsed: promptVersion,
-        citySlug: city.slug,
-        cityName: city.cityName,
-        renderedPromptLength: renderedPrompt.length,
-      },
-    },
-    { status: res.status }
+        const validationResult = KnowledgeDraftPayloadV1.safeParse(payload);
+        if (!validationResult.success) {
+          failed.push({ slug: citySlug, reason: "Payload validation failed" });
+          await db.insert(knowledgeGenerationLog).values({ citySlug, directive: manualDirective || null, status: "fail", errorMessage: "Payload validation failed" });
+          return;
+        }
+
+        const res = await fetch(internalDraftUrl, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: req.headers.get("cookie") ?? "",
+          },
+          body: JSON.stringify(validationResult.data),
+        });
+
+        if (res.ok) {
+          const result = await res.json();
+          generated.push(result.slug || citySlug);
+          await db.insert(knowledgeGenerationLog).values({ citySlug, directive: manualDirective || null, status: "success" });
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          failed.push({ slug: citySlug, reason: errData.errors?.[0] || `HTTP ${res.status}` });
+          await db.insert(knowledgeGenerationLog).values({ citySlug, directive: manualDirective || null, status: "fail", errorMessage: errData.errors?.[0] || `HTTP ${res.status}` });
+        }
+      } catch (err: any) {
+        failed.push({ slug: citySlug, reason: err.message || "Unknown error" });
+        await db.insert(knowledgeGenerationLog).values({ citySlug, directive: manualDirective || null, status: "fail", errorMessage: err.message || "Unknown error" });
+      }
+    })
   );
+
+  await Promise.all(tasks);
+
+  return NextResponse.json({
+    generated,
+    skipped,
+    failed: failed.map(f => f.slug),
+    failedDetails: failed,
+    summary: {
+      total: citySlugs.length,
+      generated: generated.length,
+      skipped: skipped.length,
+      failed: failed.length,
+    },
+  });
 }

@@ -86,6 +86,11 @@ function validatePayload(body: any): { valid: boolean; errors: string[] } {
       if (body.article.bodyHtml.length < 600) {
         errors.push("article.bodyHtml must be at least 600 characters (prevents thin content)");
       }
+      const strippedText = body.article.bodyHtml.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+      const sentences = strippedText.split(/[.!?]+/).map((s: string) => s.trim()).filter((s: string) => s.length > 20);
+      if (sentences.length < 8) {
+        errors.push("Content too thin — minimum 8 sentences required.");
+      }
       if (/<script[\s>]/i.test(body.article.bodyHtml)) {
         errors.push("article.bodyHtml must not contain <script> tags");
       }
@@ -97,6 +102,23 @@ function validatePayload(body: any): { valid: boolean; errors: string[] } {
       }
       if (/<iframe[\s>]/i.test(body.article.bodyHtml)) {
         errors.push("article.bodyHtml must not contain <iframe> tags");
+      }
+    }
+
+    if (body.article?.headline && typeof body.article.headline === "string" && body.slug) {
+      const headlineLower = body.article.headline.toLowerCase();
+      const slugParts = body.slug.toLowerCase().split("-");
+      const keywords = ["cap table", "equity", "startup", "founders", "shareholders", "vesting", "safe", "convertible note", "dilution", "ownership"];
+      const hasKeyword = keywords.some(kw => headlineLower.includes(kw));
+      const hasCityRef = slugParts.some((part: string) => part.length > 2 && headlineLower.includes(part));
+      if (!hasKeyword && !hasCityRef) {
+        errors.push("Headline must reference the city or a Tableicity keyword.");
+      }
+    }
+
+    if (body.article?.boilerplateHtml && typeof body.article.boilerplateHtml === "string") {
+      if (body.article.boilerplateHtml.length < 50) {
+        errors.push("Boilerplate too short — minimum 50 characters.");
       }
     }
   }

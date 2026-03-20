@@ -46,6 +46,11 @@ import {
   Clock,
   FileText,
   TrendingUp,
+  RefreshCw,
+  Layers,
+  Map,
+  AlertTriangle,
+  CheckCircle,
 } from "lucide-react"
 
 interface CityRecord {
@@ -94,6 +99,30 @@ interface KnowledgeMetrics {
   pendingCount: number
 }
 
+interface AnalyticsData {
+  publishedThisMonth: number
+  discoverEligible: number
+  avgFreshnessScore: number
+  pendingCount: number
+}
+
+interface CoverageEntry {
+  citySlug: string
+  cityName: string
+  state: string
+  status: string
+  lastPublished: string | null
+}
+
+interface GenerationLogEntry {
+  id: string
+  citySlug: string
+  directive: string | null
+  status: string
+  errorMessage: string | null
+  createdAt: string
+}
+
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
   published: "bg-green-500/10 text-green-500 border-green-500/20",
@@ -114,8 +143,11 @@ function getFreshnessBadge(article: KnowledgeArticle) {
   return <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-500" data-testid="badge-aging">🔴 Aging</span>
 }
 
+type TabType = "articles" | "analytics" | "coverage"
+
 export default function KnowledgeAdmin() {
   const { toast } = useToast()
+  const [activeTab, setActiveTab] = useState<TabType>("articles")
   const [createOpen, setCreateOpen] = useState(false)
   const [editArticle, setEditArticle] = useState<KnowledgeArticle | null>(null)
   const [versionsArticle, setVersionsArticle] = useState<string | null>(null)
@@ -123,6 +155,13 @@ export default function KnowledgeAdmin() {
   const [generateOpen, setGenerateOpen] = useState(false)
   const [generateCitySlug, setGenerateCitySlug] = useState("")
   const [generateDirective, setGenerateDirective] = useState("")
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkState, setBulkState] = useState("")
+  const [bulkSelected, setBulkSelected] = useState<string[]>([])
+  const [bulkDirective, setBulkDirective] = useState("")
+  const [bulkResult, setBulkResult] = useState<any>(null)
+  const [coverageStateFilter, setCoverageStateFilter] = useState("")
+  const [coverageStatusFilter, setCoverageStatusFilter] = useState("")
 
   const [formSlug, setFormSlug] = useState("")
   const [formTitle, setFormTitle] = useState("")
@@ -151,6 +190,35 @@ export default function KnowledgeAdmin() {
     queryFn: async () => {
       const res = await fetch("/api/admin/knowledge/metrics", { credentials: "include" })
       if (!res.ok) throw new Error("Failed to load metrics")
+      return res.json()
+    },
+  })
+
+  const { data: analytics } = useQuery<AnalyticsData>({
+    queryKey: ["/api/admin/knowledge/analytics"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/knowledge/analytics", { credentials: "include" })
+      if (!res.ok) throw new Error("Failed to load analytics")
+      return res.json()
+    },
+    enabled: activeTab === "analytics",
+  })
+
+  const { data: coverage } = useQuery<CoverageEntry[]>({
+    queryKey: ["/api/admin/knowledge/coverage"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/knowledge/coverage", { credentials: "include" })
+      if (!res.ok) throw new Error("Failed to load coverage")
+      return res.json()
+    },
+    enabled: activeTab === "coverage",
+  })
+
+  const { data: genLogData } = useQuery<{ logs: GenerationLogEntry[]; callsToday: number }>({
+    queryKey: ["/api/admin/knowledge/generation-log"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/knowledge/generation-log?limit=50", { credentials: "include" })
+      if (!res.ok) throw new Error("Failed to load generation log")
       return res.json()
     },
   })
@@ -185,6 +253,7 @@ export default function KnowledgeAdmin() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/generation-log"] })
       setGenerateOpen(false)
       setGenerateCitySlug("")
       setGenerateDirective("")
@@ -195,6 +264,53 @@ export default function KnowledgeAdmin() {
     },
     onError: (err: any) => {
       toast({ title: "Generation failed", description: err.message, variant: "destructive" })
+    },
+  })
+
+  const bulkMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/knowledge/bulk-generate", {
+        citySlugs: bulkSelected,
+        manualDirective: bulkDirective || undefined,
+      })
+      return res.json()
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/generation-log"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/coverage"] })
+      setBulkResult(data)
+      toast({
+        title: "Bulk generation complete",
+        description: `${data.summary?.generated || 0} generated, ${data.summary?.skipped || 0} skipped, ${data.summary?.failed || 0} failed`,
+      })
+    },
+    onError: (err: any) => {
+      toast({ title: "Bulk generation failed", description: err.message, variant: "destructive" })
+    },
+  })
+
+  const regenMutation = useMutation({
+    mutationFn: async (article: KnowledgeArticle) => {
+      const citySlug = article.slug.replace(/-local-vibe.*$/, "").replace(/-regen.*$/, "")
+      const res = await apiRequest("POST", "/api/knowledge/generate-local-vibe", {
+        citySlug,
+        manualDirective: `Refresh: generate an updated Local Vibe for ${citySlug}`,
+        promptVersion: "v1",
+      })
+      return res.json()
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/generation-log"] })
+      toast({
+        title: "Re-generation complete",
+        description: data.slug ? `New pending draft: ${data.slug}` : "New draft created",
+      })
+    },
+    onError: (err: any) => {
+      toast({ title: "Re-generation failed", description: err.message, variant: "destructive" })
     },
   })
 
@@ -318,6 +434,18 @@ export default function KnowledgeAdmin() {
     setEditArticle(a)
   }
 
+  const uniqueStates = cities ? [...new Set(cities.map(c => c.stateCode))].sort() : []
+  const filteredCitiesForBulk = bulkState
+    ? cities?.filter(c => c.stateCode === bulkState) || []
+    : []
+
+  const coverageStates = coverage ? [...new Set(coverage.map(c => c.state))].sort() : []
+  const filteredCoverage = coverage?.filter(c => {
+    if (coverageStateFilter && coverageStateFilter !== "all" && c.state !== coverageStateFilter) return false
+    if (coverageStatusFilter && coverageStatusFilter !== "all" && c.status !== coverageStatusFilter) return false
+    return true
+  }) || []
+
   const articleForm = (isEdit: boolean) => (
     <div className="grid gap-4 max-h-[70vh] overflow-y-auto pr-2">
       <div>
@@ -386,6 +514,117 @@ export default function KnowledgeAdmin() {
           <p className="text-sm text-muted-foreground mt-1">Create, edit, publish, and archive press releases</p>
         </div>
         <div className="flex items-center gap-2">
+          <Dialog open={bulkOpen} onOpenChange={(o) => { setBulkOpen(o); if (!o) { setBulkState(""); setBulkSelected([]); setBulkDirective(""); setBulkResult(null) } }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" data-testid="button-bulk-generate">
+                <Layers className="mr-2 h-4 w-4" /> Bulk Generate
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Bulk Generate Local Vibe (up to 50 cities)</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4">
+                <div>
+                  <Label>State/Region (required)</Label>
+                  <Select value={bulkState} onValueChange={(v) => { setBulkState(v); setBulkSelected([]) }}>
+                    <SelectTrigger data-testid="select-bulk-state">
+                      <SelectValue placeholder="Select state..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uniqueStates.map(s => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {bulkState && filteredCitiesForBulk.length > 0 && (
+                  <div>
+                    <Label>Select Cities ({bulkSelected.length}/{Math.min(filteredCitiesForBulk.length, 50)})</Label>
+                    <div className="border rounded p-2 max-h-48 overflow-y-auto space-y-1 mt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => {
+                          if (bulkSelected.length === Math.min(filteredCitiesForBulk.length, 50)) {
+                            setBulkSelected([])
+                          } else {
+                            setBulkSelected(filteredCitiesForBulk.slice(0, 50).map(c => c.slug))
+                          }
+                        }}
+                        data-testid="button-bulk-select-all"
+                      >
+                        {bulkSelected.length === Math.min(filteredCitiesForBulk.length, 50) ? "Deselect All" : "Select All"}
+                      </Button>
+                      {filteredCitiesForBulk.slice(0, 50).map(c => (
+                        <label key={c.slug} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={bulkSelected.includes(c.slug)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setBulkSelected(prev => [...prev, c.slug])
+                              } else {
+                                setBulkSelected(prev => prev.filter(s => s !== c.slug))
+                              }
+                            }}
+                          />
+                          {c.cityName}, {c.stateCode}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <Label>Global Directive (optional)</Label>
+                  <Textarea
+                    value={bulkDirective}
+                    onChange={(e) => setBulkDirective(e.target.value)}
+                    placeholder="Applies to all cities in this batch"
+                    rows={2}
+                    data-testid="input-bulk-directive"
+                  />
+                </div>
+                <Button
+                  onClick={() => bulkMutation.mutate()}
+                  disabled={!bulkState || bulkSelected.length === 0 || bulkMutation.isPending}
+                  data-testid="button-bulk-submit"
+                >
+                  {bulkMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating {bulkSelected.length} cities...
+                    </>
+                  ) : (
+                    <>
+                      <Layers className="mr-2 h-4 w-4" /> Bulk Generate ({bulkSelected.length} cities)
+                    </>
+                  )}
+                </Button>
+                {bulkResult && (
+                  <Card className="p-3 text-sm" data-testid="bulk-result-card">
+                    <div className="flex items-center gap-2 mb-2 font-medium">
+                      <CheckCircle className="h-4 w-4 text-green-500" /> Batch Complete
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <div className="text-lg font-bold text-green-500">{bulkResult.summary?.generated || 0}</div>
+                        <div className="text-xs text-muted-foreground">Generated</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-yellow-500">{bulkResult.summary?.skipped || 0}</div>
+                        <div className="text-xs text-muted-foreground">Skipped</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-red-500">{bulkResult.summary?.failed || 0}</div>
+                        <div className="text-xs text-muted-foreground">Failed</div>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
           <Dialog open={generateOpen} onOpenChange={(o) => { setGenerateOpen(o); if (!o) { setGenerateCitySlug(""); setGenerateDirective("") } }}>
             <DialogTrigger asChild>
               <Button variant="outline" data-testid="button-generate-local-vibe">
@@ -461,7 +700,7 @@ export default function KnowledgeAdmin() {
       </div>
 
       {metrics && (
-        <div className="grid grid-cols-4 gap-4 mb-6" data-testid="metrics-panel">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6" data-testid="metrics-panel">
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <BarChart3 className="h-4 w-4 text-green-500" />
@@ -490,118 +729,301 @@ export default function KnowledgeAdmin() {
             </div>
             <p className="text-2xl font-bold" data-testid="metric-pending">{metrics.pendingCount}</p>
           </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="h-4 w-4 text-orange-500" />
+              <span className="text-xs text-muted-foreground font-medium">Gen Calls Today</span>
+            </div>
+            <p className="text-2xl font-bold" data-testid="metric-gen-today">
+              {genLogData?.callsToday || 0}
+              {(genLogData?.callsToday || 0) > 40 && (
+                <AlertTriangle className="inline ml-2 h-4 w-4 text-red-500" />
+              )}
+            </p>
+          </Card>
         </div>
       )}
 
       <div className="flex gap-2 mb-4">
-        {["", "pending", "published", "archived"].map((s) => (
+        {(["articles", "analytics", "coverage"] as TabType[]).map((tab) => (
           <Button
-            key={s}
-            variant={filterStatus === s ? "secondary" : "outline"}
+            key={tab}
+            variant={activeTab === tab ? "secondary" : "outline"}
             size="sm"
-            onClick={() => setFilterStatus(s)}
-            data-testid={`button-filter-${s || "all"}`}
+            onClick={() => setActiveTab(tab)}
+            data-testid={`tab-${tab}`}
           >
-            {s || "All"}
+            {tab === "articles" && <FileText className="mr-1.5 h-3.5 w-3.5" />}
+            {tab === "analytics" && <BarChart3 className="mr-1.5 h-3.5 w-3.5" />}
+            {tab === "coverage" && <Map className="mr-1.5 h-3.5 w-3.5" />}
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </Button>
         ))}
       </div>
 
-      {isLoading ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+      {activeTab === "articles" && (
+        <>
+          <div className="flex gap-2 mb-4">
+            {["", "pending", "published", "archived"].map((s) => (
+              <Button
+                key={s}
+                variant={filterStatus === s ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setFilterStatus(s)}
+                data-testid={`button-filter-${s || "all"}`}
+              >
+                {s || "All"}
+              </Button>
+            ))}
+          </div>
+
+          {isLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+            </div>
+          ) : !articles?.length ? (
+            <Card className="p-8 text-center text-muted-foreground" data-testid="text-no-articles">
+              No articles found. Create your first press release.
+            </Card>
+          ) : (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Headline</TableHead>
+                    <TableHead>Slug</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Freshness</TableHead>
+                    <TableHead>Modified</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {articles.map((a) => (
+                    <TableRow key={a.id} data-testid={`row-article-${a.id}`}>
+                      <TableCell className="font-medium max-w-[200px] truncate">{a.headline}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">{a.slug}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={statusColors[a.status] || ""} data-testid={`badge-status-${a.id}`}>
+                          {a.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {getFreshnessBadge(a)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(a.updatedAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-0.5">
+                          <Button variant="ghost" size="icon" asChild data-testid={`button-view-${a.id}`} title={a.status === "published" ? "View live page" : "Preview article"}>
+                            <a href={`/discovery/knowledge/${a.slug}`} target="_blank" rel="noopener">
+                              <Eye className={`h-4 w-4 ${a.status !== "published" ? "text-muted-foreground" : ""}`} />
+                            </a>
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(a)} data-testid={`button-edit-${a.id}`} title="Edit">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => regenMutation.mutate(a)}
+                            disabled={regenMutation.isPending}
+                            data-testid={`button-regen-${a.id}`}
+                            title="Re-Generate (creates new pending draft)"
+                          >
+                            <RefreshCw className={`h-4 w-4 text-blue-500 ${regenMutation.isPending ? "animate-spin" : ""}`} />
+                          </Button>
+                          {a.status === "pending" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => publishMutation.mutate(a.id)}
+                              disabled={publishMutation.isPending}
+                              data-testid={`button-publish-${a.id}`}
+                              title="Publish"
+                            >
+                              <Send className="h-4 w-4 text-green-500" />
+                            </Button>
+                          )}
+                          {a.status === "published" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => archiveMutation.mutate(a.id)}
+                              disabled={archiveMutation.isPending}
+                              data-testid={`button-archive-${a.id}`}
+                              title="Archive"
+                            >
+                              <Archive className="h-4 w-4 text-orange-400" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setVersionsArticle(a.id)}
+                            data-testid={`button-versions-${a.id}`}
+                            title="Version history"
+                          >
+                            <History className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => { if (confirm("Delete this article?")) deleteMutation.mutate(a.id) }}
+                            data-testid={`button-delete-${a.id}`}
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
+        </>
+      )}
+
+      {activeTab === "analytics" && (
+        <div className="space-y-6">
+          {analytics ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="analytics-cards">
+                <Card className="p-4">
+                  <div className="text-xs text-muted-foreground font-medium mb-1">Published This Month</div>
+                  <p className="text-3xl font-bold" data-testid="analytics-published-month">{analytics.publishedThisMonth}</p>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-xs text-muted-foreground font-medium mb-1">Discover-Eligible</div>
+                  <p className="text-3xl font-bold text-green-500" data-testid="analytics-discover-eligible">{analytics.discoverEligible}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Published + image ≥ 1200px</p>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-xs text-muted-foreground font-medium mb-1">Avg Freshness Score</div>
+                  <p className="text-3xl font-bold" data-testid="analytics-freshness">{analytics.avgFreshnessScore}</p>
+                  <p className="text-xs text-muted-foreground mt-1">3=Fresh, 2=Recent, 1=Aging</p>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-xs text-muted-foreground font-medium mb-1">Pending Review</div>
+                  <p className="text-3xl font-bold text-yellow-500" data-testid="analytics-pending">{analytics.pendingCount}</p>
+                </Card>
+              </div>
+
+              <Card className="p-4">
+                <h3 className="font-medium mb-3">Google Search Console Performance</h3>
+                <p className="text-sm text-muted-foreground mb-4">Connect Google Search Console to enable performance data.</p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Article</TableHead>
+                      <TableHead>Impressions</TableHead>
+                      <TableHead>Clicks</TableHead>
+                      <TableHead>Avg Position</TableHead>
+                      <TableHead>Last Synced</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {articles?.filter(a => a.status === "published").slice(0, 10).map(a => (
+                      <TableRow key={a.id}>
+                        <TableCell className="text-sm max-w-[200px] truncate">{a.headline}</TableCell>
+                        <TableCell className="text-muted-foreground">—</TableCell>
+                        <TableCell className="text-muted-foreground">—</TableCell>
+                        <TableCell className="text-muted-foreground">—</TableCell>
+                        <TableCell className="text-muted-foreground">—</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
+            </>
+          ) : (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full" />)}
+            </div>
+          )}
         </div>
-      ) : !articles?.length ? (
-        <Card className="p-8 text-center text-muted-foreground" data-testid="text-no-articles">
-          No articles found. Create your first press release.
-        </Card>
-      ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Headline</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Freshness</TableHead>
-                <TableHead>Modified</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {articles.map((a) => (
-                <TableRow key={a.id} data-testid={`row-article-${a.id}`}>
-                  <TableCell className="font-medium max-w-[250px] truncate">{a.headline}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{a.slug}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={statusColors[a.status] || ""} data-testid={`badge-status-${a.id}`}>
-                      {a.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {getFreshnessBadge(a)}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {new Date(a.updatedAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" asChild data-testid={`button-view-${a.id}`} title={a.status === "published" ? "View live page" : "Preview article"}>
-                        <a href={`/discovery/knowledge/${a.slug}`} target="_blank" rel="noopener">
-                          <Eye className={`h-4 w-4 ${a.status !== "published" ? "text-muted-foreground" : ""}`} />
-                        </a>
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(a)} data-testid={`button-edit-${a.id}`}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {a.status === "pending" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => publishMutation.mutate(a.id)}
-                          disabled={publishMutation.isPending}
-                          data-testid={`button-publish-${a.id}`}
-                          title="Publish"
+      )}
+
+      {activeTab === "coverage" && (
+        <div className="space-y-4">
+          <div className="flex gap-2 items-center">
+            <Select value={coverageStateFilter} onValueChange={setCoverageStateFilter}>
+              <SelectTrigger className="w-[180px]" data-testid="select-coverage-state">
+                <SelectValue placeholder="All states" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All States</SelectItem>
+                {coverageStates.map(s => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={coverageStatusFilter} onValueChange={setCoverageStatusFilter}>
+              <SelectTrigger className="w-[180px]" data-testid="select-coverage-status">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Not Generated">Not Generated</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Published">Published</SelectItem>
+              </SelectContent>
+            </Select>
+            {(coverageStateFilter || coverageStatusFilter) && (
+              <Button variant="ghost" size="sm" onClick={() => { setCoverageStateFilter(""); setCoverageStatusFilter("") }}>
+                Clear
+              </Button>
+            )}
+            <span className="text-sm text-muted-foreground ml-auto">
+              {filteredCoverage.length} cities
+            </span>
+          </div>
+
+          {coverage ? (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>City</TableHead>
+                    <TableHead>State</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last Published</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCoverage.map(c => (
+                    <TableRow key={c.citySlug} data-testid={`coverage-row-${c.citySlug}`}>
+                      <TableCell className="font-medium">{c.cityName}</TableCell>
+                      <TableCell>{c.state}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            c.status === "Published" ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                            c.status === "Pending" ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
+                            "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                          }
                         >
-                          <Send className="h-4 w-4 text-green-500" />
-                        </Button>
-                      )}
-                      {a.status === "published" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => archiveMutation.mutate(a.id)}
-                          disabled={archiveMutation.isPending}
-                          data-testid={`button-archive-${a.id}`}
-                          title="Archive"
-                        >
-                          <Archive className="h-4 w-4 text-orange-400" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setVersionsArticle(a.id)}
-                        data-testid={`button-versions-${a.id}`}
-                        title="Version history"
-                      >
-                        <History className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => { if (confirm("Delete this article?")) deleteMutation.mutate(a.id) }}
-                        data-testid={`button-delete-${a.id}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+                          {c.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {c.lastPublished ? new Date(c.lastPublished).toLocaleDateString() : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+            </div>
+          )}
+        </div>
       )}
 
       <Dialog open={!!editArticle} onOpenChange={(o) => { if (!o) { setEditArticle(null); resetForm() } }}>
