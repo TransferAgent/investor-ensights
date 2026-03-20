@@ -1698,6 +1698,10 @@ body {
   width: 1px;
 }
 
+.w-\[40px\] {
+  width: 40px;
+}
+
 .w-\[var\(--sidebar-width\)\] {
   width: var(--sidebar-width);
 }
@@ -2863,6 +2867,11 @@ body {
 .text-accent-foreground {
   --tw-text-opacity: 1;
   color: hsl(var(--accent-foreground) / var(--tw-text-opacity, 1));
+}
+
+.text-amber-500 {
+  --tw-text-opacity: 1;
+  color: rgb(245 158 11 / var(--tw-text-opacity, 1));
 }
 
 .text-black {

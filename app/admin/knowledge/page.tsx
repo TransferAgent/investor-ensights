@@ -40,6 +40,7 @@ import {
   Archive,
   History,
   Eye,
+  EyeOff,
   Sparkles,
   Loader2,
   BarChart3,
@@ -52,6 +53,7 @@ import {
   AlertTriangle,
   CheckCircle,
 } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface CityRecord {
   id: string
@@ -162,6 +164,8 @@ export default function KnowledgeAdmin() {
   const [bulkResult, setBulkResult] = useState<any>(null)
   const [coverageStateFilter, setCoverageStateFilter] = useState("")
   const [coverageStatusFilter, setCoverageStatusFilter] = useState("")
+  const [selectedArticles, setSelectedArticles] = useState<string[]>([])
+
 
   const [formSlug, setFormSlug] = useState("")
   const [formTitle, setFormTitle] = useState("")
@@ -380,6 +384,43 @@ export default function KnowledgeAdmin() {
     },
     onError: (err: any) => {
       toast({ title: "Publish blocked", description: err.message, variant: "destructive" })
+    },
+  })
+
+  const unpublishMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("POST", `/api/admin/knowledge/${id}/unpublish`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/analytics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/coverage"] })
+      toast({ title: "Article unpublished", description: "Status changed back to pending" })
+    },
+    onError: (err: any) => {
+      toast({ title: "Unpublish failed", description: err.message, variant: "destructive" })
+    },
+  })
+
+  const bulkUnpublishMutation = useMutation({
+    mutationFn: async (articleIds: string[]) => {
+      const res = await apiRequest("POST", "/api/admin/knowledge/bulk-unpublish", { articleIds })
+      return res.json()
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/analytics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/coverage"] })
+      setSelectedArticles([])
+      toast({
+        title: "Bulk unpublish complete",
+        description: `${data.unpublished} unpublished, ${data.skipped} skipped`,
+      })
+    },
+    onError: (err: any) => {
+      toast({ title: "Bulk unpublish failed", description: err.message, variant: "destructive" })
     },
   })
 
@@ -777,6 +818,46 @@ export default function KnowledgeAdmin() {
             ))}
           </div>
 
+          {selectedArticles.length > 0 && (
+            <div className="flex items-center gap-3 mb-3 p-3 bg-muted/50 border rounded-lg" data-testid="bulk-action-bar">
+              <span className="text-sm font-medium" data-testid="text-selected-count">
+                {selectedArticles.length} selected
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const publishedIds = selectedArticles.filter(id =>
+                    articles?.find(a => a.id === id && a.status === "published")
+                  )
+                  if (publishedIds.length === 0) {
+                    toast({ title: "No published articles selected", description: "Only published articles can be unpublished", variant: "destructive" })
+                    return
+                  }
+                  if (confirm(`Unpublish ${publishedIds.length} article(s)? They will be set back to pending.`)) {
+                    bulkUnpublishMutation.mutate(publishedIds)
+                  }
+                }}
+                disabled={bulkUnpublishMutation.isPending}
+                data-testid="button-bulk-unpublish"
+              >
+                {bulkUnpublishMutation.isPending ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Unpublishing...</>
+                ) : (
+                  <><EyeOff className="mr-2 h-4 w-4" /> Unpublish Selected</>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedArticles([])}
+                data-testid="button-clear-selection"
+              >
+                Clear
+              </Button>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
@@ -790,6 +871,20 @@ export default function KnowledgeAdmin() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={articles.length > 0 && selectedArticles.length === articles.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedArticles(articles.map(a => a.id))
+                          } else {
+                            setSelectedArticles([])
+                          }
+                        }}
+                        data-testid="checkbox-select-all"
+                        aria-label="Select all articles"
+                      />
+                    </TableHead>
                     <TableHead>Headline</TableHead>
                     <TableHead>Slug</TableHead>
                     <TableHead>Status</TableHead>
@@ -801,6 +896,20 @@ export default function KnowledgeAdmin() {
                 <TableBody>
                   {articles.map((a) => (
                     <TableRow key={a.id} data-testid={`row-article-${a.id}`}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedArticles.includes(a.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedArticles(prev => [...prev, a.id])
+                            } else {
+                              setSelectedArticles(prev => prev.filter(id => id !== a.id))
+                            }
+                          }}
+                          data-testid={`checkbox-article-${a.id}`}
+                          aria-label={`Select ${a.headline}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium max-w-[200px] truncate">{a.headline}</TableCell>
                       <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">{a.slug}</TableCell>
                       <TableCell>
@@ -847,16 +956,28 @@ export default function KnowledgeAdmin() {
                             </Button>
                           )}
                           {a.status === "published" && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => archiveMutation.mutate(a.id)}
-                              disabled={archiveMutation.isPending}
-                              data-testid={`button-archive-${a.id}`}
-                              title="Archive"
-                            >
-                              <Archive className="h-4 w-4 text-orange-400" />
-                            </Button>
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => unpublishMutation.mutate(a.id)}
+                                disabled={unpublishMutation.isPending}
+                                data-testid={`button-unpublish-${a.id}`}
+                                title="Unpublish (back to pending)"
+                              >
+                                <EyeOff className="h-4 w-4 text-amber-500" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => archiveMutation.mutate(a.id)}
+                                disabled={archiveMutation.isPending}
+                                data-testid={`button-archive-${a.id}`}
+                                title="Archive"
+                              >
+                                <Archive className="h-4 w-4 text-orange-400" />
+                              </Button>
+                            </>
                           )}
                           <Button
                             variant="ghost"
