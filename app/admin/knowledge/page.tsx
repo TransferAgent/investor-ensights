@@ -468,13 +468,11 @@ export default function KnowledgeAdmin() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      {a.status === "published" && (
-                        <Button variant="ghost" size="icon" asChild data-testid={`button-view-${a.id}`}>
-                          <a href={`/discovery/knowledge/${a.slug}`} target="_blank" rel="noopener">
-                            <Eye className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
+                      <Button variant="ghost" size="icon" asChild data-testid={`button-view-${a.id}`} title={a.status === "published" ? "View live page" : "Preview article"}>
+                        <a href={`/discovery/knowledge/${a.slug}`} target="_blank" rel="noopener">
+                          <Eye className={`h-4 w-4 ${a.status !== "published" ? "text-muted-foreground" : ""}`} />
+                        </a>
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(a)} data-testid={`button-edit-${a.id}`}>
                         <Pencil className="h-4 w-4" />
                       </Button>

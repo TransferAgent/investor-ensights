@@ -7,7 +7,14 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://www.tableicity.com
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const article = await storage.getKnowledgeArticleBySlug(slug);
-  if (!article || article.status !== "published") return { title: "Not Found" };
+  if (!article || article.status === "archived") return { title: "Not Found" };
+
+  if (article.status === "pending") {
+    return {
+      title: `[PREVIEW] ${article.title}`,
+      robots: { index: false, follow: false },
+    };
+  }
 
   return {
     title: article.title,
@@ -36,9 +43,11 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
   const { slug } = await params;
   const article = await storage.getKnowledgeArticleBySlug(slug);
 
-  if (!article || article.status !== "published") {
+  if (!article || article.status === "archived") {
     notFound();
   }
+
+  const isPreview = article.status === "pending";
 
   const authorType = article.authorName.toLowerCase() === "tableicity" ? "Organization" : "Person";
 
@@ -93,6 +102,12 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           </nav>
         </div>
       </header>
+
+      {isPreview && (
+        <div className="bg-yellow-500/90 text-black text-center py-2 px-4 text-sm font-semibold" data-testid="banner-preview">
+          PREVIEW — This article has not been published yet. It will not appear in search results or the sitemap.
+        </div>
+      )}
 
       <article className="max-w-4xl mx-auto px-6 py-12" data-testid="article-content">
         {article.dateline && (
