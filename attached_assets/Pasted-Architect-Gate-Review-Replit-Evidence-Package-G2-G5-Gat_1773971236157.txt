@@ -1,0 +1,32 @@
+Architect Gate Review — Replit Evidence Package (G2 + G5)
+Gate G2‑Harden — PASS (with 1 remaining non‑negotiable validation step)
+What is confirmed by evidence:
+
+301 redirect is live: tableicity.com → www.tableicity.com ✅ (Evidence 1)
+Canonical is https://www.tableicity.com/... ✅ (Evidence 2)
+Robots “Beast” directive is present ✅ (Evidence 2) and aligns with Google-supported directives (max-snippet, max-image-preview, max-video-preview, -1) Google Search Central
+NEXT_PUBLIC_BASE_URL is correctly set to https://www.tableicity.com ✅ (Evidence 3)
+Sitemap uses www-only ✅ (Evidence 4)
+JSON‑LD author semantics corrected: Organization for Tableicity ✅ (Evidence 2)
+Remaining G2 requirement (Alpha’s non-negotiable):
+
+Run Rich Results Test on a published slug that includes image in JSON‑LD and confirm no critical errors. Google explicitly recommends validating structured data with Rich Results Test Google Search Central.
+Note: right now, image is conditional on ogImageUrl. That’s acceptable, but we must prove it in the validator.
+
+Reference target (what “Article” enhancements can look like):
+Article rich result Google Search Central
+
+G2 Final Micro-Order to Replit (to close the last gap):
+
+In /admin/knowledge, set ogImageUrl for tableicity-test-press-001 to a full www URL (ideally 1200px+ width).
+Confirm view-source now shows "image": ["https://www.tableicity.com/..."] in JSON‑LD.
+Run Rich Results Test on: https://www.tableicity.com/discovery/knowledge/tableicity-test-press-001 and paste results.
+Gate G5‑Ingestion — PASS (implementation complete)
+Replit’s report indicates /api/knowledge/draft matches Contract v1:
+
+Pending-only enforced, forbidden fields rejected, canonical computed to www, validation, auth, rate limit, audit logging ✅
+One evidence item I recommend requesting (audit proof):
+
+Paste 1 sample audit log record created by a successful draft POST (redact sensitive fields if needed). This is operational assurance, not a blocker.
+Green-light for G6/G7?
+Not yet. We must close the remaining G2 Rich Results validation first (Alpha’s non-negotiable). Once Rich Results returns no critical errors, 
