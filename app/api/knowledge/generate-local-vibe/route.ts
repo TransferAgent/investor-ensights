@@ -37,6 +37,7 @@ function generateStubPayload(city: {
 
   return {
     slug: `${city.slug}-local-vibe-${Date.now()}`,
+    citySlug: city.slug,
     locale: "en-US" as const,
     seo: {
       title: `Cap Table Readiness in ${city.cityName}, ${city.stateCode} | Tableicity`,
@@ -140,7 +141,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const payload = validationResult.data;
+  const payload = { ...validationResult.data, citySlug: city.slug };
 
   const internalPort = process.env.PORT || "5000";
   const internalDraftUrl = `http://localhost:${internalPort}/api/knowledge/draft`;

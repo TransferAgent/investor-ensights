@@ -61,7 +61,7 @@ All under `app/api/`:
 - `admin/knowledge/[id]/versions/route.ts` — GET version history
 - `admin/knowledge/metrics/route.ts` — GET publish cadence metrics (today, thisWeek, avgPerDay, pendingCount)
 - `admin/knowledge/analytics/route.ts` — GET analytics (publishedThisMonth, discoverEligible, avgFreshnessScore, pendingCount)
-- `admin/knowledge/coverage/route.ts` — GET city coverage tracker (LEFT JOIN cities with articles)
+- `admin/knowledge/coverage/route.ts` — GET city coverage tracker (matches articles to cities via city_slug field)
 - `admin/knowledge/generation-log/route.ts` — GET generation log entries with daily count
 - `knowledge/draft/route.ts` — POST structured draft ingestion (G5 contract v1: pending-only, validated, audited, rate-limited, content quality guards)
 - `knowledge/generate-local-vibe/route.ts` — POST generate Local Vibe draft for a city (G6/G7: versioned prompt template, generation logging)

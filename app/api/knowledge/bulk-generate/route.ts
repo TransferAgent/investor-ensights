@@ -27,6 +27,7 @@ function generateStubPayload(city: {
 
   return {
     slug: `${city.slug}-local-vibe-${Date.now()}`,
+    citySlug: city.slug,
     locale: "en-US" as const,
     seo: {
       title: `Cap Table Readiness in ${city.cityName}, ${city.stateCode} | Tableicity`,
@@ -73,7 +74,7 @@ async function hasDuplicateWithin30Days(citySlug: string): Promise<boolean> {
   const results = await db.select({ id: knowledgeArticles.id })
     .from(knowledgeArticles)
     .where(and(
-      sql`${knowledgeArticles.slug} LIKE ${citySlug + '-local-vibe-%'}`,
+      eq(knowledgeArticles.citySlug, citySlug),
       or(
         eq(knowledgeArticles.status, "pending"),
         eq(knowledgeArticles.status, "published")
@@ -155,13 +156,14 @@ export async function POST(req: NextRequest) {
           return;
         }
 
+        const draftBody = { ...validationResult.data, citySlug: city.slug };
         const res = await fetch(internalDraftUrl, {
           method: "POST",
           headers: {
             "content-type": "application/json",
             cookie: req.headers.get("cookie") ?? "",
           },
-          body: JSON.stringify(validationResult.data),
+          body: JSON.stringify(draftBody),
         });
 
         if (res.ok) {

@@ -189,9 +189,12 @@ export async function POST(request: NextRequest) {
 
   const warnings = errors.filter((e) => e.startsWith("WARNING:"));
 
+  const citySlugValue = body.citySlug || null;
+
   try {
     const article = await storage.createKnowledgeArticle({
       slug,
+      citySlug: citySlugValue,
       status: "pending",
       title: body.seo.title,
       metaDescription: body.seo.description,

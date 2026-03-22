@@ -16,14 +16,14 @@ export async function GET(req: NextRequest) {
 
   const articles = await db.select({
     slug: knowledgeArticles.slug,
+    citySlug: knowledgeArticles.citySlug,
     status: knowledgeArticles.status,
     datePublished: knowledgeArticles.datePublished,
     createdAt: knowledgeArticles.createdAt,
   }).from(knowledgeArticles).orderBy(desc(knowledgeArticles.createdAt));
 
   const coverage = cities.map(city => {
-    const vibePattern = city.citySlug + "-local-vibe-";
-    const cityArticles = articles.filter(a => a.slug.startsWith(vibePattern) || a.slug === city.citySlug);
+    const cityArticles = articles.filter(a => a.citySlug === city.citySlug);
     const published = cityArticles.filter(a => a.status === "published").sort((a, b) =>
       (b.datePublished?.getTime() || 0) - (a.datePublished?.getTime() || 0)
     )[0];
