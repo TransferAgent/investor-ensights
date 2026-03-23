@@ -35,7 +35,7 @@ export const cityLocations = pgTable(
     nearbyCities: jsonb("nearby_cities").default([]).notNull(),
     mapEmbedUrl: text("map_embed_url"),
     metaTitle: varchar("meta_title", { length: 120 }),
-    metaDescription: varchar("meta_description", { length: 300 }),
+    metaDescription: varchar("meta_description", { length: 500 }),
     allowIndexing: boolean("allow_indexing").default(true).notNull(),
     isPublished: boolean("is_published").default(false).notNull(),
     displayOrder: integer("display_order").default(0).notNull(),
