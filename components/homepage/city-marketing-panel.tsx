@@ -51,13 +51,14 @@ export default function CityMarketingPanel({
   mapSrc,
 }: CityMarketingPanelProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
+  const SLIDE_DURATIONS = [7200, 7200, 14400, 7200]
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const timeout = setTimeout(() => {
       setCurrentSlide((prev) => (prev + 1) % SLIDES.length)
-    }, 7200)
-    return () => clearInterval(interval)
-  }, [])
+    }, SLIDE_DURATIONS[currentSlide])
+    return () => clearTimeout(timeout)
+  }, [currentSlide])
 
   return (
     <div
@@ -112,7 +113,7 @@ export default function CityMarketingPanel({
                 exit={{ opacity: 0 }}
                 transition={{
                   opacity: { duration: 1, ease: "easeInOut" },
-                  scale: { duration: 7.2, ease: "linear" },
+                  scale: { duration: SLIDE_DURATIONS[currentSlide] / 1000, ease: "linear" },
                 }}
               />
             </AnimatePresence>
