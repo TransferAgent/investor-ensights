@@ -21,6 +21,13 @@ const SLIDES = [
   "/slideshow-c.png",
 ]
 
+const SLIDE_ALTS = [
+  "Tableicity Encrypted Hash: Privacy-first cap table platform using SHA-256 encryption for equity ownership protection — a secure alternative to Carta.",
+  "Tableicity secure cap table code architecture featuring SHA-256 hashing, GDPR compliance, and Zero-Knowledge Proof stakeholder verification.",
+  "Tableicity Cap Table Dashboard showing SHA-256 hashed stakeholder identities, ZK-Proof verification network, and 30-minute auditor reveal access control.",
+  "Privacy-first capitalization table management software featuring encrypted stakeholder names and time-boxed auditor access to prevent data leaks.",
+]
+
 const FEATURES = [
   "Full ESOP Hierarchy",
   "5 Equity Instruments",
@@ -113,7 +120,7 @@ export default function MarketingPanel() {
               <motion.img
                 key={currentSlide}
                 src={SLIDES[currentSlide]}
-                alt="Tableicity platform"
+                alt={SLIDE_ALTS[currentSlide]}
                 className="absolute inset-0 w-full h-full object-cover"
                 initial={{ opacity: 0, scale: 1.0 }}
                 animate={{ opacity: 1, scale: 1.08 }}
