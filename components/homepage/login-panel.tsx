@@ -1,6 +1,6 @@
 "use client"
 
-import { Building2 } from "lucide-react"
+import { Building2, Mail } from "lucide-react"
 
 export default function LoginPanel() {
   return (
@@ -177,6 +177,18 @@ export default function LoginPanel() {
                 Start a Free Trial
               </a>
             </p>
+          </div>
+
+          <div className="flex items-center justify-center gap-2 mt-4 pt-4" style={{ borderTop: "1px solid rgba(99,179,237,0.1)" }}>
+            <Mail className="h-3.5 w-3.5" style={{ color: "#63B3ED" }} />
+            <a
+              href="mailto:info@tableicity.com"
+              className="text-xs hover:underline transition-colors"
+              style={{ color: "#718096" }}
+              data-testid="link-email-login-panel"
+            >
+              info@tableicity.com
+            </a>
           </div>
         </div>
       </div>

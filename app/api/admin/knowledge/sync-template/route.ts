@@ -28,9 +28,7 @@ export async function POST(req: NextRequest) {
   if (!template) {
     const boilerplate = '<p>Tableicity is a premier SAAS cap table solution dedicated to privacy, security, and founder autonomy. By replacing traditional identity-linked databases with cryptographic hashes and ZK-proofs, Tableicity empowers founders to manage equity ownership with unmatched confidentiality. Learn more at <a href="https://www.tableicity.com">www.tableicity.com</a>.</p>';
 
-    const bodyHtml = `<p><strong>FOR IMMEDIATE RELEASE</strong></p>
-
-<p><strong>{{city}}, {{state_name}}</strong> — As private market valuations reach new heights, the risk of centralized data exposure has become a multimillion-dollar liability for startups. Today, <strong>Tableicity</strong> announces expanded availability of its next-generation capitalization (cap table) management platform to founders in {{city}} and across {{state_name}}, specifically engineered to eliminate the security vulnerabilities found in legacy systems like <strong>Carta</strong> and <strong>Cake Equity</strong>.</p>
+    const bodyHtml = `<p><strong>{{city}}, {{state_name}}</strong> — As private market valuations reach new heights, the risk of centralized data exposure has become a multimillion-dollar liability for startups. Today, <strong>Tableicity</strong> announces expanded availability of its next-generation capitalization (cap table) management platform to founders in {{city}} and across {{state_name}}, specifically engineered to eliminate the security vulnerabilities found in legacy systems like <strong>Carta</strong> and <strong>Cake Equity</strong>.</p>
 
 <p>In an era where a single leaked screenshot of a cap table can derail a funding round or trigger premature tax events, Tableicity introduces a &ldquo;Privacy-First&rdquo; paradigm for founders near {{landmarks}} who refuse to treat their ownership data as public property.</p>
 
@@ -42,7 +40,7 @@ export async function POST(req: NextRequest) {
 
 <p>Unlike traditional platforms that store identifiable shareholder data in centralized databases, Tableicity utilizes <strong>SHA-256 Hashing</strong> and <strong>Zero-Knowledge Proofs (ZKPs)</strong> to ensure stakeholder identities remain pseudonymous by default. This technical moat protects {{city}}-area startups from the &ldquo;information asymmetry&rdquo; often exploited by competitors and aggressive VCs during negotiations.</p>
 
-<p><em>&ldquo;The current industry standard is a &lsquo;data honey-pot&rsquo; waiting to be breached,&rdquo;</em> said the Founder of Tableicity. <em>&ldquo;We&rsquo;ve built Tableicity to give founders in {{city}} and across {{state_name}} total control. Your equity ownership remains a hash on a ledger until you decide otherwise.&rdquo;</em></p>
+<p><em>&ldquo;The current industry standard is a &lsquo;data honey-pot&rsquo; waiting to be breached,&rdquo;</em> said Brian Reynolds, CEO and Founder of Tableicity. <em>&ldquo;We&rsquo;ve built Tableicity to give founders in {{city}} and across {{state_name}} total control. Your equity ownership remains a hash on a ledger until you decide otherwise.&rdquo;</em></p>
 
 <h2>Key Innovation: On-Demand Auditor Reveal</h2>
 

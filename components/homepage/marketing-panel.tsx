@@ -12,6 +12,7 @@ import {
   Lock,
   FileCheck,
   MapPin,
+  Mail,
 } from "lucide-react"
 
 const SLIDES = [
@@ -174,16 +175,28 @@ export default function MarketingPanel() {
               </div>
             ))}
           </div>
-          <Link
-            href="/locations"
-            className="flex items-center gap-2 mt-3 pt-3 border-t border-white/10"
-            data-testid="link-locations"
-          >
-            <MapPin className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-            <span className="text-xs text-blue-200/70 hover:text-blue-200/90 transition-colors">
-              Locations
-            </span>
-          </Link>
+          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/10">
+            <Link
+              href="/locations"
+              className="flex items-center gap-2"
+              data-testid="link-locations"
+            >
+              <MapPin className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+              <span className="text-xs text-blue-200/70 hover:text-blue-200/90 transition-colors">
+                Locations
+              </span>
+            </Link>
+            <a
+              href="mailto:info@tableicity.com"
+              className="flex items-center gap-2"
+              data-testid="link-email-contact"
+            >
+              <Mail className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+              <span className="text-xs text-blue-200/70 hover:text-blue-200/90 transition-colors">
+                info@tableicity.com
+              </span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
