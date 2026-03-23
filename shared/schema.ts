@@ -391,6 +391,7 @@ export const dataStoreFiles = pgTable(
     mimeType: text("mime_type").notNull(),
     fileSize: integer("file_size").notNull(),
     fileData: text("file_data").notNull(),
+    category: text("category").notNull().default("general"),
     status: text("status").notNull().default("pending"),
     notes: text("notes"),
     uploadedBy: text("uploaded_by"),

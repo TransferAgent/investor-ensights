@@ -105,7 +105,7 @@ export interface IStorage {
   updateKnowledgeTemplate(id: string, data: Partial<InsertKnowledgeTemplate>): Promise<KnowledgeTemplate | undefined>;
   deleteKnowledgeTemplate(id: string): Promise<void>;
 
-  getDataStoreFiles(status?: string): Promise<DataStoreFile[]>;
+  getDataStoreFiles(status?: string, category?: string): Promise<DataStoreFile[]>;
   getDataStoreFileById(id: string): Promise<DataStoreFile | undefined>;
   createDataStoreFile(data: InsertDataStoreFile): Promise<DataStoreFile>;
   updateDataStoreFile(id: string, data: Partial<InsertDataStoreFile>): Promise<DataStoreFile | undefined>;
@@ -628,9 +628,12 @@ export class DatabaseStorage implements IStorage {
     await db.delete(knowledgeTemplates).where(eq(knowledgeTemplates.id, id));
   }
 
-  async getDataStoreFiles(status?: string): Promise<DataStoreFile[]> {
-    if (status) {
-      return db.select().from(dataStoreFiles).where(eq(dataStoreFiles.status, status)).orderBy(desc(dataStoreFiles.createdAt));
+  async getDataStoreFiles(status?: string, category?: string): Promise<DataStoreFile[]> {
+    const conditions = [];
+    if (status) conditions.push(eq(dataStoreFiles.status, status));
+    if (category) conditions.push(eq(dataStoreFiles.category, category));
+    if (conditions.length > 0) {
+      return db.select().from(dataStoreFiles).where(and(...conditions)).orderBy(desc(dataStoreFiles.createdAt));
     }
     return db.select().from(dataStoreFiles).orderBy(desc(dataStoreFiles.createdAt));
   }

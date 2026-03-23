@@ -1,11 +1,16 @@
 "use client"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { QueryProvider } from "@/components/query-provider"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { apiRequest, queryClient } from "@/lib/queryClient"
 import {
   LayoutDashboard,
@@ -17,6 +22,13 @@ import {
   ExternalLink,
   Newspaper,
   Database,
+  Share2,
+  ChevronRight,
+  Twitter,
+  Linkedin,
+  Youtube,
+  Film,
+  Facebook,
 } from "lucide-react"
 
 const navItems = [
@@ -26,6 +38,14 @@ const navItems = [
   { title: "Pages", url: "/admin/pages", icon: Layers },
   { title: "Knowledge", url: "/admin/knowledge", icon: Newspaper },
   { title: "Data Store", url: "/admin/data-store", icon: Database },
+]
+
+const socialPlatforms = [
+  { title: "Twitter", slug: "twitter", icon: Twitter },
+  { title: "LinkedIn", slug: "linkedin", icon: Linkedin },
+  { title: "YouTube", slug: "youtube", icon: Youtube },
+  { title: "TikTok", slug: "tiktok", icon: Film },
+  { title: "Meta", slug: "meta", icon: Facebook },
 ]
 
 interface AdminUser {
@@ -38,6 +58,12 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const isLoginPage = pathname === "/admin/login"
+  const isSocialMedia = pathname.startsWith("/admin/social-media")
+  const [socialOpen, setSocialOpen] = useState(isSocialMedia)
+
+  useEffect(() => {
+    if (isSocialMedia) setSocialOpen(true)
+  }, [isSocialMedia])
 
   const { data: user, isLoading } = useQuery<AdminUser | null>({
     queryKey: ["/api/admin/me"],
@@ -101,7 +127,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 p-3">
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
           {navItems.map((item) => {
             const isActive =
               item.url === "/admin"
@@ -112,7 +138,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                 <Button
                   variant={isActive ? "secondary" : "ghost"}
                   className="w-full justify-start"
-                  data-testid={`link-nav-${item.title.toLowerCase()}`}
+                  data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                 >
                   <item.icon className="mr-2 h-4 w-4" />
                   {item.title}
@@ -120,6 +146,42 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               </Link>
             )
           })}
+
+          <Collapsible open={socialOpen} onOpenChange={setSocialOpen}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant={isSocialMedia ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                data-testid="link-nav-social-media"
+              >
+                <Share2 className="mr-2 h-4 w-4" />
+                Social Media
+                <ChevronRight
+                  className={`ml-auto h-4 w-4 transition-transform duration-200 ${socialOpen ? "rotate-90" : ""}`}
+                />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="ml-4 mt-1 flex flex-col gap-1 border-l pl-2">
+                {socialPlatforms.map((p) => {
+                  const isSubActive = pathname === `/admin/social-media/${p.slug}`
+                  return (
+                    <Link key={p.slug} href={`/admin/social-media/${p.slug}`}>
+                      <Button
+                        variant={isSubActive ? "secondary" : "ghost"}
+                        size="sm"
+                        className="w-full justify-start text-sm"
+                        data-testid={`link-nav-social-${p.slug}`}
+                      >
+                        <p.icon className="mr-2 h-3.5 w-3.5" />
+                        {p.title}
+                      </Button>
+                    </Link>
+                  )
+                })}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </nav>
 
         <div className="border-t p-3">

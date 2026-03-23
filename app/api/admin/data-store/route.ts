@@ -8,7 +8,8 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const status = req.nextUrl.searchParams.get("status") || undefined;
-  const files = await storage.getDataStoreFiles(status);
+  const category = req.nextUrl.searchParams.get("category") || undefined;
+  const files = await storage.getDataStoreFiles(status, category);
   const filesWithoutData = files.map(({ fileData, ...rest }) => rest);
   return NextResponse.json(filesWithoutData);
 }
@@ -20,6 +21,7 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const notes = formData.get("notes") as string | null;
+  const category = formData.get("category") as string | null;
 
   if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
 
@@ -50,6 +52,7 @@ export async function POST(req: NextRequest) {
     mimeType: file.type,
     fileSize: file.size,
     fileData,
+    category: category || "general",
     status: "pending",
     notes: notes || undefined,
     uploadedBy: session.username,
