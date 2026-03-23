@@ -56,7 +56,7 @@ export const contentTemplates = pgTable(
     templateName: varchar("template_name", { length: 100 }).notNull(),
     templateDescription: text("template_description"),
     metaTitlePattern: varchar("meta_title_pattern", { length: 120 }),
-    metaDescriptionPattern: varchar("meta_description_pattern", { length: 300 }),
+    metaDescriptionPattern: varchar("meta_description_pattern", { length: 500 }),
     h1HeaderPattern: varchar("h1_header_pattern", { length: 255 }),
     h2SubheaderPattern: varchar("h2_subheader_pattern", { length: 500 }),
     bodyContentPattern: text("body_content_pattern"),
