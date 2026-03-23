@@ -326,6 +326,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/admin/knowledge/sync-template/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/knowledge/sync-template">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/knowledge/sync-template/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/admin/login/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/login">> = Specific
