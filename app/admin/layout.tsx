@@ -29,6 +29,7 @@ import {
   Youtube,
   Film,
   Facebook,
+  Mail,
 } from "lucide-react"
 
 const navItems = [
@@ -38,6 +39,7 @@ const navItems = [
   { title: "Pages", url: "/admin/pages", icon: Layers },
   { title: "Knowledge", url: "/admin/knowledge", icon: Newspaper },
   { title: "Data Store", url: "/admin/data-store", icon: Database },
+  { title: "Email", url: "/admin/email", icon: Mail },
 ]
 
 const socialPlatforms = [
