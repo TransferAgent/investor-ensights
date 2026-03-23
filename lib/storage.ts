@@ -9,6 +9,7 @@ import {
   knowledgeArticles,
   knowledgeArticleVersions,
   knowledgeTemplates,
+  dataStoreFiles,
   type CityLocation,
   type InsertCityLocation,
   type ContentTemplate,
@@ -29,6 +30,8 @@ import {
   type InsertKnowledgeArticleVersion,
   type KnowledgeTemplate,
   type InsertKnowledgeTemplate,
+  type DataStoreFile,
+  type InsertDataStoreFile,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray, sql, desc, asc, gt, lt } from "drizzle-orm";
@@ -101,6 +104,12 @@ export interface IStorage {
   createKnowledgeTemplate(data: InsertKnowledgeTemplate): Promise<KnowledgeTemplate>;
   updateKnowledgeTemplate(id: string, data: Partial<InsertKnowledgeTemplate>): Promise<KnowledgeTemplate | undefined>;
   deleteKnowledgeTemplate(id: string): Promise<void>;
+
+  getDataStoreFiles(status?: string): Promise<DataStoreFile[]>;
+  getDataStoreFileById(id: string): Promise<DataStoreFile | undefined>;
+  createDataStoreFile(data: InsertDataStoreFile): Promise<DataStoreFile>;
+  updateDataStoreFile(id: string, data: Partial<InsertDataStoreFile>): Promise<DataStoreFile | undefined>;
+  deleteDataStoreFile(id: string): Promise<void>;
 }
 
 function extractImageDimensions(buffer: Buffer): { width: number; height: number } | null {
@@ -617,6 +626,33 @@ export class DatabaseStorage implements IStorage {
 
   async deleteKnowledgeTemplate(id: string): Promise<void> {
     await db.delete(knowledgeTemplates).where(eq(knowledgeTemplates.id, id));
+  }
+
+  async getDataStoreFiles(status?: string): Promise<DataStoreFile[]> {
+    if (status) {
+      return db.select().from(dataStoreFiles).where(eq(dataStoreFiles.status, status)).orderBy(desc(dataStoreFiles.createdAt));
+    }
+    return db.select().from(dataStoreFiles).orderBy(desc(dataStoreFiles.createdAt));
+  }
+
+  async getDataStoreFileById(id: string): Promise<DataStoreFile | undefined> {
+    const [f] = await db.select().from(dataStoreFiles).where(eq(dataStoreFiles.id, id));
+    return f;
+  }
+
+  async createDataStoreFile(data: InsertDataStoreFile): Promise<DataStoreFile> {
+    const [f] = await db.insert(dataStoreFiles).values(data).returning();
+    return f;
+  }
+
+  async updateDataStoreFile(id: string, data: Partial<InsertDataStoreFile>): Promise<DataStoreFile | undefined> {
+    const now = new Date();
+    const [f] = await db.update(dataStoreFiles).set({ ...data, updatedAt: now }).where(eq(dataStoreFiles.id, id)).returning();
+    return f;
+  }
+
+  async deleteDataStoreFile(id: string): Promise<void> {
+    await db.delete(dataStoreFiles).where(eq(dataStoreFiles.id, id));
   }
 }
 

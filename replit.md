@@ -70,6 +70,9 @@ All under `app/api/`:
 - `knowledge/draft/route.ts` — POST structured draft ingestion (G5 contract v1: pending-only, validated, audited, rate-limited, content quality guards)
 - `knowledge/generate-local-vibe/route.ts` — POST generate Local Vibe draft for a city (G6/G7: versioned prompt template, generation logging)
 - `knowledge/bulk-generate/route.ts` — POST bulk generate Local Vibes (max 50 cities, concurrency 3, 30-day duplicate skip)
+- `admin/data-store/route.ts` — GET/POST data store files (upload via multipart form)
+- `admin/data-store/[id]/route.ts` — PATCH/DELETE data store file
+- `admin/data-store/[id]/download/route.ts` — GET download file
 - `admin/stats/route.ts` — GET dashboard stats
 - `locations/route.ts` — GET public published cities
 - `locations/[slug]/route.ts` — GET public city detail
@@ -97,6 +100,7 @@ All under `app/api/`:
 8. **knowledge_articles** — Press releases/articles with tri-state status (pending/published/archived), SEO fields, body HTML, author/publisher, JSON-LD support
 9. **knowledge_article_versions** — Append-only immutable archive trail capturing full article snapshots on publish/archive actions
 10. **knowledge_generation_log** — Audit trail for every generation call (city_slug, directive, status, error_message, timestamp)
+12. **data_store_files** — File uploads (Word, PDF, TXT, HTML, Markdown) with base64 storage, tri-state status (pending/approved/rejected), notes, audit trail
 11. **knowledge_templates** — Reusable press release templates with placeholder patterns ({{city}}, {{state_name}}, etc.) for bulk article generation
 
 ### Security Features

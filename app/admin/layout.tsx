@@ -16,6 +16,7 @@ import {
   Shield,
   ExternalLink,
   Newspaper,
+  Database,
 } from "lucide-react"
 
 const navItems = [
@@ -24,6 +25,7 @@ const navItems = [
   { title: "Templates", url: "/admin/templates", icon: FileText },
   { title: "Pages", url: "/admin/pages", icon: Layers },
   { title: "Knowledge", url: "/admin/knowledge", icon: Newspaper },
+  { title: "Data Store", url: "/admin/data-store", icon: Database },
 ]
 
 interface AdminUser {

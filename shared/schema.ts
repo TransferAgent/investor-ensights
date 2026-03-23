@@ -382,6 +382,35 @@ export const insertKnowledgeTemplateSchema = createInsertSchema(knowledgeTemplat
 export type KnowledgeTemplate = typeof knowledgeTemplates.$inferSelect;
 export type InsertKnowledgeTemplate = z.infer<typeof insertKnowledgeTemplateSchema>;
 
+export const dataStoreFiles = pgTable(
+  "data_store_files",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    filename: text("filename").notNull(),
+    originalName: text("original_name").notNull(),
+    mimeType: text("mime_type").notNull(),
+    fileSize: integer("file_size").notNull(),
+    fileData: text("file_data").notNull(),
+    status: text("status").notNull().default("pending"),
+    notes: text("notes"),
+    uploadedBy: text("uploaded_by"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("data_store_status_idx").on(table.status),
+    index("data_store_created_idx").on(table.createdAt),
+  ]
+);
+
+export const insertDataStoreFileSchema = createInsertSchema(dataStoreFiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type DataStoreFile = typeof dataStoreFiles.$inferSelect;
+export type InsertDataStoreFile = z.infer<typeof insertDataStoreFileSchema>;
+
 export const insertKnowledgeArticleSchema = createInsertSchema(knowledgeArticles).omit({
   id: true,
   createdAt: true,

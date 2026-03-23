@@ -2313,6 +2313,10 @@ body {
   border-color: var(--primary-border);
 }
 
+.border-red-500\/20 {
+  border-color: #ef444433;
+}
+
 .border-secondary-border {
   border-color: var(--secondary-border);
 }
