@@ -8,6 +8,7 @@ import {
   pageSlides,
   knowledgeArticles,
   knowledgeArticleVersions,
+  knowledgeTemplates,
   type CityLocation,
   type InsertCityLocation,
   type ContentTemplate,
@@ -26,6 +27,8 @@ import {
   type InsertKnowledgeArticle,
   type KnowledgeArticleVersion,
   type InsertKnowledgeArticleVersion,
+  type KnowledgeTemplate,
+  type InsertKnowledgeTemplate,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray, sql, desc, asc, gt, lt } from "drizzle-orm";
@@ -92,6 +95,12 @@ export interface IStorage {
   archiveKnowledgeArticle(id: string, username: string): Promise<KnowledgeArticle | undefined>;
   unarchiveKnowledgeArticle(id: string, username: string): Promise<KnowledgeArticle | undefined>;
   getKnowledgeArticleVersions(articleId: string): Promise<KnowledgeArticleVersion[]>;
+
+  getKnowledgeTemplates(): Promise<KnowledgeTemplate[]>;
+  getKnowledgeTemplateById(id: string): Promise<KnowledgeTemplate | undefined>;
+  createKnowledgeTemplate(data: InsertKnowledgeTemplate): Promise<KnowledgeTemplate>;
+  updateKnowledgeTemplate(id: string, data: Partial<InsertKnowledgeTemplate>): Promise<KnowledgeTemplate | undefined>;
+  deleteKnowledgeTemplate(id: string): Promise<void>;
 }
 
 function extractImageDimensions(buffer: Buffer): { width: number; height: number } | null {
@@ -584,6 +593,30 @@ export class DatabaseStorage implements IStorage {
 
   async getKnowledgeArticleVersions(articleId: string): Promise<KnowledgeArticleVersion[]> {
     return db.select().from(knowledgeArticleVersions).where(eq(knowledgeArticleVersions.articleId, articleId)).orderBy(desc(knowledgeArticleVersions.versionNumber));
+  }
+
+  async getKnowledgeTemplates(): Promise<KnowledgeTemplate[]> {
+    return db.select().from(knowledgeTemplates).orderBy(desc(knowledgeTemplates.createdAt));
+  }
+
+  async getKnowledgeTemplateById(id: string): Promise<KnowledgeTemplate | undefined> {
+    const [t] = await db.select().from(knowledgeTemplates).where(eq(knowledgeTemplates.id, id));
+    return t;
+  }
+
+  async createKnowledgeTemplate(data: InsertKnowledgeTemplate): Promise<KnowledgeTemplate> {
+    const [t] = await db.insert(knowledgeTemplates).values(data).returning();
+    return t;
+  }
+
+  async updateKnowledgeTemplate(id: string, data: Partial<InsertKnowledgeTemplate>): Promise<KnowledgeTemplate | undefined> {
+    const now = new Date();
+    const [t] = await db.update(knowledgeTemplates).set({ ...data, updatedAt: now }).where(eq(knowledgeTemplates.id, id)).returning();
+    return t;
+  }
+
+  async deleteKnowledgeTemplate(id: string): Promise<void> {
+    await db.delete(knowledgeTemplates).where(eq(knowledgeTemplates.id, id));
   }
 }
 

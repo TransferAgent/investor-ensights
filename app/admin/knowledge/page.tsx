@@ -146,7 +146,23 @@ function getFreshnessBadge(article: KnowledgeArticle) {
   return <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-500" data-testid="badge-aging">🔴 Aging</span>
 }
 
-type TabType = "articles" | "analytics" | "coverage"
+interface KnowledgeTemplateItem {
+  id: string
+  name: string
+  titlePattern: string
+  headlinePattern: string
+  subheadlinePattern: string | null
+  metaDescriptionPattern: string | null
+  datelinePattern: string | null
+  bodyHtmlPattern: string
+  boilerplateHtml: string | null
+  ogImageUrl: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+type TabType = "articles" | "analytics" | "coverage" | "templates"
 
 export default function KnowledgeAdmin() {
   const { toast } = useToast()
@@ -165,6 +181,12 @@ export default function KnowledgeAdmin() {
   const [bulkResult, setBulkResult] = useState<any>(null)
   const [coverageStateFilter, setCoverageStateFilter] = useState("")
   const [coverageStatusFilter, setCoverageStatusFilter] = useState("")
+  const [templateCreateOpen, setTemplateCreateOpen] = useState(false)
+  const [editTemplate, setEditTemplate] = useState<KnowledgeTemplateItem | null>(null)
+  const [generateFromTemplateOpen, setGenerateFromTemplateOpen] = useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = useState("")
+  const [autoPublish, setAutoPublish] = useState(true)
+  const [generateResult, setGenerateResult] = useState<any>(null)
   const [selectedArticles, setSelectedArticles] = useState<string[]>([])
 
 
@@ -244,6 +266,82 @@ export default function KnowledgeAdmin() {
       const res = await fetch("/api/locations", { credentials: "include" })
       if (!res.ok) throw new Error("Failed to load cities")
       return res.json()
+    },
+  })
+
+  const { data: knowledgeTemplates, isLoading: templatesLoading } = useQuery<KnowledgeTemplateItem[]>({
+    queryKey: ["/api/admin/knowledge-templates"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/knowledge-templates", { credentials: "include" })
+      if (!res.ok) throw new Error("Failed to load templates")
+      return res.json()
+    },
+    enabled: activeTab === "templates",
+  })
+
+  const createTemplateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/admin/knowledge-templates", data)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge-templates"] })
+      toast({ title: "Template created" })
+      setTemplateCreateOpen(false)
+    },
+  })
+
+  const updateTemplateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      return apiRequest("PATCH", `/api/admin/knowledge-templates/${id}`, data)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge-templates"] })
+      toast({ title: "Template updated" })
+      setEditTemplate(null)
+    },
+  })
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/admin/knowledge-templates/${id}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge-templates"] })
+      toast({ title: "Template deleted" })
+    },
+  })
+
+  const generateFromTemplateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/knowledge-templates/generate", {
+        templateId: selectedTemplateId,
+        autoPublish,
+      })
+      return res.json()
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/coverage"] })
+      setGenerateResult(data)
+      toast({ title: `Generated ${data.generated} articles` })
+    },
+  })
+
+  const bulkArchiveMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const results = []
+      for (const id of ids) {
+        const res = await apiRequest("POST", `/api/admin/knowledge/${id}/archive`)
+        results.push(res)
+      }
+      return results
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
+      toast({ title: "Articles archived" })
+      setSelectedArticles([])
     },
   })
 
@@ -798,7 +896,7 @@ export default function KnowledgeAdmin() {
       )}
 
       <div className="flex gap-2 mb-4">
-        {(["articles", "analytics", "coverage"] as TabType[]).map((tab) => (
+        {(["articles", "templates", "analytics", "coverage"] as TabType[]).map((tab) => (
           <Button
             key={tab}
             variant={activeTab === tab ? "secondary" : "outline"}
@@ -807,6 +905,7 @@ export default function KnowledgeAdmin() {
             data-testid={`tab-${tab}`}
           >
             {tab === "articles" && <FileText className="mr-1.5 h-3.5 w-3.5" />}
+            {tab === "templates" && <Layers className="mr-1.5 h-3.5 w-3.5" />}
             {tab === "analytics" && <BarChart3 className="mr-1.5 h-3.5 w-3.5" />}
             {tab === "coverage" && <Map className="mr-1.5 h-3.5 w-3.5" />}
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -857,6 +956,30 @@ export default function KnowledgeAdmin() {
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Unpublishing...</>
                 ) : (
                   <><EyeOff className="mr-2 h-4 w-4" /> Unpublish Selected</>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const archivableIds = selectedArticles.filter(id =>
+                    articles?.find(a => a.id === id && a.status !== "archived")
+                  )
+                  if (archivableIds.length === 0) {
+                    toast({ title: "No archivable articles selected", variant: "destructive" })
+                    return
+                  }
+                  if (confirm(`Archive ${archivableIds.length} article(s)?`)) {
+                    bulkArchiveMutation.mutate(archivableIds)
+                  }
+                }}
+                disabled={bulkArchiveMutation.isPending}
+                data-testid="button-bulk-archive"
+              >
+                {bulkArchiveMutation.isPending ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Archiving...</>
+                ) : (
+                  <><Archive className="mr-2 h-4 w-4" /> Archive Selected</>
                 )}
               </Button>
               <Button
@@ -1030,6 +1153,145 @@ export default function KnowledgeAdmin() {
             </Card>
           )}
         </>
+      )}
+
+      {activeTab === "templates" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Press release templates with placeholders: <code className="text-xs bg-muted px-1 py-0.5 rounded">{"{{city}}"}</code> <code className="text-xs bg-muted px-1 py-0.5 rounded">{"{{state_name}}"}</code> <code className="text-xs bg-muted px-1 py-0.5 rounded">{"{{state_code}}"}</code> <code className="text-xs bg-muted px-1 py-0.5 rounded">{"{{landmarks}}"}</code> <code className="text-xs bg-muted px-1 py-0.5 rounded">{"{{nearby_cities}}"}</code>
+            </p>
+            <div className="flex gap-2">
+              {knowledgeTemplates && knowledgeTemplates.length > 0 && (
+                <Dialog open={generateFromTemplateOpen} onOpenChange={(o) => { setGenerateFromTemplateOpen(o); if (!o) setGenerateResult(null); }}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="default" data-testid="button-generate-from-template">
+                      <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                      Generate for All Cities
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Generate Articles from Template</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-2">
+                      <div>
+                        <Label>Template</Label>
+                        <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                          <SelectTrigger data-testid="select-template-for-gen">
+                            <SelectValue placeholder="Select template..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {knowledgeTemplates?.filter(t => t.isActive).map(t => (
+                              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={autoPublish}
+                          onCheckedChange={(v) => setAutoPublish(!!v)}
+                          data-testid="checkbox-auto-publish"
+                        />
+                        <Label>Auto-publish (skip pending/draft)</Label>
+                      </div>
+                      {generateResult && (
+                        <Card className="p-3 bg-green-500/10 border-green-500/20">
+                          <p className="text-sm font-medium text-green-500" data-testid="text-generate-result">
+                            Generated {generateResult.generated} articles{generateResult.errors > 0 ? `, ${generateResult.errors} errors` : ""}
+                          </p>
+                        </Card>
+                      )}
+                      <Button
+                        onClick={() => generateFromTemplateMutation.mutate()}
+                        disabled={!selectedTemplateId || generateFromTemplateMutation.isPending}
+                        className="w-full"
+                        data-testid="button-confirm-generate"
+                      >
+                        {generateFromTemplateMutation.isPending ? (
+                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>
+                        ) : (
+                          "Generate for All Published Cities"
+                        )}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+              <Dialog open={templateCreateOpen} onOpenChange={setTemplateCreateOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" data-testid="button-create-template">
+                    <Plus className="mr-1.5 h-3.5 w-3.5" />
+                    New Template
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Create Knowledge Template</DialogTitle>
+                  </DialogHeader>
+                  <TemplateForm
+                    onSubmit={(data) => createTemplateMutation.mutate(data)}
+                    isPending={createTemplateMutation.isPending}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+
+          {templatesLoading ? (
+            <div className="space-y-2">{[1,2].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
+          ) : knowledgeTemplates && knowledgeTemplates.length > 0 ? (
+            <div className="space-y-3">
+              {knowledgeTemplates.map(t => (
+                <Card key={t.id} className="p-4" data-testid={`template-card-${t.id}`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold">{t.name}</h3>
+                        <Badge variant={t.isActive ? "default" : "secondary"}>
+                          {t.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">Title: {t.titlePattern}</p>
+                      <p className="text-sm text-muted-foreground">Headline: {t.headlinePattern}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Created {new Date(t.createdAt).toLocaleDateString()} · Updated {new Date(t.updatedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => setEditTemplate(t)} data-testid={`button-edit-template-${t.id}`} title="Edit">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => { if (confirm("Delete this template?")) deleteTemplateMutation.mutate(t.id) }} data-testid={`button-delete-template-${t.id}`} title="Delete">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground" data-testid="text-no-templates">No templates yet. Create your first press release template.</p>
+            </Card>
+          )}
+
+          <Dialog open={!!editTemplate} onOpenChange={(o) => { if (!o) setEditTemplate(null) }}>
+            <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Template</DialogTitle>
+              </DialogHeader>
+              {editTemplate && (
+                <TemplateForm
+                  initial={editTemplate}
+                  onSubmit={(data) => updateTemplateMutation.mutate({ id: editTemplate.id, data })}
+                  isPending={updateTemplateMutation.isPending}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+        </div>
       )}
 
       {activeTab === "analytics" && (
@@ -1213,6 +1475,72 @@ export default function KnowledgeAdmin() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+function TemplateForm({ initial, onSubmit, isPending }: {
+  initial?: KnowledgeTemplateItem
+  onSubmit: (data: any) => void
+  isPending: boolean
+}) {
+  const [name, setName] = useState(initial?.name || "")
+  const [titlePattern, setTitlePattern] = useState(initial?.titlePattern || "")
+  const [headlinePattern, setHeadlinePattern] = useState(initial?.headlinePattern || "")
+  const [subheadlinePattern, setSubheadlinePattern] = useState(initial?.subheadlinePattern || "")
+  const [metaDescriptionPattern, setMetaDescriptionPattern] = useState(initial?.metaDescriptionPattern || "")
+  const [datelinePattern, setDatelinePattern] = useState(initial?.datelinePattern || "")
+  const [bodyHtmlPattern, setBodyHtmlPattern] = useState(initial?.bodyHtmlPattern || "")
+  const [boilerplateHtml, setBoilerplateHtml] = useState(initial?.boilerplateHtml || "")
+  const [ogImageUrl, setOgImageUrl] = useState(initial?.ogImageUrl || "https://www.tableicity.com/slideshow-b.png")
+
+  return (
+    <div className="space-y-4 pt-2">
+      <div>
+        <Label>Template Name</Label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Launch Narrative v1" data-testid="input-template-name" />
+      </div>
+      <div>
+        <Label>Title Pattern</Label>
+        <Input value={titlePattern} onChange={(e) => setTitlePattern(e.target.value)} placeholder="e.g., Cap Table Readiness in {{city}}, {{state_code}} | Tableicity" data-testid="input-template-title" />
+      </div>
+      <div>
+        <Label>Headline Pattern</Label>
+        <Input value={headlinePattern} onChange={(e) => setHeadlinePattern(e.target.value)} placeholder="e.g., {{city}}, {{state_name}} Founders Embrace Privacy-First Cap Table Management" data-testid="input-template-headline" />
+      </div>
+      <div>
+        <Label>Subheadline Pattern</Label>
+        <Textarea value={subheadlinePattern} onChange={(e) => setSubheadlinePattern(e.target.value)} rows={2} data-testid="input-template-subheadline" />
+      </div>
+      <div>
+        <Label>Meta Description Pattern</Label>
+        <Textarea value={metaDescriptionPattern} onChange={(e) => setMetaDescriptionPattern(e.target.value)} rows={2} data-testid="input-template-meta" />
+      </div>
+      <div>
+        <Label>Dateline Pattern</Label>
+        <Input value={datelinePattern} onChange={(e) => setDatelinePattern(e.target.value)} placeholder="e.g., {{city_upper}}, {{state_code}} —" data-testid="input-template-dateline" />
+      </div>
+      <div>
+        <Label>Body HTML Pattern</Label>
+        <Textarea value={bodyHtmlPattern} onChange={(e) => setBodyHtmlPattern(e.target.value)} rows={12} className="font-mono text-xs" data-testid="input-template-body" />
+      </div>
+      <div>
+        <Label>Boilerplate HTML</Label>
+        <Textarea value={boilerplateHtml} onChange={(e) => setBoilerplateHtml(e.target.value)} rows={4} className="font-mono text-xs" data-testid="input-template-boilerplate" />
+      </div>
+      <div>
+        <Label>OG Image URL</Label>
+        <Input value={ogImageUrl} onChange={(e) => setOgImageUrl(e.target.value)} data-testid="input-template-og-image" />
+      </div>
+      <Button
+        onClick={() => onSubmit({ name, titlePattern, headlinePattern, subheadlinePattern: subheadlinePattern || undefined, metaDescriptionPattern: metaDescriptionPattern || undefined, datelinePattern: datelinePattern || undefined, bodyHtmlPattern, boilerplateHtml: boilerplateHtml || undefined, ogImageUrl: ogImageUrl || undefined })}
+        disabled={isPending || !name || !titlePattern || !headlinePattern || !bodyHtmlPattern}
+        className="w-full"
+        data-testid="button-submit-template"
+      >
+        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        {initial ? "Update Template" : "Create Template"}
+      </Button>
     </div>
   )
 }

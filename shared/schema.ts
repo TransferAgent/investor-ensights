@@ -352,6 +352,36 @@ export const knowledgeArticleVersions = pgTable(
   ]
 );
 
+export const knowledgeTemplates = pgTable(
+  "knowledge_templates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    titlePattern: text("title_pattern").notNull(),
+    headlinePattern: text("headline_pattern").notNull(),
+    subheadlinePattern: text("subheadline_pattern"),
+    metaDescriptionPattern: text("meta_description_pattern"),
+    datelinePattern: text("dateline_pattern"),
+    bodyHtmlPattern: text("body_html_pattern").notNull(),
+    boilerplateHtml: text("boilerplate_html"),
+    ogImageUrl: text("og_image_url"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("knowledge_templates_active_idx").on(table.isActive),
+  ]
+);
+
+export const insertKnowledgeTemplateSchema = createInsertSchema(knowledgeTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type KnowledgeTemplate = typeof knowledgeTemplates.$inferSelect;
+export type InsertKnowledgeTemplate = z.infer<typeof insertKnowledgeTemplateSchema>;
+
 export const insertKnowledgeArticleSchema = createInsertSchema(knowledgeArticles).omit({
   id: true,
   createdAt: true,

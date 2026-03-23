@@ -58,7 +58,11 @@ All under `app/api/`:
 - `admin/knowledge/[id]/route.ts` — GET/PATCH/DELETE knowledge article
 - `admin/knowledge/[id]/publish/route.ts` — POST publish article (creates version snapshot, validates OG image reachability + 1200px+ width, stores image dimensions)
 - `admin/knowledge/[id]/archive/route.ts` — POST archive article (creates version snapshot)
+- `admin/knowledge/[id]/unarchive/route.ts` — POST restore archived article to pending (creates version snapshot)
 - `admin/knowledge/[id]/versions/route.ts` — GET version history
+- `admin/knowledge-templates/route.ts` — GET/POST knowledge templates
+- `admin/knowledge-templates/[id]/route.ts` — GET/PATCH/DELETE knowledge template
+- `admin/knowledge-templates/generate/route.ts` — POST generate articles from template for all published cities
 - `admin/knowledge/metrics/route.ts` — GET publish cadence metrics (today, thisWeek, avgPerDay, pendingCount)
 - `admin/knowledge/analytics/route.ts` — GET analytics (publishedThisMonth, discoverEligible, avgFreshnessScore, pendingCount)
 - `admin/knowledge/coverage/route.ts` — GET city coverage tracker (matches articles to cities via city_slug field)
@@ -93,6 +97,7 @@ All under `app/api/`:
 8. **knowledge_articles** — Press releases/articles with tri-state status (pending/published/archived), SEO fields, body HTML, author/publisher, JSON-LD support
 9. **knowledge_article_versions** — Append-only immutable archive trail capturing full article snapshots on publish/archive actions
 10. **knowledge_generation_log** — Audit trail for every generation call (city_slug, directive, status, error_message, timestamp)
+11. **knowledge_templates** — Reusable press release templates with placeholder patterns ({{city}}, {{state_name}}, etc.) for bulk article generation
 
 ### Security Features
 - **Password hashing**: scrypt with random salt (Node.js built-in)
