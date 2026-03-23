@@ -1,3 +1,8 @@
 {
+  "/admin/login/page": "app/admin/login/page.js",
+  "/api/admin/me/route": "app/api/admin/me/route.js",
+  "/api/geo/route": "app/api/geo/route.js",
+  "/locations/[slug]/page": "app/locations/[slug]/page.js",
+  "/locations/page": "app/locations/page.js",
   "/page": "app/page.js"
 }
