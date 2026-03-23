@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     await db.insert(knowledgeTemplates).values({
       name: "Privacy-First Launch Narrative v1",
-      titlePattern: "Tableicity Launches Privacy-First Cap Table in {{city}}, {{state_code}} | Tableicity",
+      titlePattern: "Privacy-First Cap Table in {{city}}, {{state_name}} | Tableicity",
       headlinePattern: "{{city}}, {{state_name}} Founders Embrace Privacy-First Cap Table Management with Tableicity",
       subheadlinePattern: "Next-generation cap table platform leverages SHA-256 encryption and Zero-Knowledge Proofs for {{city}}-area founders — eliminating security vulnerabilities in legacy equity systems.",
       metaDescriptionPattern: "Tableicity launches privacy-first cap table management for founders in {{city}}, {{state_name}}. SHA-256 hashing, Zero-Knowledge Proofs, on-demand auditor reveal, and tamper-proof ledger for startups.",
@@ -99,7 +99,8 @@ export async function POST(req: NextRequest) {
 
   let generatedCount = 0;
   for (const city of realCities) {
-    const articleSlug = `${city.slug}-press-${Date.now()}`;
+    const cityNameSlug = city.cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+    const articleSlug = `tableicity-${cityNameSlug}-cap-table`;
     const now = new Date();
     const status = autoPublish ? "published" : "pending";
 
