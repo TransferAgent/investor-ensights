@@ -38,6 +38,7 @@ import {
   Trash2,
   Send,
   Archive,
+  ArchiveRestore,
   History,
   Eye,
   EyeOff,
@@ -432,6 +433,17 @@ export default function KnowledgeAdmin() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
       toast({ title: "Article archived" })
+    },
+  })
+
+  const unarchiveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("POST", `/api/admin/knowledge/${id}/unarchive`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
+      toast({ title: "Article restored to draft" })
     },
   })
 
@@ -978,6 +990,18 @@ export default function KnowledgeAdmin() {
                                 <Archive className="h-4 w-4 text-orange-400" />
                               </Button>
                             </>
+                          )}
+                          {a.status === "archived" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => unarchiveMutation.mutate(a.id)}
+                              disabled={unarchiveMutation.isPending}
+                              data-testid={`button-unarchive-${a.id}`}
+                              title="Restore to draft"
+                            >
+                              <ArchiveRestore className="h-4 w-4 text-blue-400" />
+                            </Button>
                           )}
                           <Button
                             variant="ghost"

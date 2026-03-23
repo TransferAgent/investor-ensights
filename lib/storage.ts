@@ -90,6 +90,7 @@ export interface IStorage {
   publishKnowledgeArticle(id: string, username: string): Promise<KnowledgeArticle | undefined>;
   unpublishKnowledgeArticle(id: string, username: string): Promise<KnowledgeArticle | undefined>;
   archiveKnowledgeArticle(id: string, username: string): Promise<KnowledgeArticle | undefined>;
+  unarchiveKnowledgeArticle(id: string, username: string): Promise<KnowledgeArticle | undefined>;
   getKnowledgeArticleVersions(articleId: string): Promise<KnowledgeArticleVersion[]>;
 }
 
@@ -551,6 +552,30 @@ export class DatabaseStorage implements IStorage {
     const now = new Date();
     const [updated] = await db.update(knowledgeArticles).set({
       status: "archived",
+      dateModified: now,
+      updatedAt: now,
+    }).where(eq(knowledgeArticles.id, id)).returning();
+    return updated;
+  }
+
+  async unarchiveKnowledgeArticle(id: string, username: string): Promise<KnowledgeArticle | undefined> {
+    const article = await this.getKnowledgeArticleById(id);
+    if (!article || article.status !== "archived") return undefined;
+
+    const [versionCount] = await db.select({ count: sql<number>`count(*)` }).from(knowledgeArticleVersions).where(eq(knowledgeArticleVersions.articleId, id));
+    const nextVersion = Number(versionCount.count) + 1;
+
+    await db.insert(knowledgeArticleVersions).values({
+      articleId: id,
+      versionNumber: nextVersion,
+      snapshotJson: JSON.parse(JSON.stringify(article)),
+      snapshotReason: "unarchive",
+      createdBy: username,
+    });
+
+    const now = new Date();
+    const [updated] = await db.update(knowledgeArticles).set({
+      status: "pending",
       dateModified: now,
       updatedAt: now,
     }).where(eq(knowledgeArticles.id, id)).returning();
