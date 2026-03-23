@@ -104,7 +104,7 @@ export default function MarketingPanel() {
         </div>
 
         <p className="text-sm leading-relaxed mb-4 text-blue-200/80">
-          One leaked or hacked screenshot of your Cap Table can cost millions in a lost deal or trigger a tax event. The risk is mitigated by ensuring your equity ownership remains pseudonymous with on-demand auditor reveal.
+          One leaked or hacked screenshot of your Cap Table can cost millions in a lost deal or trigger a regulatory nightmare. Mitigate this risk by ensuring your equity ownership remains pseudonymous through SHA-256 Encryption with on-demand auditor reveal. Built for Founders who refuse to treat their ownership data as public property.
         </p>
 
         <div className="mb-8 w-full">
