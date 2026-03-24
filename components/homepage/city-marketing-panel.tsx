@@ -17,6 +17,8 @@ import {
 const SLIDES = [
   "/slideshow-f2.png",
   "/slideshow-a.png",
+  "/slideshow-encrypt-a.png",
+  "/slideshow-encrypt-b.png",
   "/slideshow-b.png",
   "/slideshow-c.png",
 ]
@@ -24,6 +26,8 @@ const SLIDES = [
 const SLIDE_ALT_TEMPLATES = [
   "Tableicity Encrypted Hash: Privacy-first cap table platform using SHA-256 encryption for equity ownership protection in {{city}}, {{state}} — a secure alternative to Carta.",
   "Tableicity secure cap table code architecture featuring SHA-256 hashing, GDPR compliance, and Zero-Knowledge Proof stakeholder verification for {{city}}, {{state}} startups.",
+  "Tableicity Cap Table Dashboard showing encrypted stakeholder identities with pseudonymous hash labels for {{city}}, {{state}} founders — ownership data stays private by default.",
+  "Tableicity Cap Table Dashboard after auditor reveal showing real stakeholder names for {{city}}, {{state}} compliance — consent-based 30-minute identity access.",
   "Tableicity Cap Table Dashboard showing SHA-256 hashed stakeholder identities, ZK-Proof verification network, and 30-minute auditor reveal access control for {{city}}, {{state}}.",
   "Privacy-first capitalization table management software in {{city}}, {{state}} featuring encrypted stakeholder names and time-boxed auditor access to prevent data leaks.",
 ]
