@@ -1,11 +1,1 @@
-{
-  "version": 4,
-  "routes": {},
-  "dynamicRoutes": {},
-  "notFoundRoutes": [],
-  "preview": {
-    "previewModeId": "c8d163ed8b7f116918fa52f24d9e25c8",
-    "previewModeSigningKey": "5af72da713b8dcb7a6b57694d3f080a3336d3956aa837545657a3b8cc910b935",
-    "previewModeEncryptionKey": "137ea830ec7f79c277a1b9327d19557bb192a240a4db0f5c81d45801591e3712"
-  }
-}
+{"version":4,"routes":{"/locations/atlanta-ga":{},"/locations/austin-tx":{},"/locations/boston-ma":{},"/locations/chicago-il":{},"/locations/dallas-tx":{},"/locations/denver-co":{},"/locations/fontana-ca":{},"/locations/houston-tx":{},"/locations/irvine-ca":{},"/locations/los-angeles-ca":{},"/locations/miami-fl":{},"/locations/nashville-tn":{},"/locations/new-york-ny":{},"/locations/philadelphia-pa":{},"/locations/phoenix-az":{},"/locations/portland-or":{},"/locations/san-diego-ca":{},"/locations/san-francisco-ca":{},"/locations/seattle-wa":{},"/locations/testcity-3vtw-h-ca":{}},"dynamicRoutes":{"/locations/[slug]":{"dataRoute":null,"dataRouteRegex":null,"fallback":null,"fallbackRevalidate":false,"fallbackSourceRoute":"/locations/[slug]","routeRegex":"^\\/locations\\/([^/]+?)(?:\\/)?$","allowHeader":[]}},"notFoundRoutes":[],"preview":{"previewModeId":"348f07b4546316f4e7075deb02955735","previewModeSigningKey":"54b4b9b07b5eaf43642b242df9315c6be83f1c05dff3cab3f120256a384750d7","previewModeEncryptionKey":"81374a4667ba2656e6ac75365282b28a49715dc1689bd587e30fa80cad1e8ef3"}}

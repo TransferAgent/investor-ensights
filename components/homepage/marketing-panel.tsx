@@ -94,14 +94,14 @@ export default function MarketingPanel() {
       style={{ backgroundColor: "#0f1b2d" }}
     >
       <div className="p-10 xl:p-12 flex flex-col justify-between h-full">
-        <div className="flex items-center justify-between mb-5">
+        <header className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center">
               <Building2 className="h-[18px] w-[18px] text-white" />
             </div>
-            <span className="text-lg font-bold tracking-tight text-white">
+            <h1 className="text-lg font-bold tracking-tight text-white" data-testid="text-brand-h1">
               Tableicity
-            </span>
+            </h1>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
@@ -113,11 +113,15 @@ export default function MarketingPanel() {
               <span className="text-xs text-blue-200/60">No credit card</span>
             </div>
           </div>
-        </div>
+        </header>
 
-        <p className="text-sm leading-relaxed mb-4 text-blue-200/80">
+        <h2 className="text-sm leading-relaxed mb-4 text-blue-200/80 font-normal" data-testid="text-pitch-h2">
+          Equity Management for Startups
+        </h2>
+
+        <h3 className="text-sm leading-relaxed mb-4 text-blue-200/80 font-normal" data-testid="text-pitch-h3">
           One leaked or hacked screenshot of your Cap Table can cost millions in a lost deal or trigger a regulatory nightmare. Mitigate this risk by ensuring your equity ownership remains pseudonymous through SHA-256 Encryption with on-demand auditor reveal. Built for Founders who refuse to treat their ownership data as public property.
-        </p>
+        </h3>
 
         <div className="mb-8 w-full">
           <div className="relative w-full overflow-hidden rounded-xl" style={{ aspectRatio: "16/10" }}>

@@ -71,13 +71,15 @@ export default function CityMarketingPanel({
     return () => clearTimeout(timeout)
   }, [currentSlide])
 
+  const isHtml = body.includes("<") && body.includes(">")
+
   return (
     <div
       className="hidden lg:flex lg:w-[45%] flex-col overflow-hidden"
       style={{ backgroundColor: "#0f1b2d" }}
     >
       <div className="p-10 xl:p-12 flex flex-col h-full overflow-y-auto">
-        <div className="flex items-center justify-between mb-5">
+        <header className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center">
               <Building2 className="h-[18px] w-[18px] text-white" />
@@ -96,7 +98,7 @@ export default function CityMarketingPanel({
               <span className="text-xs text-blue-200/60">No credit card</span>
             </div>
           </div>
-        </div>
+        </header>
 
         <h1
           className="text-2xl xl:text-[1.75rem] font-bold leading-tight text-white mb-1"
@@ -104,12 +106,12 @@ export default function CityMarketingPanel({
         >
           {h1}
         </h1>
-        <p
-          className="text-sm leading-relaxed mb-4 text-blue-200/80"
+        <h2
+          className="text-sm leading-relaxed mb-4 text-blue-200/80 font-normal"
           data-testid="text-city-h2"
         >
           {h2}
-        </p>
+        </h2>
 
         <div className="mb-6 w-full">
           <div className="relative w-full overflow-hidden rounded-xl" style={{ aspectRatio: "16/10" }}>
@@ -141,24 +143,32 @@ export default function CityMarketingPanel({
         </div>
 
         <div className="border-t border-white/10 pt-4 mb-4">
-          <div className="text-sm leading-relaxed text-blue-200/80" data-testid="text-city-body">
-            {body.split("\n").map((paragraph, i) => (
-              <p key={i} className={i > 0 ? "mt-2" : ""}>{paragraph}</p>
-            ))}
-          </div>
+          {isHtml ? (
+            <div
+              className="text-sm leading-relaxed text-blue-200/80 city-body-html"
+              data-testid="text-city-body"
+              dangerouslySetInnerHTML={{ __html: body }}
+            />
+          ) : (
+            <h3 className="text-sm leading-relaxed text-blue-200/80 font-normal" data-testid="text-city-body">
+              {body.split("\n").map((paragraph, i) => (
+                <span key={i} className={i > 0 ? "mt-2 block" : "block"}>{paragraph}</span>
+              ))}
+            </h3>
+          )}
         </div>
 
         {(streetAddress || phoneNumber || email || mapSrc) && (
           <div className="border-t border-white/10 pt-4 mb-4">
-            <p className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3">
+            <h3 className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3 font-normal" data-testid="text-contact-h3">
               Contact Info
-            </p>
+            </h3>
             <div className="grid grid-cols-2 gap-4 items-start">
               <div className="space-y-2.5">
                 {streetAddress && (
                   <div className="flex items-start gap-2.5">
                     <MapPin className="h-3.5 w-3.5 text-blue-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-blue-200/70">
+                    <h4 className="text-xs text-blue-200/70 font-normal" data-testid="text-address-h4">
                       {streetAddress}
                       {zipCode && (
                         <>
@@ -166,7 +176,7 @@ export default function CityMarketingPanel({
                           {cityName}, {stateCode} {zipCode}
                         </>
                       )}
-                    </p>
+                    </h4>
                   </div>
                 )}
                 {phoneNumber && (
@@ -215,14 +225,14 @@ export default function CityMarketingPanel({
 
         {landmarks.length > 0 && (
           <div className="border-t border-white/10 pt-4 mb-4">
-            <p className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3">
+            <h3 className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3 font-normal" data-testid="text-landmarks-h3">
               Near Our {cityName} Office
-            </p>
+            </h3>
             <div className="flex flex-wrap gap-x-3 gap-y-1">
               {landmarks.map((landmark, i) => (
                 <div key={i} className="flex items-center gap-1.5" data-testid={`card-landmark-${i}`}>
                   <Navigation className="h-3 w-3 text-green-400 shrink-0" />
-                  <span className="text-xs text-blue-200/70">{landmark}</span>
+                  <h4 className="text-xs text-blue-200/70 font-normal">{landmark}</h4>
                 </div>
               ))}
             </div>
@@ -231,24 +241,24 @@ export default function CityMarketingPanel({
 
         {nearbyCities.length > 0 && (
           <div className="border-t border-white/10 pt-4 mb-4">
-            <p className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3">
+            <h3 className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3 font-normal" data-testid="text-nearby-h3">
               We Also Serve
-            </p>
+            </h3>
             <div className="flex flex-wrap gap-1.5">
               {nearbyCities.map((nc, i) => (
-                <span
+                <h4
                   key={i}
-                  className="text-xs text-blue-200/70 bg-white/5 rounded px-2 py-0.5"
+                  className="text-xs text-blue-200/70 bg-white/5 rounded px-2 py-0.5 font-normal"
                   data-testid={`badge-nearby-${i}`}
                 >
                   {nc}
-                </span>
+                </h4>
               ))}
             </div>
           </div>
         )}
 
-        <div className="border-t border-white/10 pt-3 mt-auto">
+        <nav className="border-t border-white/10 pt-3 mt-auto">
           <div className="flex items-center gap-4">
             <Link
               href="/"
@@ -280,7 +290,7 @@ export default function CityMarketingPanel({
               </span>
             </Link>
           </div>
-        </div>
+        </nav>
       </div>
     </div>
   )

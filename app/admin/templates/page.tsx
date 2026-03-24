@@ -67,14 +67,16 @@ function TemplateForm({
     ctaUrlPattern: template?.ctaUrlPattern || "",
     isActive: template?.isActive ?? true,
     isDefault: template?.isDefault ?? false,
+    _previewBody: false as boolean,
   })
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const { _previewBody, ...payload } = form
       if (isEdit) {
-        await apiRequest("PATCH", `/api/admin/templates/${template.id}`, form)
+        await apiRequest("PATCH", `/api/admin/templates/${template.id}`, payload)
       } else {
-        await apiRequest("POST", "/api/admin/templates", form)
+        await apiRequest("POST", "/api/admin/templates", payload)
       }
     },
     onSuccess: () => {
@@ -183,14 +185,36 @@ function TemplateForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label>Body Content Pattern</Label>
-        <Textarea
-          value={form.bodyContentPattern}
-          onChange={(e) => update("bodyContentPattern", e.target.value)}
-          placeholder="We're proud to serve the {{city}} community..."
-          rows={6}
-          data-testid="input-body"
-        />
+        <div className="flex items-center justify-between">
+          <Label>Body Content Pattern (HTML supported)</Label>
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded border"
+            onClick={() => update("_previewBody", !form._previewBody)}
+            data-testid="button-toggle-preview"
+          >
+            {form._previewBody ? "Edit" : "Preview"}
+          </button>
+        </div>
+        {form._previewBody ? (
+          <div
+            className="rounded-md border p-4 min-h-[150px] text-sm prose prose-sm max-w-none bg-muted/30"
+            dangerouslySetInnerHTML={{ __html: form.bodyContentPattern }}
+            data-testid="preview-body"
+          />
+        ) : (
+          <Textarea
+            value={form.bodyContentPattern}
+            onChange={(e) => update("bodyContentPattern", e.target.value)}
+            placeholder="<h3>Privacy-First Cap Table in {{city}}</h3><p>We're proud to serve the {{city}} community...</p>"
+            rows={10}
+            className="font-mono text-xs"
+            data-testid="input-body"
+          />
+        )}
+        <p className="text-xs text-muted-foreground">
+          Use HTML tags for rich content: &lt;h3&gt;, &lt;p&gt;, &lt;strong&gt;, &lt;ul&gt;&lt;li&gt;, etc.
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
