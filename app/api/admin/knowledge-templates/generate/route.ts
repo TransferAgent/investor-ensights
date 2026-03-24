@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
         dateline,
         bodyHtml,
         boilerplateHtml,
-        ogImageUrl: template.ogImageUrl || "https://www.tableicity.com/beast-05-zk-network.png",
+        ogImageUrl: template.ogImageUrl || "https://www.tableicity.com/beast-06-zk-network.png",
         robots: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
         canonicalUrl: `https://www.tableicity.com/discovery/knowledge/${articleSlug}`,
         datePublished: autoPublish ? now : undefined,
