@@ -80,7 +80,6 @@ const SECURITY = [
 export default function MarketingPanel() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const SLIDE_DURATIONS = [7200, 7200, 7200, 7200, 7200, 7200]
-  const SLIDE_SCALES: Record<number, number> = { 2: 2.0, 3: 2.0 }
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -128,8 +127,8 @@ export default function MarketingPanel() {
                 src={SLIDES[currentSlide]}
                 alt={SLIDE_ALTS[currentSlide]}
                 className="absolute inset-0 w-full h-full object-cover"
-                initial={{ opacity: 0, scale: SLIDE_SCALES[currentSlide] || 1.0 }}
-                animate={{ opacity: 1, scale: SLIDE_SCALES[currentSlide] ? SLIDE_SCALES[currentSlide] * 1.04 : 1.08 }}
+                initial={{ opacity: 0, scale: 1.0 }}
+                animate={{ opacity: 1, scale: 1.08 }}
                 exit={{ opacity: 0 }}
                 transition={{
                   opacity: { duration: 1, ease: "easeInOut" },
