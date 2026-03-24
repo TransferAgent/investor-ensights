@@ -1492,7 +1492,7 @@ function TemplateForm({ initial, onSubmit, isPending }: {
   const [datelinePattern, setDatelinePattern] = useState(initial?.datelinePattern || "")
   const [bodyHtmlPattern, setBodyHtmlPattern] = useState(initial?.bodyHtmlPattern || "")
   const [boilerplateHtml, setBoilerplateHtml] = useState(initial?.boilerplateHtml || "")
-  const [ogImageUrl, setOgImageUrl] = useState(initial?.ogImageUrl || "https://www.tableicity.com/slideshow-b.png")
+  const [ogImageUrl, setOgImageUrl] = useState(initial?.ogImageUrl || "https://www.tableicity.com/beast-05-zk-network.png")
 
   return (
     <div className="space-y-4 pt-2">

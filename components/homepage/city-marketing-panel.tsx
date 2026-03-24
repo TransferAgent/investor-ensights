@@ -15,12 +15,12 @@ import {
 } from "lucide-react"
 
 const SLIDES = [
-  "/slideshow-f2.png",
-  "/slideshow-a.png",
-  "/slideshow-encrypt-a.png",
-  "/slideshow-encrypt-b.png",
-  "/slideshow-b.png",
-  "/slideshow-c.png",
+  "/beast-01-hash-wall.png",
+  "/beast-02-code-vault.png",
+  "/beast-03-masked-table.png",
+  "/beast-04-reveal-mode.png",
+  "/beast-05-zk-network.png",
+  "/beast-06-lock-shield.png",
 ]
 
 const SLIDE_ALT_TEMPLATES = [
