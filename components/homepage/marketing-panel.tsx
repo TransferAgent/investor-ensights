@@ -153,33 +153,33 @@ export default function MarketingPanel() {
         </div>
 
         <div className="border-t border-white/10 pt-5">
-          <p className="text-xs uppercase tracking-wider text-blue-200/50 mb-3">
+          <h2 className="text-xs uppercase tracking-wider text-blue-200/50 mb-3 font-normal" data-testid="text-features-h2">
             Everything you need — built in
-          </p>
+          </h2>
           <div className="grid grid-cols-3 gap-x-4 gap-y-2">
             {FEATURES.map((f) => (
               <div key={f} className="flex items-center gap-2">
                 <CheckCircle2 className="h-3.5 w-3.5 text-green-400 shrink-0" />
-                <span className="text-xs text-blue-200/70">{f}</span>
+                <h3 className="text-xs text-blue-200/70 font-normal">{f}</h3>
               </div>
             ))}
           </div>
         </div>
 
         <div className="border-t border-white/10 pt-5 mt-5">
-          <p className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3">
+          <h2 className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3 font-normal" data-testid="text-security-h2">
             Enterprise-Grade Security
-          </p>
+          </h2>
           <div className="space-y-2.5">
             {SECURITY.map((item) => (
               <div key={item.label} className="flex items-start gap-2.5">
                 <item.icon className="h-3.5 w-3.5 text-blue-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-blue-200/70">
+                <h3 className="text-xs text-blue-200/70 font-normal">
                   <span className="text-blue-200/90 font-medium">
                     {item.label}
                   </span>{" "}
                   {item.text}
-                </p>
+                </h3>
               </div>
             ))}
           </div>
