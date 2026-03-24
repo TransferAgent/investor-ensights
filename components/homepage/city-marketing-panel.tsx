@@ -62,7 +62,8 @@ export default function CityMarketingPanel({
   mapSrc,
 }: CityMarketingPanelProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
-  const SLIDE_DURATIONS = [7200, 7200, 7200, 7200, 7200, 7200]
+  const SLIDE_DURATIONS = [7200, 14400, 14400, 7200, 7200, 7200]
+  const SLIDE_END_SCALE: Record<number, number> = { 1: 1.62, 2: 1.62 }
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -122,7 +123,7 @@ export default function CityMarketingPanel({
                 alt={SLIDE_ALT_TEMPLATES[currentSlide].replace(/\{\{city\}\}/g, cityName).replace(/\{\{state\}\}/g, stateCode)}
                 className="absolute inset-0 w-full h-full object-cover"
                 initial={{ opacity: 0, scale: 1.0 }}
-                animate={{ opacity: 1, scale: 1.08 }}
+                animate={{ opacity: 1, scale: SLIDE_END_SCALE[currentSlide] || 1.08 }}
                 exit={{ opacity: 0 }}
                 transition={{
                   opacity: { duration: 1, ease: "easeInOut" },
