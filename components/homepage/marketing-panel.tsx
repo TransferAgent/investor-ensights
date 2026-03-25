@@ -119,7 +119,7 @@ export default function MarketingPanel() {
         </header>
 
         <h2 className="text-sm leading-relaxed mb-4 text-blue-200/80 font-normal" data-testid="text-pitch-h2">
-          Equity Management for Startups
+          Cap Table Solution for Equity Management
         </h2>
 
         <h3 className="text-sm leading-relaxed mb-4 text-blue-200/80 font-normal" data-testid="text-pitch-h3">

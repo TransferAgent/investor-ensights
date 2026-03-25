@@ -8,8 +8,8 @@ import CityGrid from "../city-grid"
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://yourcompany.com"
 
 export const metadata: Metadata = {
-  title: "Locations - Tableicity",
-  description: "Find Tableicity services in your city. Browse our locations across 150+ major US cities.",
+  title: "Cap Table Solution for Equity Management",
+  description: "Cap Table solution Ensuring your equity ownership remains pseudonymous through SHA-256 Encryption with on-demand auditor reveal. Built for Founders who refuse to treat their ownership data as public property.",
   alternates: { canonical: `${BASE_URL}/locations` },
 }
 
@@ -25,12 +25,11 @@ export default async function LocationsPage() {
             className="mb-4 text-4xl font-bold tracking-tight text-primary-foreground md:text-5xl lg:text-6xl"
             data-testid="text-hero-title"
           >
-            Your Local Partner in Every City
+            Your Cap Table Solution Near You
           </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-lg text-primary-foreground/80 md:text-xl">
-            Professional sales and marketing services across 150+ major US
-            cities. Find your nearest office and connect with our local team.
-          </p>
+          <h2 className="mx-auto mb-8 max-w-2xl text-lg text-primary-foreground/80 md:text-xl font-normal">
+            Built for Founders who refuse to treat their ownership data as public property.
+          </h2>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Badge variant="secondary" className="text-sm">
               <Building2 className="mr-1.5 h-3.5 w-3.5" />
