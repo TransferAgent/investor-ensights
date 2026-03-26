@@ -18,18 +18,16 @@ import {
 const SLIDES = [
   "/beast-01-hash-wall.png",
   "/beast-02-code-vault.png",
-  "/beast-03-shield-toggle.png",
-  "/beast-04-masked-table.png",
-  "/beast-05-reveal-mode.png",
-  "/beast-06-core-value-desk.png",
-  "/beast-07-zk-network.png",
-  "/beast-08-lock-shield.png",
+  "/beast-03-masked-table.png",
+  "/beast-04-reveal-mode.png",
+  "/beast-05-core-value-desk.png",
+  "/beast-06-zk-network.png",
+  "/beast-07-lock-shield.png",
 ]
 
 const SLIDE_ALTS = [
   "Tableicity Encrypted Hash: Privacy-first cap table platform using SHA-256 encryption for equity ownership protection — a secure alternative to Carta.",
   "Tableicity secure cap table code architecture featuring SHA-256 hashing, GDPR compliance, and Zero-Knowledge Proof stakeholder verification.",
-  "Tableicity Ownership Card with SHA-256 Shareholder Privacy toggle enabled — funding round dashboard showing $10M secured investment with encryption shield active.",
   "Tableicity Cap Table Dashboard showing encrypted stakeholder identities with pseudonymous hash labels like UQSQ-UHA5 and W375-EX65 — ownership data stays private by default.",
   "Tableicity Cap Table Dashboard after auditor reveal showing real stakeholder names like Sarah Mitchell and James Carter — consent-based 30-minute identity access for compliance.",
   "Tableicity Core Value Desk — founder workspace showcasing the privacy-first equity management philosophy behind Tableicity.",
@@ -83,8 +81,8 @@ const SECURITY = [
 
 export default function MarketingPanel() {
   const [currentSlide, setCurrentSlide] = useState(0)
-  const SLIDE_DURATIONS = [7200, 7200, 7200, 14400, 14400, 14400, 7200, 7200]
-  const SLIDE_END_SCALE: Record<number, number> = { 3: 1.62, 4: 1.62, 5: 1.62 }
+  const SLIDE_DURATIONS = [7200, 7200, 14400, 14400, 14400, 7200, 7200]
+  const SLIDE_END_SCALE: Record<number, number> = { 2: 1.62, 3: 1.62, 4: 1.62 }
 
   useEffect(() => {
     const timeout = setTimeout(() => {

@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 <p>In an era where a single leaked screenshot of a cap table can derail a funding round or trigger premature tax events, Tableicity introduces a &ldquo;Privacy-First&rdquo; paradigm for founders near {{landmarks}} who refuse to treat their ownership data as public property.</p>
 
 <figure style="margin: 2rem 0;">
-<img src="/beast-07-zk-network.png" alt="Tableicity Cap Table Dashboard showing SHA-256 hashed stakeholder identities, ZK-Proof verification network, and 30-minute auditor reveal access control for {{city}}, {{state_code}} founders." style="width: 100%; border-radius: 12px; display: block;" />
+<img src="/beast-06-zk-network.png" alt="Tableicity Cap Table Dashboard showing SHA-256 hashed stakeholder identities, ZK-Proof verification network, and 30-minute auditor reveal access control for {{city}}, {{state_code}} founders." style="width: 100%; border-radius: 12px; display: block;" />
 </figure>
 
 <h2>The End of the &ldquo;Data Honey-Pot&rdquo; for {{city}} Startups</h2>
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       datelinePattern: "{{city_upper}}, {{state_code}} —",
       bodyHtmlPattern: bodyHtml,
       boilerplateHtml: boilerplate,
-      ogImageUrl: "https://www.tableicity.com/beast-07-zk-network.png",
+      ogImageUrl: "https://www.tableicity.com/beast-06-zk-network.png",
       isActive: true,
     });
   }
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
       dateline: activeTemplate.datelinePattern ? replacePlaceholders(activeTemplate.datelinePattern, city) : undefined,
       bodyHtml: replacePlaceholders(activeTemplate.bodyHtmlPattern, city),
       boilerplateHtml: activeTemplate.boilerplateHtml || undefined,
-      ogImageUrl: activeTemplate.ogImageUrl || "https://www.tableicity.com/beast-07-zk-network.png",
+      ogImageUrl: activeTemplate.ogImageUrl || "https://www.tableicity.com/beast-06-zk-network.png",
       robots: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
       canonicalUrl: `https://www.tableicity.com/discovery/knowledge/${articleSlug}`,
       datePublished: autoPublish ? now : undefined,
