@@ -21,8 +21,9 @@ const SLIDES = [
   "/beast-03-shield-toggle.png",
   "/beast-04-masked-table.png",
   "/beast-05-reveal-mode.png",
-  "/beast-06-zk-network.png",
-  "/beast-07-lock-shield.png",
+  "/beast-06-core-value-desk.png",
+  "/beast-07-zk-network.png",
+  "/beast-08-lock-shield.png",
 ]
 
 const SLIDE_ALTS = [
@@ -31,6 +32,7 @@ const SLIDE_ALTS = [
   "Tableicity Ownership Card with SHA-256 Shareholder Privacy toggle enabled — funding round dashboard showing $10M secured investment with encryption shield active.",
   "Tableicity Cap Table Dashboard showing encrypted stakeholder identities with pseudonymous hash labels like UQSQ-UHA5 and W375-EX65 — ownership data stays private by default.",
   "Tableicity Cap Table Dashboard after auditor reveal showing real stakeholder names like Sarah Mitchell and James Carter — consent-based 30-minute identity access for compliance.",
+  "Tableicity Core Value Desk — founder workspace showcasing the privacy-first equity management philosophy behind Tableicity.",
   "Tableicity Cap Table Dashboard showing SHA-256 hashed stakeholder identities, ZK-Proof verification network, and 30-minute auditor reveal access control.",
   "Privacy-first capitalization table management software featuring encrypted stakeholder names and time-boxed auditor access to prevent data leaks.",
 ]
