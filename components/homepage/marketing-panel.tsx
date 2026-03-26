@@ -83,8 +83,8 @@ const SECURITY = [
 
 export default function MarketingPanel() {
   const [currentSlide, setCurrentSlide] = useState(0)
-  const SLIDE_DURATIONS = [7200, 7200, 7200, 14400, 14400, 7200, 7200]
-  const SLIDE_END_SCALE: Record<number, number> = { 3: 1.62, 4: 1.62 }
+  const SLIDE_DURATIONS = [7200, 7200, 7200, 14400, 14400, 14400, 7200, 7200]
+  const SLIDE_END_SCALE: Record<number, number> = { 3: 1.62, 4: 1.62, 5: 1.62 }
 
   useEffect(() => {
     const timeout = setTimeout(() => {
