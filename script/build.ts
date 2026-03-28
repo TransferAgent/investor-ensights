@@ -7,6 +7,9 @@ async function buildAll() {
   console.log("syncing database schema...");
   execSync("npx drizzle-kit push --force", { stdio: "inherit" });
 
+  console.log("running data migrations...");
+  execSync("npx tsx script/migrate-data.ts", { stdio: "inherit" });
+
   console.log("building Next.js app...");
   execSync("npx next build", { stdio: "inherit" });
 
