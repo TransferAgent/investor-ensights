@@ -12,3 +12,9 @@ id = "5B4VZgma_Jy3AQbNpKBjD"
 uri = "file://John/Google_Images_Tag.md"
 type = "text"
 title = "Google Images Alt-Text Tag Implementation"
+
+[[outputs]]
+id = "P9I_aP7xgAZVH53xH7AzL"
+uri = "file://John/Migration.md"
+type = "text"
+title = "Migration Guide — Dev vs Production"
