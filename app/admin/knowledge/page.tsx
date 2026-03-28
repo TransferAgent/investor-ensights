@@ -1152,128 +1152,7 @@ export default function KnowledgeAdmin() {
             <Card className="p-8 text-center text-muted-foreground" data-testid="text-no-articles">
               No articles found. Create your first press release.
             </Card>
-          ) : (() => {
-            const renderArticleRow = (a: KnowledgeArticle) => (
-              <TableRow key={a.id} data-testid={`row-article-${a.id}`}>
-                <TableCell>
-                  <Checkbox
-                    checked={selectedArticles.includes(a.id)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedArticles(prev => [...prev, a.id])
-                      } else {
-                        setSelectedArticles(prev => prev.filter(id => id !== a.id))
-                      }
-                    }}
-                    data-testid={`checkbox-article-${a.id}`}
-                    aria-label={`Select ${a.headline}`}
-                  />
-                </TableCell>
-                <TableCell className="font-medium max-w-[200px] truncate">{a.headline}</TableCell>
-                <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">{a.slug}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={statusColors[a.status] || ""} data-testid={`badge-status-${a.id}`}>
-                    {a.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {getFreshnessBadge(a)}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {new Date(a.updatedAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-0.5">
-                    <Button variant="ghost" size="icon" asChild data-testid={`button-view-${a.id}`} title={a.status === "published" ? "View live page" : "Preview article"}>
-                      <a href={`/discovery/knowledge/${a.slug}`} target="_blank" rel="noopener">
-                        <Eye className={`h-4 w-4 ${a.status !== "published" ? "text-muted-foreground" : ""}`} />
-                      </a>
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(a)} data-testid={`button-edit-${a.id}`} title="Edit">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => regenMutation.mutate(a)}
-                      disabled={regenMutation.isPending}
-                      data-testid={`button-regen-${a.id}`}
-                      title="Re-Generate (creates new pending draft)"
-                    >
-                      <RefreshCw className={`h-4 w-4 text-blue-500 ${regenMutation.isPending ? "animate-spin" : ""}`} />
-                    </Button>
-                    {a.status === "pending" && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => publishMutation.mutate(a.id)}
-                        disabled={publishMutation.isPending}
-                        data-testid={`button-publish-${a.id}`}
-                        title="Publish"
-                      >
-                        <Send className="h-4 w-4 text-green-500" />
-                      </Button>
-                    )}
-                    {a.status === "published" && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => unpublishMutation.mutate(a.id)}
-                          disabled={unpublishMutation.isPending}
-                          data-testid={`button-unpublish-${a.id}`}
-                          title="Unpublish (back to pending)"
-                        >
-                          <EyeOff className="h-4 w-4 text-amber-500" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => archiveMutation.mutate(a.id)}
-                          disabled={archiveMutation.isPending}
-                          data-testid={`button-archive-${a.id}`}
-                          title="Archive"
-                        >
-                          <Archive className="h-4 w-4 text-orange-400" />
-                        </Button>
-                      </>
-                    )}
-                    {a.status === "archived" && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => unarchiveMutation.mutate(a.id)}
-                        disabled={unarchiveMutation.isPending}
-                        data-testid={`button-unarchive-${a.id}`}
-                        title="Restore to draft"
-                      >
-                        <ArchiveRestore className="h-4 w-4 text-blue-400" />
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setVersionsArticle(a.id)}
-                      data-testid={`button-versions-${a.id}`}
-                      title="Version history"
-                    >
-                      <History className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => { if (confirm("Delete this article?")) deleteMutation.mutate(a.id) }}
-                      data-testid={`button-delete-${a.id}`}
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )
-
-            return (
+          ) : (
               <div className="space-y-3" data-testid="campaign-grouped-view">
                 {sortedCampaignGroups.map(([key, group]) => {
                   const isExpanded = expandedCampaigns.has(key)
@@ -1342,7 +1221,125 @@ export default function KnowledgeAdmin() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {group.articles.map(renderArticleRow)}
+                            {group.articles.map((a) => (
+                              <TableRow key={a.id} data-testid={`row-article-${a.id}`}>
+                                <TableCell>
+                                  <Checkbox
+                                    checked={selectedArticles.includes(a.id)}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setSelectedArticles(prev => [...prev, a.id])
+                                      } else {
+                                        setSelectedArticles(prev => prev.filter(id => id !== a.id))
+                                      }
+                                    }}
+                                    data-testid={`checkbox-article-${a.id}`}
+                                    aria-label={`Select ${a.headline}`}
+                                  />
+                                </TableCell>
+                                <TableCell className="font-medium max-w-[200px] truncate">{a.headline}</TableCell>
+                                <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">{a.slug}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className={statusColors[a.status] || ""} data-testid={`badge-status-${a.id}`}>
+                                    {a.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {getFreshnessBadge(a)}
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {new Date(a.updatedAt).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex items-center justify-end gap-0.5">
+                                    <Button variant="ghost" size="icon" asChild data-testid={`button-view-${a.id}`} title={a.status === "published" ? "View live page" : "Preview article"}>
+                                      <a href={`/discovery/knowledge/${a.slug}`} target="_blank" rel="noopener">
+                                        <Eye className={`h-4 w-4 ${a.status !== "published" ? "text-muted-foreground" : ""}`} />
+                                      </a>
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={() => openEdit(a)} data-testid={`button-edit-${a.id}`} title="Edit">
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => regenMutation.mutate(a)}
+                                      disabled={regenMutation.isPending}
+                                      data-testid={`button-regen-${a.id}`}
+                                      title="Re-Generate (creates new pending draft)"
+                                    >
+                                      <RefreshCw className={`h-4 w-4 text-blue-500 ${regenMutation.isPending ? "animate-spin" : ""}`} />
+                                    </Button>
+                                    {a.status === "pending" && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => publishMutation.mutate(a.id)}
+                                        disabled={publishMutation.isPending}
+                                        data-testid={`button-publish-${a.id}`}
+                                        title="Publish"
+                                      >
+                                        <Send className="h-4 w-4 text-green-500" />
+                                      </Button>
+                                    )}
+                                    {a.status === "published" && (
+                                      <>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => unpublishMutation.mutate(a.id)}
+                                          disabled={unpublishMutation.isPending}
+                                          data-testid={`button-unpublish-${a.id}`}
+                                          title="Unpublish (back to pending)"
+                                        >
+                                          <EyeOff className="h-4 w-4 text-amber-500" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => archiveMutation.mutate(a.id)}
+                                          disabled={archiveMutation.isPending}
+                                          data-testid={`button-archive-${a.id}`}
+                                          title="Archive"
+                                        >
+                                          <Archive className="h-4 w-4 text-orange-400" />
+                                        </Button>
+                                      </>
+                                    )}
+                                    {a.status === "archived" && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => unarchiveMutation.mutate(a.id)}
+                                        disabled={unarchiveMutation.isPending}
+                                        data-testid={`button-unarchive-${a.id}`}
+                                        title="Restore to draft"
+                                      >
+                                        <ArchiveRestore className="h-4 w-4 text-blue-400" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setVersionsArticle(a.id)}
+                                      data-testid={`button-versions-${a.id}`}
+                                      title="Version history"
+                                    >
+                                      <History className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => { if (confirm("Delete this article?")) deleteMutation.mutate(a.id) }}
+                                      data-testid={`button-delete-${a.id}`}
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
                           </TableBody>
                         </Table>
                       )}
@@ -1350,8 +1347,8 @@ export default function KnowledgeAdmin() {
                   )
                 })}
               </div>
-            )
-          })()}
+          )
+          }
         </>
       )}
 
