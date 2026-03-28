@@ -360,7 +360,6 @@ export default function KnowledgeAdmin() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/coverage"] })
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] })
       setGenerateResult(data)
       toast({ title: `Generated ${data.generated} articles` })
     },
@@ -408,24 +407,6 @@ export default function KnowledgeAdmin() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
       toast({ title: "Articles archived" })
-      setSelectedArticles([])
-    },
-  })
-
-  const bulkDeleteMutation = useMutation({
-    mutationFn: async (ids: string[]) => {
-      const results = []
-      for (const id of ids) {
-        const res = await apiRequest("DELETE", `/api/admin/knowledge/${id}`)
-        results.push(res)
-      }
-      return results
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/coverage"] })
-      toast({ title: "Articles deleted" })
       setSelectedArticles([])
     },
   })
@@ -658,7 +639,7 @@ export default function KnowledgeAdmin() {
     for (const a of articles) {
       const key = a.campaignId || "uncategorized"
       if (!campaignMap.has(key)) {
-        const c = campaigns?.find(c => c.id === key) || null
+        const c = campaigns?.find((camp) => camp.id === key) || null
         campaignMap.set(key, { campaign: c, articles: [] })
       }
       campaignMap.get(key)!.articles.push(a)
@@ -671,7 +652,7 @@ export default function KnowledgeAdmin() {
   }, [articles, campaigns])
 
   const toggleCampaign = useCallback((key: string) => {
-    setExpandedCampaigns(prev => {
+    setExpandedCampaigns((prev) => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
       else next.add(key)
@@ -1116,24 +1097,6 @@ export default function KnowledgeAdmin() {
                 )}
               </Button>
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (selectedArticles.length === 0) return
-                  if (confirm(`Permanently delete ${selectedArticles.length} article(s)? This cannot be undone.`)) {
-                    bulkDeleteMutation.mutate(selectedArticles)
-                  }
-                }}
-                disabled={bulkDeleteMutation.isPending}
-                data-testid="button-bulk-delete"
-              >
-                {bulkDeleteMutation.isPending ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</>
-                ) : (
-                  <><Trash2 className="mr-2 h-4 w-4 text-destructive" /> Delete Selected</>
-                )}
-              </Button>
-              <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedArticles([])}
@@ -1153,202 +1116,205 @@ export default function KnowledgeAdmin() {
               No articles found. Create your first press release.
             </Card>
           ) : (
-              <div className="space-y-3" data-testid="campaign-grouped-view">
-                {sortedCampaignGroups.map(([key, group]) => {
-                  const isExpanded = expandedCampaigns.has(key)
-                  const publishedCount = group.articles.filter(a => a.status === "published").length
-                  const pendingCount = group.articles.filter(a => a.status === "pending").length
-                  return (
-                    <Card key={key} data-testid={`campaign-group-${key}`}>
-                      <div
-                        className="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/30 transition-colors"
-                        onClick={() => toggleCampaign(key)}
-                        data-testid={`campaign-toggle-${key}`}
-                      >
-                        {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                        {isExpanded ? <FolderOpen className="h-4 w-4 text-primary" /> : <Folder className="h-4 w-4 text-muted-foreground" />}
-                        <span className="font-semibold text-sm">
-                          {key === "uncategorized" ? "Uncategorized Articles" : group.campaign?.name || key}
-                        </span>
-                        <div className="flex items-center gap-2 ml-auto">
-                          <Badge variant="outline" className="text-xs">{group.articles.length} articles</Badge>
-                          {publishedCount > 0 && <Badge variant="outline" className="text-xs bg-green-500/10 text-green-500 border-green-500/20">{publishedCount} published</Badge>}
-                          {pendingCount > 0 && <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-500 border-yellow-500/20">{pendingCount} pending</Badge>}
-                          {key !== "uncategorized" && group.campaign && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                if (confirm(`Delete campaign "${group.campaign!.name}"? Articles will be moved to Uncategorized.`)) {
-                                  deleteCampaignMutation.mutate(group.campaign!.id)
-                                }
-                              }}
-                              data-testid={`button-delete-campaign-${key}`}
-                              title="Delete campaign (articles stay)"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </Button>
-                          )}
-                        </div>
+            <div className="space-y-3" data-testid="campaign-grouped-view">
+              {sortedCampaignGroups.map(([key, group]) => {
+                const isExpanded = expandedCampaigns.has(key)
+                const publishedCount = group.articles.filter((a) => a.status === "published").length
+                const pendingCount = group.articles.filter((a) => a.status === "pending").length
+                return (
+                  <Card key={key} data-testid={`campaign-group-${key}`}>
+                    <div
+                      className="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+                      onClick={() => toggleCampaign(key)}
+                      data-testid={`campaign-toggle-${key}`}
+                    >
+                      {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                      {isExpanded ? <FolderOpen className="h-4 w-4 text-primary" /> : <Folder className="h-4 w-4 text-muted-foreground" />}
+                      <span className="font-semibold text-sm">
+                        {key === "uncategorized" ? "Uncategorized Articles" : (group.campaign ? group.campaign.name : key)}
+                      </span>
+                      <div className="flex items-center gap-2 ml-auto">
+                        <Badge variant="outline" className="text-xs">{group.articles.length} articles</Badge>
+                        {publishedCount > 0 && <Badge variant="outline" className="text-xs bg-green-500/10 text-green-500 border-green-500/20">{publishedCount} published</Badge>}
+                        {pendingCount > 0 && <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-500 border-yellow-500/20">{pendingCount} pending</Badge>}
+                        {key !== "uncategorized" && group.campaign && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (confirm("Delete campaign \"" + group.campaign!.name + "\"? Articles will be moved to Uncategorized.")) {
+                                deleteCampaignMutation.mutate(group.campaign!.id)
+                              }
+                            }}
+                            data-testid={`button-delete-campaign-${key}`}
+                            title="Delete campaign (articles stay)"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        )}
                       </div>
-                      {isExpanded && (
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-[40px]">
+                    </div>
+                    {isExpanded && (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[40px]">
+                              <Checkbox
+                                checked={group.articles.length > 0 && group.articles.every((a) => selectedArticles.includes(a.id))}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    const newIds = group.articles.map((a) => a.id)
+                                    setSelectedArticles((prev) => {
+                                      const combined = new Set([...prev, ...newIds])
+                                      return Array.from(combined)
+                                    })
+                                  } else {
+                                    const groupIds = group.articles.map((a) => a.id)
+                                    setSelectedArticles((prev) => prev.filter((id) => !groupIds.includes(id)))
+                                  }
+                                }}
+                                data-testid={`checkbox-select-all-${key}`}
+                                aria-label={"Select all in " + key}
+                              />
+                            </TableHead>
+                            <TableHead>Headline</TableHead>
+                            <TableHead>Slug</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Freshness</TableHead>
+                            <TableHead>Modified</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {group.articles.map((a) => (
+                            <TableRow key={a.id} data-testid={`row-article-${a.id}`}>
+                              <TableCell>
                                 <Checkbox
-                                  checked={group.articles.length > 0 && group.articles.every(a => selectedArticles.includes(a.id))}
+                                  checked={selectedArticles.includes(a.id)}
                                   onCheckedChange={(checked) => {
                                     if (checked) {
-                                      setSelectedArticles(prev => [...new Set([...prev, ...group.articles.map(a => a.id)])])
+                                      setSelectedArticles((prev) => [...prev, a.id])
                                     } else {
-                                      const groupIds = new Set(group.articles.map(a => a.id))
-                                      setSelectedArticles(prev => prev.filter(id => !groupIds.has(id)))
+                                      setSelectedArticles((prev) => prev.filter((id) => id !== a.id))
                                     }
                                   }}
-                                  data-testid={`checkbox-select-all-${key}`}
-                                  aria-label={`Select all in ${key}`}
+                                  data-testid={`checkbox-article-${a.id}`}
+                                  aria-label={"Select " + a.headline}
                                 />
-                              </TableHead>
-                              <TableHead>Headline</TableHead>
-                              <TableHead>Slug</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Freshness</TableHead>
-                              <TableHead>Modified</TableHead>
-                              <TableHead className="text-right">Actions</TableHead>
+                              </TableCell>
+                              <TableCell className="font-medium max-w-[200px] truncate">{a.headline}</TableCell>
+                              <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">{a.slug}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={statusColors[a.status] || ""} data-testid={`badge-status-${a.id}`}>
+                                  {a.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {getFreshnessBadge(a)}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {new Date(a.updatedAt).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-0.5">
+                                  <Button variant="ghost" size="icon" asChild data-testid={`button-view-${a.id}`} title={a.status === "published" ? "View live page" : "Preview article"}>
+                                    <a href={"/discovery/knowledge/" + a.slug} target="_blank" rel="noopener">
+                                      <Eye className={"h-4 w-4" + (a.status !== "published" ? " text-muted-foreground" : "")} />
+                                    </a>
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => openEdit(a)} data-testid={`button-edit-${a.id}`} title="Edit">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => regenMutation.mutate(a)}
+                                    disabled={regenMutation.isPending}
+                                    data-testid={`button-regen-${a.id}`}
+                                    title="Re-Generate (creates new pending draft)"
+                                  >
+                                    <RefreshCw className={"h-4 w-4 text-blue-500" + (regenMutation.isPending ? " animate-spin" : "")} />
+                                  </Button>
+                                  {a.status === "pending" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => publishMutation.mutate(a.id)}
+                                      disabled={publishMutation.isPending}
+                                      data-testid={`button-publish-${a.id}`}
+                                      title="Publish"
+                                    >
+                                      <Send className="h-4 w-4 text-green-500" />
+                                    </Button>
+                                  )}
+                                  {a.status === "published" && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => unpublishMutation.mutate(a.id)}
+                                        disabled={unpublishMutation.isPending}
+                                        data-testid={`button-unpublish-${a.id}`}
+                                        title="Unpublish (back to pending)"
+                                      >
+                                        <EyeOff className="h-4 w-4 text-amber-500" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => archiveMutation.mutate(a.id)}
+                                        disabled={archiveMutation.isPending}
+                                        data-testid={`button-archive-${a.id}`}
+                                        title="Archive"
+                                      >
+                                        <Archive className="h-4 w-4 text-orange-400" />
+                                      </Button>
+                                    </>
+                                  )}
+                                  {a.status === "archived" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => unarchiveMutation.mutate(a.id)}
+                                      disabled={unarchiveMutation.isPending}
+                                      data-testid={`button-unarchive-${a.id}`}
+                                      title="Restore to draft"
+                                    >
+                                      <ArchiveRestore className="h-4 w-4 text-blue-400" />
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setVersionsArticle(a.id)}
+                                    data-testid={`button-versions-${a.id}`}
+                                    title="Version history"
+                                  >
+                                    <History className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => { if (confirm("Delete this article?")) deleteMutation.mutate(a.id) }}
+                                    data-testid={`button-delete-${a.id}`}
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
                             </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {group.articles.map((a) => (
-                              <TableRow key={a.id} data-testid={`row-article-${a.id}`}>
-                                <TableCell>
-                                  <Checkbox
-                                    checked={selectedArticles.includes(a.id)}
-                                    onCheckedChange={(checked) => {
-                                      if (checked) {
-                                        setSelectedArticles(prev => [...prev, a.id])
-                                      } else {
-                                        setSelectedArticles(prev => prev.filter(id => id !== a.id))
-                                      }
-                                    }}
-                                    data-testid={`checkbox-article-${a.id}`}
-                                    aria-label={`Select ${a.headline}`}
-                                  />
-                                </TableCell>
-                                <TableCell className="font-medium max-w-[200px] truncate">{a.headline}</TableCell>
-                                <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">{a.slug}</TableCell>
-                                <TableCell>
-                                  <Badge variant="outline" className={statusColors[a.status] || ""} data-testid={`badge-status-${a.id}`}>
-                                    {a.status}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  {getFreshnessBadge(a)}
-                                </TableCell>
-                                <TableCell className="text-sm text-muted-foreground">
-                                  {new Date(a.updatedAt).toLocaleDateString()}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex items-center justify-end gap-0.5">
-                                    <Button variant="ghost" size="icon" asChild data-testid={`button-view-${a.id}`} title={a.status === "published" ? "View live page" : "Preview article"}>
-                                      <a href={`/discovery/knowledge/${a.slug}`} target="_blank" rel="noopener">
-                                        <Eye className={`h-4 w-4 ${a.status !== "published" ? "text-muted-foreground" : ""}`} />
-                                      </a>
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => openEdit(a)} data-testid={`button-edit-${a.id}`} title="Edit">
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => regenMutation.mutate(a)}
-                                      disabled={regenMutation.isPending}
-                                      data-testid={`button-regen-${a.id}`}
-                                      title="Re-Generate (creates new pending draft)"
-                                    >
-                                      <RefreshCw className={`h-4 w-4 text-blue-500 ${regenMutation.isPending ? "animate-spin" : ""}`} />
-                                    </Button>
-                                    {a.status === "pending" && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => publishMutation.mutate(a.id)}
-                                        disabled={publishMutation.isPending}
-                                        data-testid={`button-publish-${a.id}`}
-                                        title="Publish"
-                                      >
-                                        <Send className="h-4 w-4 text-green-500" />
-                                      </Button>
-                                    )}
-                                    {a.status === "published" && (
-                                      <>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => unpublishMutation.mutate(a.id)}
-                                          disabled={unpublishMutation.isPending}
-                                          data-testid={`button-unpublish-${a.id}`}
-                                          title="Unpublish (back to pending)"
-                                        >
-                                          <EyeOff className="h-4 w-4 text-amber-500" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => archiveMutation.mutate(a.id)}
-                                          disabled={archiveMutation.isPending}
-                                          data-testid={`button-archive-${a.id}`}
-                                          title="Archive"
-                                        >
-                                          <Archive className="h-4 w-4 text-orange-400" />
-                                        </Button>
-                                      </>
-                                    )}
-                                    {a.status === "archived" && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => unarchiveMutation.mutate(a.id)}
-                                        disabled={unarchiveMutation.isPending}
-                                        data-testid={`button-unarchive-${a.id}`}
-                                        title="Restore to draft"
-                                      >
-                                        <ArchiveRestore className="h-4 w-4 text-blue-400" />
-                                      </Button>
-                                    )}
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => setVersionsArticle(a.id)}
-                                      data-testid={`button-versions-${a.id}`}
-                                      title="Version history"
-                                    >
-                                      <History className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => { if (confirm("Delete this article?")) deleteMutation.mutate(a.id) }}
-                                      data-testid={`button-delete-${a.id}`}
-                                      title="Delete"
-                                    >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      )}
-                    </Card>
-                  )
-                })}
-              </div>
-          )
-          }
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </Card>
+                )
+              })}
+            </div>
+          )}
         </>
       )}
 
@@ -1458,16 +1424,6 @@ export default function KnowledgeAdmin() {
               <Card className="p-4">
                 <h3 className="font-semibold mb-3" data-testid="text-studio-step3">Step 3: Options & Apply</h3>
                 <div className="space-y-3">
-                  <div>
-                    <Label className="text-sm mb-1.5 block">Campaign Name (optional)</Label>
-                    <Input
-                      value={studioCampaignName}
-                      onChange={(e) => setStudioCampaignName(e.target.value)}
-                      placeholder="Auto-generated from template name if empty..."
-                      data-testid="input-studio-campaign-name"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Articles will be grouped under this campaign</p>
-                  </div>
                   <div className="flex items-center gap-4">
                     <label className="flex items-center gap-2 text-sm cursor-pointer">
                       <Checkbox
@@ -1485,6 +1441,17 @@ export default function KnowledgeAdmin() {
                       />
                       Update existing articles
                     </label>
+                  </div>
+                  <div>
+                    <Label htmlFor="studio-campaign-name">Campaign Name (optional)</Label>
+                    <Input
+                      id="studio-campaign-name"
+                      value={studioCampaignName}
+                      onChange={(e) => setStudioCampaignName(e.target.value)}
+                      placeholder="e.g. PR Hash-256 Wave 2"
+                      data-testid="input-studio-campaign-name"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Articles will be grouped under this campaign</p>
                   </div>
                   {!studioUpdateExisting && studioSelectedCities.length > 0 && (
                     <p className="text-xs text-muted-foreground">
