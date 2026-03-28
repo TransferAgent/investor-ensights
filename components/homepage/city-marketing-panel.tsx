@@ -114,8 +114,9 @@ export default function CityMarketingPanel({
         </header>
 
         <h1
-          className="text-2xl xl:text-[1.75rem] font-bold leading-tight text-white mb-1"
+          className="text-2xl xl:text-[1.75rem] font-bold leading-tight text-white mb-1 line-clamp-2"
           data-testid="text-city-h1"
+          title={h1}
         >
           {h1}
         </h1>

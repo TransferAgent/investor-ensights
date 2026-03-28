@@ -4,7 +4,7 @@ import { Building2, Mail } from "lucide-react"
 
 export default function LoginPanel() {
   return (
-    <div className="flex-1 relative" style={{ backgroundColor: "#0a1628" }}>
+    <div className="flex-1 sticky top-0 h-screen relative" style={{ backgroundColor: "#0a1628" }}>
       <div
         className="absolute inset-0 pointer-events-none z-[1]"
         style={{
