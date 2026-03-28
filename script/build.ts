@@ -4,6 +4,9 @@ import { rm, writeFile, cp, mkdir } from "fs/promises";
 async function buildAll() {
   await rm("dist", { recursive: true, force: true });
 
+  console.log("syncing database schema...");
+  execSync("npx drizzle-kit push --force", { stdio: "inherit" });
+
   console.log("building Next.js app...");
   execSync("npx next build", { stdio: "inherit" });
 
