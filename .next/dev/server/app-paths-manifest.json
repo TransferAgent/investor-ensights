@@ -1,3 +1,5 @@
 {
+  "/api/admin/campaigns/route": "app/api/admin/campaigns/route.js",
+  "/api/admin/knowledge/route": "app/api/admin/knowledge/route.js",
   "/page": "app/page.js"
 }
