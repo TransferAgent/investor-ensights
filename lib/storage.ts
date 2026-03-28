@@ -9,6 +9,7 @@ import {
   knowledgeArticles,
   knowledgeArticleVersions,
   knowledgeTemplates,
+  knowledgeCampaigns,
   dataStoreFiles,
   type CityLocation,
   type InsertCityLocation,
@@ -30,6 +31,8 @@ import {
   type InsertKnowledgeArticleVersion,
   type KnowledgeTemplate,
   type InsertKnowledgeTemplate,
+  type KnowledgeCampaign,
+  type InsertKnowledgeCampaign,
   type DataStoreFile,
   type InsertDataStoreFile,
 } from "@shared/schema";
@@ -104,6 +107,13 @@ export interface IStorage {
   createKnowledgeTemplate(data: InsertKnowledgeTemplate): Promise<KnowledgeTemplate>;
   updateKnowledgeTemplate(id: string, data: Partial<InsertKnowledgeTemplate>): Promise<KnowledgeTemplate | undefined>;
   deleteKnowledgeTemplate(id: string): Promise<void>;
+
+  getPublishedArticlesByCitySlug(citySlug: string): Promise<KnowledgeArticle[]>;
+  getCampaigns(): Promise<KnowledgeCampaign[]>;
+  getCampaignById(id: string): Promise<KnowledgeCampaign | undefined>;
+  createCampaign(data: InsertKnowledgeCampaign): Promise<KnowledgeCampaign>;
+  updateCampaign(id: string, data: Partial<InsertKnowledgeCampaign>): Promise<KnowledgeCampaign | undefined>;
+  deleteCampaign(id: string): Promise<void>;
 
   getDataStoreFiles(status?: string, category?: string): Promise<DataStoreFile[]>;
   getDataStoreFileById(id: string): Promise<DataStoreFile | undefined>;
@@ -656,6 +666,37 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDataStoreFile(id: string): Promise<void> {
     await db.delete(dataStoreFiles).where(eq(dataStoreFiles.id, id));
+  }
+
+  async getPublishedArticlesByCitySlug(citySlug: string): Promise<KnowledgeArticle[]> {
+    return db.select().from(knowledgeArticles)
+      .where(and(eq(knowledgeArticles.citySlug, citySlug), eq(knowledgeArticles.status, "published")))
+      .orderBy(desc(knowledgeArticles.datePublished));
+  }
+
+  async getCampaigns(): Promise<KnowledgeCampaign[]> {
+    return db.select().from(knowledgeCampaigns).orderBy(desc(knowledgeCampaigns.createdAt));
+  }
+
+  async getCampaignById(id: string): Promise<KnowledgeCampaign | undefined> {
+    const [c] = await db.select().from(knowledgeCampaigns).where(eq(knowledgeCampaigns.id, id)).limit(1);
+    return c;
+  }
+
+  async createCampaign(data: InsertKnowledgeCampaign): Promise<KnowledgeCampaign> {
+    const [c] = await db.insert(knowledgeCampaigns).values(data).returning();
+    return c;
+  }
+
+  async updateCampaign(id: string, data: Partial<InsertKnowledgeCampaign>): Promise<KnowledgeCampaign | undefined> {
+    const now = new Date();
+    const [c] = await db.update(knowledgeCampaigns).set({ ...data, updatedAt: now }).where(eq(knowledgeCampaigns.id, id)).returning();
+    return c;
+  }
+
+  async deleteCampaign(id: string): Promise<void> {
+    await db.update(knowledgeArticles).set({ campaignId: null }).where(eq(knowledgeArticles.campaignId, id));
+    await db.delete(knowledgeCampaigns).where(eq(knowledgeCampaigns.id, id));
   }
 }
 

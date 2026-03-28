@@ -37,6 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     data.slug = sanitizeString(body.slug).toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
   }
   if (body.canonicalUrl !== undefined) data.canonicalUrl = body.canonicalUrl || null;
+  if (body.campaignId !== undefined) data.campaignId = body.campaignId || null;
 
   const updated = await storage.updateKnowledgeArticle(id, data);
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });

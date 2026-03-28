@@ -62,7 +62,9 @@ All under `app/api/`:
 - `admin/knowledge/[id]/versions/route.ts` — GET version history
 - `admin/knowledge-templates/route.ts` — GET/POST knowledge templates
 - `admin/knowledge-templates/[id]/route.ts` — GET/PATCH/DELETE knowledge template
-- `admin/knowledge-templates/generate/route.ts` — POST generate articles from template (supports optional `citySlugs` array for targeted generation, `updateExisting` for upsert, looks up by `citySlug` to avoid slug collisions)
+- `admin/campaigns/route.ts` — GET/POST campaigns (list all, create new)
+- `admin/campaigns/[id]/route.ts` — GET/PATCH/DELETE campaign (articles unlinked on delete, not deleted)
+- `admin/knowledge-templates/generate/route.ts` — POST generate articles from template (supports optional `citySlugs` array for targeted generation, `updateExisting` for upsert, `campaignName` for grouping; auto-creates campaign per generation run)
 - `admin/knowledge/metrics/route.ts` — GET publish cadence metrics (today, thisWeek, avgPerDay, pendingCount)
 - `admin/knowledge/analytics/route.ts` — GET analytics (publishedThisMonth, discoverEligible, avgFreshnessScore, pendingCount)
 - `admin/knowledge/coverage/route.ts` — GET city coverage tracker (matches articles to cities via city_slug field)
@@ -97,11 +99,12 @@ All under `app/api/`:
 5. **admin_audit_log** — Tracks all admin actions (login, create, update, delete) with username, action, entity type/id, and timestamp
 6. **custom_pages** — Page Builder pages with slug, title, SEO metadata, publish status
 7. **page_slides** — Individual content blocks (slides) for custom pages with JSON content, type, order, and styling options
-8. **knowledge_articles** — Press releases/articles with tri-state status (pending/published/archived), SEO fields, body HTML, author/publisher, JSON-LD support
+8. **knowledge_articles** — Press releases/articles with tri-state status (pending/published/archived), SEO fields, body HTML, author/publisher, JSON-LD support, optional campaignId FK
 9. **knowledge_article_versions** — Append-only immutable archive trail capturing full article snapshots on publish/archive actions
 10. **knowledge_generation_log** — Audit trail for every generation call (city_slug, directive, status, error_message, timestamp)
+11. **knowledge_campaigns** — Campaign grouping for press releases (name, slug, templateId FK, status, description, articleCount)
 12. **data_store_files** — File uploads (Word, PDF, TXT, HTML, Markdown) with base64 storage, tri-state status (pending/approved/rejected), notes, audit trail
-11. **knowledge_templates** — Reusable press release templates with placeholder patterns ({{city}}, {{state_name}}, etc.) for bulk article generation
+13. **knowledge_templates** — Reusable press release templates with placeholder patterns ({{city}}, {{state_name}}, etc.) for bulk article generation
 
 ### Security Features
 - **Password hashing**: scrypt with random salt (Node.js built-in)

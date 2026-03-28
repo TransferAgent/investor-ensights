@@ -3,8 +3,8 @@ import { verifySession } from "@/lib/auth";
 import { storage } from "@/lib/storage";
 import { logAuditEvent } from "@/lib/audit";
 import { db } from "@/lib/db";
-import { knowledgeArticles, knowledgeGenerationLog } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { knowledgeArticles, knowledgeGenerationLog, knowledgeCampaigns } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 
 function replacePlaceholders(pattern: string, city: Record<string, any>): string {
   return pattern
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const session = await verifySession(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { templateId, autoPublish, citySlugs, updateExisting } = await req.json();
+  const { templateId, autoPublish, citySlugs, updateExisting, campaignName } = await req.json();
   if (!templateId) return NextResponse.json({ error: "templateId required" }, { status: 400 });
 
   const template = await storage.getKnowledgeTemplateById(templateId);
@@ -34,6 +34,21 @@ export async function POST(req: NextRequest) {
     const slugSet = new Set(citySlugs);
     realCities = realCities.filter(c => slugSet.has(c.slug));
   }
+
+  const cName = campaignName || `${template.name} — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+  let cSlug = cName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "").replace(/^-+/, "");
+  const existingCampaigns = await storage.getCampaigns();
+  if (existingCampaigns.some(c => c.slug === cSlug)) {
+    cSlug = `${cSlug}-${Date.now().toString(36)}`;
+  }
+  const campaign = await storage.createCampaign({
+    name: cName,
+    slug: cSlug,
+    templateId,
+    status: "active",
+    articleCount: 0,
+    description: `Generated from template "${template.name}" for ${realCities.length} cities`,
+  });
 
   const results: { city: string; slug: string; status: string; error?: string }[] = [];
 
@@ -53,7 +68,7 @@ export async function POST(req: NextRequest) {
       const articleStatus = autoPublish ? "published" : "pending";
 
       const existingArticles = await db.select().from(knowledgeArticles).where(eq(knowledgeArticles.citySlug, city.slug));
-      const existingArticle = existingArticles.find(a => a.slug === articleSlug) || existingArticles[0] || null;
+      const existingArticle = existingArticles.find(a => a.slug === articleSlug) || null;
 
       let article;
       let actionTaken = "created";
@@ -73,6 +88,7 @@ export async function POST(req: NextRequest) {
             dateModified: now,
             status: autoPublish ? "published" : "pending",
             datePublished: autoPublish ? (existingArticle.datePublished || now) : null,
+            campaignId: campaign.id,
           })
           .where(eq(knowledgeArticles.id, existingArticle.id))
           .returning();
@@ -84,6 +100,7 @@ export async function POST(req: NextRequest) {
         [article] = await db.insert(knowledgeArticles).values({
           slug: articleSlug,
           citySlug: city.slug,
+          campaignId: campaign.id,
           status: articleStatus,
           title,
           headline,
@@ -120,6 +137,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const successCount = results.filter(r => r.status !== "error" && r.status !== "skipped").length;
+  await storage.updateCampaign(campaign.id, { articleCount: successCount });
+
   await logAuditEvent({
     username: session.username,
     action: "bulk_generate_from_template",
@@ -132,6 +152,8 @@ export async function POST(req: NextRequest) {
     updated: results.filter(r => r.status === "updated").length,
     skipped: results.filter(r => r.status === "skipped").length,
     errors: results.filter(r => r.status === "error").length,
+    campaignId: campaign.id,
+    campaignName: campaign.name,
     results,
   });
 }

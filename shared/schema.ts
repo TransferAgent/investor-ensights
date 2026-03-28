@@ -290,6 +290,7 @@ export const knowledgeArticles = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     slug: text("slug").notNull().unique(),
     citySlug: text("city_slug"),
+    campaignId: uuid("campaign_id"),
     status: text("status").notNull().default("pending"),
     title: text("title").notNull(),
     metaDescription: text("meta_description"),
@@ -352,6 +353,25 @@ export const knowledgeArticleVersions = pgTable(
   ]
 );
 
+export const knowledgeCampaigns = pgTable(
+  "knowledge_campaigns",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    templateId: uuid("template_id"),
+    status: text("status").notNull().default("active"),
+    description: text("description"),
+    articleCount: integer("article_count").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("knowledge_campaigns_slug_idx").on(table.slug),
+    index("knowledge_campaigns_status_idx").on(table.status),
+  ]
+);
+
 export const knowledgeTemplates = pgTable(
   "knowledge_templates",
   {
@@ -411,6 +431,14 @@ export const insertDataStoreFileSchema = createInsertSchema(dataStoreFiles).omit
 });
 export type DataStoreFile = typeof dataStoreFiles.$inferSelect;
 export type InsertDataStoreFile = z.infer<typeof insertDataStoreFileSchema>;
+
+export const insertKnowledgeCampaignSchema = createInsertSchema(knowledgeCampaigns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type KnowledgeCampaign = typeof knowledgeCampaigns.$inferSelect;
+export type InsertKnowledgeCampaign = z.infer<typeof insertKnowledgeCampaignSchema>;
 
 export const insertKnowledgeArticleSchema = createInsertSchema(knowledgeArticles).omit({
   id: true,

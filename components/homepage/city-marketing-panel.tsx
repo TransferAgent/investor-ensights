@@ -34,6 +34,14 @@ const SLIDE_ALT_TEMPLATES = [
   "Privacy-first capitalization table management software in {{city}}, {{state}} featuring encrypted stakeholder names and time-boxed auditor access to prevent data leaks.",
 ]
 
+interface CityArticle {
+  slug: string
+  headline: string
+  metaDescription: string | null
+  datePublished: string | null
+  ogImageUrl: string | null
+}
+
 interface CityMarketingPanelProps {
   h1: string
   h2: string
@@ -47,6 +55,7 @@ interface CityMarketingPanelProps {
   landmarks: string[]
   nearbyCities: string[]
   mapSrc?: string | null
+  articles?: CityArticle[]
 }
 
 export default function CityMarketingPanel({
@@ -62,6 +71,7 @@ export default function CityMarketingPanel({
   landmarks,
   nearbyCities,
   mapSrc,
+  articles = [],
 }: CityMarketingPanelProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
   const SLIDE_DURATIONS = [7200, 7200, 14400, 14400, 14400, 7200, 7200]
@@ -237,6 +247,38 @@ export default function CityMarketingPanel({
                   <Navigation className="h-3 w-3 text-green-400 shrink-0" />
                   <h4 className="text-xs text-blue-200/70 font-normal">{landmark}</h4>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {articles.length > 0 && (
+          <div className="border-t border-white/10 pt-4 mb-4" data-testid="section-press-releases">
+            <h3 className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3 font-normal">
+              Press Releases
+            </h3>
+            <div className="space-y-2">
+              {articles.map((article) => (
+                <Link
+                  key={article.slug}
+                  href={`/discovery/knowledge/${article.slug}`}
+                  className="block p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10"
+                  data-testid={`link-article-${article.slug}`}
+                >
+                  <h4 className="text-sm font-medium text-white/90 leading-tight">
+                    {article.headline}
+                  </h4>
+                  {article.metaDescription && (
+                    <p className="text-xs text-blue-200/60 mt-1 line-clamp-2">
+                      {article.metaDescription}
+                    </p>
+                  )}
+                  {article.datePublished && (
+                    <p className="text-xs text-blue-200/40 mt-1.5">
+                      {new Date(article.datePublished).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </p>
+                  )}
+                </Link>
               ))}
             </div>
           </div>

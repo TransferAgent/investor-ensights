@@ -97,6 +97,8 @@ export default async function CityPage({
     ? await storage.getTemplateById(assignment.templateId)
     : null
 
+  const cityArticles = await storage.getPublishedArticlesByCitySlug(city.slug)
+
   const landmarks = (city.localLandmarks as string[]) || []
   const nearbyCities = (city.nearbyCities as string[]) || []
 
@@ -177,6 +179,13 @@ export default async function CityPage({
           landmarks={landmarks}
           nearbyCities={nearbyCities}
           mapSrc={mapSrc}
+          articles={cityArticles.map(a => ({
+            slug: a.slug,
+            headline: a.headline,
+            metaDescription: a.metaDescription,
+            datePublished: a.datePublished?.toISOString() || null,
+            ogImageUrl: a.ogImageUrl,
+          }))}
         />
         <LoginPanel />
       </div>
