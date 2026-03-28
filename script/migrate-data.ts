@@ -1,6 +1,6 @@
 import { db } from "../lib/db";
 import { knowledgeTemplates, knowledgeCampaigns, knowledgeArticles } from "../shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 
 const PR_HASH_TEMPLATE = {
   name: "Tableicity PR Hash-256",
@@ -83,6 +83,37 @@ async function migrateData() {
     }
   } else {
     console.log(`Campaign already exists: ${existingCampaigns[0].id}`);
+  }
+
+  // Step 3: Create Privacy-First Launch Campaign for any uncategorized articles
+  const existingPrivacyCampaign = await db.select().from(knowledgeCampaigns).where(eq(knowledgeCampaigns.slug, "privacy-first-launch-campaign"));
+  
+  if (existingPrivacyCampaign.length === 0) {
+    const uncategorizedArticles = await db.select().from(knowledgeArticles).where(isNull(knowledgeArticles.campaignId));
+    
+    if (uncategorizedArticles.length > 0) {
+      const privacyTemplates = await db.select().from(knowledgeTemplates).where(eq(knowledgeTemplates.name, "Privacy-First Launch Narrative v1"));
+      const privacyTemplateId = privacyTemplates.length > 0 ? privacyTemplates[0].id : null;
+      
+      console.log("Creating Privacy-First Launch Campaign...");
+      const [privacyCampaign] = await db.insert(knowledgeCampaigns).values({
+        name: "Privacy-First Launch Campaign",
+        slug: "privacy-first-launch-campaign",
+        templateId: privacyTemplateId,
+        status: "active",
+        description: "Legacy Privacy-First Launch Narrative press releases",
+        articleCount: uncategorizedArticles.length,
+      }).returning();
+      
+      await db.update(knowledgeArticles)
+        .set({ campaignId: privacyCampaign.id })
+        .where(isNull(knowledgeArticles.campaignId));
+      console.log("Assigned " + uncategorizedArticles.length + " uncategorized articles to Privacy-First Launch Campaign: " + privacyCampaign.id);
+    } else {
+      console.log("No uncategorized articles found, skipping Privacy-First campaign creation");
+    }
+  } else {
+    console.log("Privacy-First Launch Campaign already exists: " + existingPrivacyCampaign[0].id);
   }
 
   console.log("Data migration complete!");
