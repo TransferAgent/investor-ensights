@@ -589,6 +589,27 @@ export default function KnowledgeAdmin() {
     },
   })
 
+  const bulkRestoreMutation = useMutation({
+    mutationFn: async (articleIds: string[]) => {
+      const res = await apiRequest("POST", "/api/admin/knowledge/bulk-restore", { articleIds })
+      return res.json()
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/analytics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/coverage"] })
+      setSelectedArticles([])
+      toast({
+        title: "Bulk restore complete",
+        description: data.restored + " restored, " + data.skipped + " skipped",
+      })
+    },
+    onError: (err: any) => {
+      toast({ title: "Bulk restore failed", description: err.message, variant: "destructive" })
+    },
+  })
+
   const archiveMutation = useMutation({
     mutationFn: async (id: string) => {
       return apiRequest("POST", `/api/admin/knowledge/${id}/archive`)
@@ -1100,6 +1121,30 @@ export default function KnowledgeAdmin() {
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Archiving...</>
                 ) : (
                   <><Archive className="mr-2 h-4 w-4" /> Archive Selected</>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const archivedIds = selectedArticles.filter(function(id) {
+                    return articles?.find(function(a) { return a.id === id && a.status === "archived" })
+                  })
+                  if (archivedIds.length === 0) {
+                    toast({ title: "No archived articles selected", description: "Only archived articles can be restored", variant: "destructive" })
+                    return
+                  }
+                  if (confirm("Restore " + archivedIds.length + " article(s) to pending?")) {
+                    bulkRestoreMutation.mutate(archivedIds)
+                  }
+                }}
+                disabled={bulkRestoreMutation.isPending}
+                data-testid="button-bulk-restore"
+              >
+                {bulkRestoreMutation.isPending ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Restoring...</>
+                ) : (
+                  <><ArchiveRestore className="mr-2 h-4 w-4" /> Restore Selected</>
                 )}
               </Button>
               <Button

@@ -28,28 +28,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Maximum 100 articles per batch" }, { status: 400 });
   }
 
-  const results = { unpublished: 0, skipped: 0, notFound: 0, errors: [] as string[] };
+  const results = { restored: 0, skipped: 0, notFound: 0, errors: [] as string[] };
 
   for (const id of dedupedIds) {
-    if (typeof id !== "string") {
-      results.skipped++;
-      continue;
-    }
     const article = await storage.getKnowledgeArticleById(id);
     if (!article) {
       results.notFound++;
       continue;
     }
-    if (article.status !== "published") {
+    if (article.status !== "archived") {
       results.skipped++;
       continue;
     }
     try {
-      await storage.unpublishKnowledgeArticle(id, session.username);
-      await logAuditEvent({ username: session.username, action: "unpublish", entityType: "knowledge_article", entityId: id });
-      results.unpublished++;
+      await storage.unarchiveKnowledgeArticle(id, session.username);
+      await logAuditEvent({ username: session.username, action: "unarchive", entityType: "knowledge_article", entityId: id });
+      results.restored++;
     } catch (err: any) {
-      results.errors.push(`${id}: ${err.message}`);
+      results.errors.push(id + ": " + err.message);
     }
   }
 
