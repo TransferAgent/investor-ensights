@@ -215,7 +215,7 @@ export default function KnowledgeAdmin() {
   const [studioResult, setStudioResult] = useState<any>(null)
   const [studioPreviewCity, setStudioPreviewCity] = useState<string>("")
   const [studioCampaignName, setStudioCampaignName] = useState("")
-  const [expandedCampaigns, setExpandedCampaigns] = useState<Set<string>>(new Set(["uncategorized"]))
+  const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({ uncategorized: true })
 
 
   const [formSlug, setFormSlug] = useState("")
@@ -633,18 +633,21 @@ export default function KnowledgeAdmin() {
     },
   })
 
-  const sortedCampaignGroups = useMemo(() => {
+  const sortedCampaignGroups = useMemo((): Array<[string, { campaign: KnowledgeCampaign | null; articles: KnowledgeArticle[] }]> => {
     if (!articles?.length) return []
-    const campaignMap = new Map<string, { campaign: KnowledgeCampaign | null; articles: KnowledgeArticle[] }>()
-    for (const a of articles) {
+    const keys: string[] = []
+    const groups: Record<string, { campaign: KnowledgeCampaign | null; articles: KnowledgeArticle[] }> = {}
+    for (let i = 0; i < articles.length; i++) {
+      const a = articles[i]
       const key = a.campaignId || "uncategorized"
-      if (!campaignMap.has(key)) {
+      if (!groups[key]) {
+        keys.push(key)
         const c = campaigns?.find((camp) => camp.id === key) || null
-        campaignMap.set(key, { campaign: c, articles: [] })
+        groups[key] = { campaign: c, articles: [] }
       }
-      campaignMap.get(key)!.articles.push(a)
+      groups[key].articles.push(a)
     }
-    return Array.from(campaignMap.entries()).sort((a, b) => {
+    return keys.map((k) => [k, groups[k]] as [string, { campaign: KnowledgeCampaign | null; articles: KnowledgeArticle[] }]).sort((a, b) => {
       if (a[0] === "uncategorized") return 1
       if (b[0] === "uncategorized") return -1
       return (b[1].campaign?.createdAt || "").localeCompare(a[1].campaign?.createdAt || "")
@@ -653,10 +656,13 @@ export default function KnowledgeAdmin() {
 
   const toggleCampaign = useCallback((key: string) => {
     setExpandedCampaigns((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
+      const copy = Object.assign({}, prev)
+      if (copy[key]) {
+        delete copy[key]
+      } else {
+        copy[key] = true
+      }
+      return copy
     })
   }, [])
 
@@ -689,12 +695,12 @@ export default function KnowledgeAdmin() {
     setEditArticle(a)
   }
 
-  const uniqueStates = cities ? [...new Set(cities.map(c => c.stateCode))].sort() : []
+  const uniqueStates = cities ? Array.from(cities.reduce((acc: string[], c) => { if (acc.indexOf(c.stateCode) === -1) acc.push(c.stateCode); return acc }, [] as string[])).sort() : []
   const filteredCitiesForBulk = bulkState
     ? cities?.filter(c => c.stateCode === bulkState) || []
     : []
 
-  const coverageStates = coverage ? [...new Set(coverage.map(c => c.state))].sort() : []
+  const coverageStates = coverage ? Array.from(coverage.reduce((acc: string[], c) => { if (acc.indexOf(c.state) === -1) acc.push(c.state); return acc }, [] as string[])).sort() : []
   const filteredCoverage = coverage?.filter(c => {
     if (coverageStateFilter && coverageStateFilter !== "all" && c.state !== coverageStateFilter) return false
     if (coverageStatusFilter && coverageStatusFilter !== "all" && c.status !== coverageStatusFilter) return false
@@ -1118,7 +1124,7 @@ export default function KnowledgeAdmin() {
           ) : (
             <div className="space-y-3" data-testid="campaign-grouped-view">
               {sortedCampaignGroups.map(([key, group]) => {
-                const isExpanded = expandedCampaigns.has(key)
+                const isExpanded = !!expandedCampaigns[key]
                 const publishedCount = group.articles.filter((a) => a.status === "published").length
                 const pendingCount = group.articles.filter((a) => a.status === "pending").length
                 return (
@@ -1167,8 +1173,12 @@ export default function KnowledgeAdmin() {
                                   if (checked) {
                                     const newIds = group.articles.map((a) => a.id)
                                     setSelectedArticles((prev) => {
-                                      const combined = new Set([...prev, ...newIds])
-                                      return Array.from(combined)
+                                      const all = prev.concat(newIds)
+                                      const unique: string[] = []
+                                      for (let i = 0; i < all.length; i++) {
+                                        if (unique.indexOf(all[i]) === -1) unique.push(all[i])
+                                      }
+                                      return unique
                                     })
                                   } else {
                                     const groupIds = group.articles.map((a) => a.id)
