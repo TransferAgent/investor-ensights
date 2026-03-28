@@ -162,7 +162,7 @@ interface KnowledgeTemplateItem {
   updatedAt: string
 }
 
-type TabType = "articles" | "analytics" | "coverage" | "templates"
+type TabType = "articles" | "content-studio" | "analytics" | "coverage" | "templates"
 
 export default function KnowledgeAdmin() {
   const { toast } = useToast()
@@ -188,6 +188,14 @@ export default function KnowledgeAdmin() {
   const [autoPublish, setAutoPublish] = useState(true)
   const [generateResult, setGenerateResult] = useState<any>(null)
   const [selectedArticles, setSelectedArticles] = useState<string[]>([])
+
+  const [studioTemplateId, setStudioTemplateId] = useState("")
+  const [studioStateFilter, setStudioStateFilter] = useState("")
+  const [studioSelectedCities, setStudioSelectedCities] = useState<string[]>([])
+  const [studioAutoPublish, setStudioAutoPublish] = useState(true)
+  const [studioUpdateExisting, setStudioUpdateExisting] = useState(false)
+  const [studioResult, setStudioResult] = useState<any>(null)
+  const [studioPreviewCity, setStudioPreviewCity] = useState<string>("")
 
 
   const [formSlug, setFormSlug] = useState("")
@@ -276,7 +284,7 @@ export default function KnowledgeAdmin() {
       if (!res.ok) throw new Error("Failed to load templates")
       return res.json()
     },
-    enabled: activeTab === "templates",
+    enabled: activeTab === "templates" || activeTab === "content-studio",
   })
 
   const createTemplateMutation = useMutation({
@@ -325,6 +333,33 @@ export default function KnowledgeAdmin() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/coverage"] })
       setGenerateResult(data)
       toast({ title: `Generated ${data.generated} articles` })
+    },
+  })
+
+  const studioApplyMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/knowledge-templates/generate", {
+        templateId: studioTemplateId,
+        autoPublish: studioAutoPublish,
+        citySlugs: studioSelectedCities,
+        updateExisting: studioUpdateExisting,
+      })
+      return res.json()
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/coverage"] })
+      setStudioResult(data)
+      const parts = []
+      if (data.generated > 0) parts.push(`${data.generated} created`)
+      if (data.updated > 0) parts.push(`${data.updated} updated`)
+      if (data.skipped > 0) parts.push(`${data.skipped} skipped`)
+      if (data.errors > 0) parts.push(`${data.errors} errors`)
+      toast({ title: "Template applied", description: parts.join(", ") })
+    },
+    onError: (err: any) => {
+      toast({ title: "Apply failed", description: err.message, variant: "destructive" })
     },
   })
 
@@ -896,21 +931,31 @@ export default function KnowledgeAdmin() {
       )}
 
       <div className="flex gap-2 mb-4">
-        {(["articles", "templates", "analytics", "coverage"] as TabType[]).map((tab) => (
-          <Button
-            key={tab}
-            variant={activeTab === tab ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => setActiveTab(tab)}
-            data-testid={`tab-${tab}`}
-          >
-            {tab === "articles" && <FileText className="mr-1.5 h-3.5 w-3.5" />}
-            {tab === "templates" && <Layers className="mr-1.5 h-3.5 w-3.5" />}
-            {tab === "analytics" && <BarChart3 className="mr-1.5 h-3.5 w-3.5" />}
-            {tab === "coverage" && <Map className="mr-1.5 h-3.5 w-3.5" />}
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </Button>
-        ))}
+        {(["articles", "content-studio", "templates", "analytics", "coverage"] as TabType[]).map((tab) => {
+          const tabLabels: Record<string, string> = {
+            "articles": "Articles",
+            "content-studio": "Content Studio",
+            "templates": "Templates",
+            "analytics": "Analytics",
+            "coverage": "Coverage",
+          }
+          return (
+            <Button
+              key={tab}
+              variant={activeTab === tab ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setActiveTab(tab)}
+              data-testid={`tab-${tab}`}
+            >
+              {tab === "articles" && <FileText className="mr-1.5 h-3.5 w-3.5" />}
+              {tab === "content-studio" && <Sparkles className="mr-1.5 h-3.5 w-3.5" />}
+              {tab === "templates" && <Layers className="mr-1.5 h-3.5 w-3.5" />}
+              {tab === "analytics" && <BarChart3 className="mr-1.5 h-3.5 w-3.5" />}
+              {tab === "coverage" && <Map className="mr-1.5 h-3.5 w-3.5" />}
+              {tabLabels[tab] || tab}
+            </Button>
+          )
+        })}
       </div>
 
       {activeTab === "articles" && (
@@ -1153,6 +1198,307 @@ export default function KnowledgeAdmin() {
             </Card>
           )}
         </>
+      )}
+
+      {activeTab === "content-studio" && (
+        <div className="space-y-6">
+          <div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Pick a template, select cities, preview, and apply. Works for new articles and updating existing ones.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3" data-testid="text-studio-step1">Step 1: Select Template</h3>
+                {templatesLoading ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : knowledgeTemplates && knowledgeTemplates.length > 0 ? (
+                  <Select value={studioTemplateId} onValueChange={(v) => { setStudioTemplateId(v); setStudioResult(null) }}>
+                    <SelectTrigger data-testid="select-studio-template">
+                      <SelectValue placeholder="Choose a press release template..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {knowledgeTemplates.filter(t => t.isActive).map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No templates found. Create one in the Templates tab first.</p>
+                )}
+              </Card>
+
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3" data-testid="text-studio-step2">Step 2: Select Cities</h3>
+                <div className="space-y-3">
+                  <div className="flex gap-2 items-center">
+                    <Select value={studioStateFilter} onValueChange={(v) => { setStudioStateFilter(v); setStudioSelectedCities([]) }}>
+                      <SelectTrigger className="w-[200px]" data-testid="select-studio-state">
+                        <SelectValue placeholder="Filter by state..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All States</SelectItem>
+                        {uniqueStates.map(s => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-sm text-muted-foreground">
+                      {studioSelectedCities.length} of {
+                        (studioStateFilter && studioStateFilter !== "all"
+                          ? cities?.filter(c => c.stateCode === studioStateFilter) || []
+                          : cities || []
+                        ).length
+                      } selected
+                    </span>
+                  </div>
+                  {(() => {
+                    const filteredCities = studioStateFilter && studioStateFilter !== "all"
+                      ? cities?.filter(c => c.stateCode === studioStateFilter) || []
+                      : cities || []
+                    const sortedCities = [...filteredCities].sort((a, b) => a.cityName.localeCompare(b.cityName))
+                    return (
+                      <>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setStudioSelectedCities(sortedCities.map(c => c.slug))}
+                            data-testid="button-studio-select-all"
+                          >
+                            Select All ({sortedCities.length})
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setStudioSelectedCities([])}
+                            data-testid="button-studio-deselect-all"
+                          >
+                            Deselect All
+                          </Button>
+                        </div>
+                        <div className="border rounded-lg p-2 max-h-64 overflow-y-auto grid grid-cols-2 gap-1">
+                          {sortedCities.map(c => (
+                            <label key={c.slug} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 px-2 py-1 rounded" data-testid={`studio-city-${c.slug}`}>
+                              <input
+                                type="checkbox"
+                                checked={studioSelectedCities.includes(c.slug)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setStudioSelectedCities(prev => [...prev, c.slug])
+                                  } else {
+                                    setStudioSelectedCities(prev => prev.filter(s => s !== c.slug))
+                                  }
+                                }}
+                              />
+                              {c.cityName}, {c.stateCode}
+                            </label>
+                          ))}
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
+              </Card>
+
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3" data-testid="text-studio-step3">Step 3: Options & Apply</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={studioAutoPublish}
+                        onCheckedChange={(v) => setStudioAutoPublish(!!v)}
+                        data-testid="checkbox-studio-auto-publish"
+                      />
+                      Auto-publish (skip pending)
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={studioUpdateExisting}
+                        onCheckedChange={(v) => setStudioUpdateExisting(!!v)}
+                        data-testid="checkbox-studio-update-existing"
+                      />
+                      Update existing articles
+                    </label>
+                  </div>
+                  {!studioUpdateExisting && studioSelectedCities.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Cities that already have articles will be skipped. Enable "Update existing" to overwrite them.
+                    </p>
+                  )}
+                  <Button
+                    onClick={() => {
+                      if (studioSelectedCities.length > 0 && studioTemplateId) {
+                        const msg = studioUpdateExisting
+                          ? `Apply template to ${studioSelectedCities.length} cities? Existing articles will be updated.`
+                          : `Apply template to ${studioSelectedCities.length} cities?`
+                        if (confirm(msg)) {
+                          studioApplyMutation.mutate()
+                        }
+                      }
+                    }}
+                    disabled={!studioTemplateId || studioSelectedCities.length === 0 || studioApplyMutation.isPending}
+                    className="w-full"
+                    data-testid="button-studio-apply"
+                  >
+                    {studioApplyMutation.isPending ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Applying to {studioSelectedCities.length} cities...</>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Apply Template to {studioSelectedCities.length} {studioSelectedCities.length === 1 ? "City" : "Cities"}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </Card>
+
+              {studioResult && (
+                <Card className="p-4 border-green-500/30 bg-green-500/5" data-testid="studio-result-card">
+                  <div className="flex items-center gap-2 mb-3 font-semibold">
+                    <CheckCircle className="h-5 w-5 text-green-500" /> Template Applied
+                  </div>
+                  <div className="grid grid-cols-4 gap-3 text-center mb-4">
+                    <div>
+                      <div className="text-2xl font-bold text-green-500">{studioResult.generated || 0}</div>
+                      <div className="text-xs text-muted-foreground">Created</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-blue-500">{studioResult.updated || 0}</div>
+                      <div className="text-xs text-muted-foreground">Updated</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-yellow-500">{studioResult.skipped || 0}</div>
+                      <div className="text-xs text-muted-foreground">Skipped</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-red-500">{studioResult.errors || 0}</div>
+                      <div className="text-xs text-muted-foreground">Errors</div>
+                    </div>
+                  </div>
+                  {studioResult.results && (
+                    <div className="border rounded p-2 max-h-48 overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">City</TableHead>
+                            <TableHead className="text-xs">Status</TableHead>
+                            <TableHead className="text-xs">Slug</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {studioResult.results.map((r: any, i: number) => (
+                            <TableRow key={i}>
+                              <TableCell className="text-sm py-1">{r.city}</TableCell>
+                              <TableCell className="py-1">
+                                <Badge variant="outline" className={
+                                  r.status === "error" ? "bg-red-500/10 text-red-500 border-red-500/20" :
+                                  r.status === "skipped" ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
+                                  r.status === "updated" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
+                                  "bg-green-500/10 text-green-500 border-green-500/20"
+                                }>
+                                  {r.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground py-1 max-w-[200px] truncate">
+                                {r.slug || r.error || "—"}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </Card>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3">Preview</h3>
+                {studioTemplateId && cities && cities.length > 0 ? (
+                  <div className="space-y-3">
+                    <Select value={studioPreviewCity} onValueChange={setStudioPreviewCity}>
+                      <SelectTrigger data-testid="select-studio-preview-city">
+                        <SelectValue placeholder="Pick a city to preview..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[...(cities || [])].sort((a, b) => a.cityName.localeCompare(b.cityName)).map(c => (
+                          <SelectItem key={c.slug} value={c.slug}>{c.cityName}, {c.stateCode}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {studioPreviewCity && (() => {
+                      const template = knowledgeTemplates?.find(t => t.id === studioTemplateId)
+                      const city = cities?.find(c => c.slug === studioPreviewCity)
+                      if (!template || !city) return null
+                      const replacePlaceholders = (pattern: string) => pattern
+                        .replace(/\{\{city\}\}/g, city.cityName)
+                        .replace(/\{\{city_upper\}\}/g, city.cityName.toUpperCase())
+                        .replace(/\{\{state_name\}\}/g, (city as any).stateName || "")
+                        .replace(/\{\{state_code\}\}/g, city.stateCode || "")
+                        .replace(/\{\{slug\}\}/g, city.slug)
+                        .replace(/\{\{landmarks\}\}/g, ((city as any).localLandmarks || (city as any).landmarks || []).join(", ") || "local business districts")
+                        .replace(/\{\{nearby_cities\}\}/g, ((city as any).nearbyCities || []).join(", ") || "surrounding communities")
+                      const previewTitle = replacePlaceholders(template.titlePattern)
+                      const previewHeadline = replacePlaceholders(template.headlinePattern)
+                      return (
+                        <div className="space-y-2 border rounded-lg p-3 bg-muted/30">
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">SEO Title</span>
+                            <p className="text-sm font-medium" data-testid="text-preview-title">{previewTitle}</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Headline</span>
+                            <p className="text-sm" data-testid="text-preview-headline">{previewHeadline}</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Slug</span>
+                            <p className="text-xs text-muted-foreground font-mono" data-testid="text-preview-slug">
+                              tableicity-{city.cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}-cap-table
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Live URL</span>
+                            <a
+                              href={`/discovery/knowledge/tableicity-${city.cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}-cap-table`}
+                              target="_blank"
+                              rel="noopener"
+                              className="text-xs text-blue-500 hover:underline block truncate"
+                              data-testid="link-preview-url"
+                            >
+                              /discovery/knowledge/tableicity-{city.cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}-cap-table
+                            </a>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Select a template above to preview how it will look for different cities.</p>
+                )}
+              </Card>
+
+              <Card className="p-4 bg-muted/20">
+                <h3 className="font-semibold mb-2 text-sm">How It Works</h3>
+                <ul className="text-xs text-muted-foreground space-y-1.5">
+                  <li className="flex gap-2"><span className="text-primary font-bold">1.</span> Choose a template with placeholders</li>
+                  <li className="flex gap-2"><span className="text-primary font-bold">2.</span> Select cities (filter by state)</li>
+                  <li className="flex gap-2"><span className="text-primary font-bold">3.</span> Preview how it looks for any city</li>
+                  <li className="flex gap-2"><span className="text-primary font-bold">4.</span> Apply — creates/updates press releases</li>
+                </ul>
+                <div className="mt-3 pt-3 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    Placeholders: <code className="bg-muted px-1 rounded">{"{{city}}"}</code> <code className="bg-muted px-1 rounded">{"{{state_name}}"}</code> <code className="bg-muted px-1 rounded">{"{{state_code}}"}</code> <code className="bg-muted px-1 rounded">{"{{landmarks}}"}</code> <code className="bg-muted px-1 rounded">{"{{nearby_cities}}"}</code>
+                  </p>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
       )}
 
       {activeTab === "templates" && (

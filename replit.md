@@ -30,7 +30,7 @@ Preferred communication style: Simple, everyday language.
 - `app/admin/templates/page.tsx` — Template management CRUD (Client Component)
 - `app/admin/pages/page.tsx` — Page Builder list view (Client Component)
 - `app/admin/pages/[id]/edit/page.tsx` — Page Builder editor with slide management (Client Component)
-- `app/admin/knowledge/page.tsx` — Knowledge/Press Release management (Client Component) — create, edit, publish, archive, version history
+- `app/admin/knowledge/page.tsx` — Knowledge/Press Release management (Client Component) — 5 tabs: Articles (CRUD, bulk ops), Content Studio (template+city picker workflow), Templates (manage PR templates), Analytics, Coverage
 - `app/discovery/knowledge/[slug]/page.tsx` — Public press release page (SSR) with full SEO (title, description, canonical, robots, JSON-LD NewsArticle)
 - `app/sitemap.ts` — Dynamic sitemap (includes cities + custom pages + published knowledge articles)
 - `app/robots.ts` — Dynamic robots.txt
@@ -62,7 +62,7 @@ All under `app/api/`:
 - `admin/knowledge/[id]/versions/route.ts` — GET version history
 - `admin/knowledge-templates/route.ts` — GET/POST knowledge templates
 - `admin/knowledge-templates/[id]/route.ts` — GET/PATCH/DELETE knowledge template
-- `admin/knowledge-templates/generate/route.ts` — POST generate articles from template for all published cities
+- `admin/knowledge-templates/generate/route.ts` — POST generate articles from template (supports optional `citySlugs` array for targeted generation, `updateExisting` for upsert, looks up by `citySlug` to avoid slug collisions)
 - `admin/knowledge/metrics/route.ts` — GET publish cadence metrics (today, thisWeek, avgPerDay, pendingCount)
 - `admin/knowledge/analytics/route.ts` — GET analytics (publishedThisMonth, discoverEligible, avgFreshnessScore, pendingCount)
 - `admin/knowledge/coverage/route.ts` — GET city coverage tracker (matches articles to cities via city_slug field)

@@ -21,14 +21,19 @@ export async function POST(req: NextRequest) {
   const session = await verifySession(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { templateId, autoPublish } = await req.json();
+  const { templateId, autoPublish, citySlugs, updateExisting } = await req.json();
   if (!templateId) return NextResponse.json({ error: "templateId required" }, { status: 400 });
 
   const template = await storage.getKnowledgeTemplateById(templateId);
   if (!template) return NextResponse.json({ error: "Template not found" }, { status: 404 });
 
   const cities = await storage.getCities(true);
-  const realCities = cities.filter(c => !c.slug.startsWith("testcity") && !c.slug.startsWith("seotestcity"));
+  let realCities = cities.filter(c => !c.slug.startsWith("testcity") && !c.slug.startsWith("seotestcity"));
+
+  if (Array.isArray(citySlugs) && citySlugs.length > 0) {
+    const slugSet = new Set(citySlugs);
+    realCities = realCities.filter(c => slugSet.has(c.slug));
+  }
 
   const results: { city: string; slug: string; status: string; error?: string }[] = [];
 
@@ -47,25 +52,55 @@ export async function POST(req: NextRequest) {
       const now = new Date();
       const articleStatus = autoPublish ? "published" : "pending";
 
-      const [article] = await db.insert(knowledgeArticles).values({
-        slug: articleSlug,
-        citySlug: city.slug,
-        status: articleStatus,
-        title,
-        headline,
-        subheadline,
-        metaDescription,
-        dateline,
-        bodyHtml,
-        boilerplateHtml,
-        ogImageUrl: template.ogImageUrl || "https://www.tableicity.com/beast-06-zk-network.png",
-        robots: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
-        canonicalUrl: `https://www.tableicity.com/discovery/knowledge/${articleSlug}`,
-        datePublished: autoPublish ? now : undefined,
-        dateModified: now,
-        authorName: "Tableicity",
-        publisherName: "Tableicity",
-      }).returning();
+      const existingArticles = await db.select().from(knowledgeArticles).where(eq(knowledgeArticles.citySlug, city.slug));
+      const existingArticle = existingArticles.find(a => a.slug === articleSlug) || existingArticles[0] || null;
+
+      let article;
+      let actionTaken = "created";
+
+      if (existingArticle && updateExisting) {
+        [article] = await db.update(knowledgeArticles)
+          .set({
+            slug: articleSlug,
+            title,
+            headline,
+            subheadline,
+            metaDescription,
+            dateline,
+            bodyHtml,
+            boilerplateHtml,
+            ogImageUrl: template.ogImageUrl || "https://www.tableicity.com/beast-06-zk-network.png",
+            dateModified: now,
+            status: autoPublish ? "published" : "pending",
+            datePublished: autoPublish ? (existingArticle.datePublished || now) : null,
+          })
+          .where(eq(knowledgeArticles.id, existingArticle.id))
+          .returning();
+        actionTaken = "updated";
+      } else if (existingArticle) {
+        results.push({ city: city.cityName, slug: articleSlug, status: "skipped", error: "Article already exists" });
+        continue;
+      } else {
+        [article] = await db.insert(knowledgeArticles).values({
+          slug: articleSlug,
+          citySlug: city.slug,
+          status: articleStatus,
+          title,
+          headline,
+          subheadline,
+          metaDescription,
+          dateline,
+          bodyHtml,
+          boilerplateHtml,
+          ogImageUrl: template.ogImageUrl || "https://www.tableicity.com/beast-06-zk-network.png",
+          robots: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+          canonicalUrl: `https://www.tableicity.com/discovery/knowledge/${articleSlug}`,
+          datePublished: autoPublish ? now : undefined,
+          dateModified: now,
+          authorName: "Tableicity",
+          publisherName: "Tableicity",
+        }).returning();
+      }
 
       await db.insert(knowledgeGenerationLog).values({
         citySlug: city.slug,
@@ -73,7 +108,7 @@ export async function POST(req: NextRequest) {
         status: "success",
       });
 
-      results.push({ city: city.cityName, slug: articleSlug, status: articleStatus });
+      results.push({ city: city.cityName, slug: articleSlug, status: actionTaken === "updated" ? "updated" : articleStatus });
     } catch (err: any) {
       await db.insert(knowledgeGenerationLog).values({
         citySlug: city.slug,
@@ -93,7 +128,9 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({
-    generated: results.filter(r => r.status !== "error").length,
+    generated: results.filter(r => r.status !== "error" && r.status !== "skipped" && r.status !== "updated").length,
+    updated: results.filter(r => r.status === "updated").length,
+    skipped: results.filter(r => r.status === "skipped").length,
     errors: results.filter(r => r.status === "error").length,
     results,
   });
