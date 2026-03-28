@@ -589,6 +589,27 @@ export default function KnowledgeAdmin() {
     },
   })
 
+  const bulkPublishMutation = useMutation({
+    mutationFn: async (articleIds: string[]) => {
+      const res = await apiRequest("POST", "/api/admin/knowledge/bulk-publish", { articleIds })
+      return res.json()
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/analytics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/coverage"] })
+      setSelectedArticles([])
+      toast({
+        title: "Bulk publish complete",
+        description: data.published + " published, " + data.skipped + " skipped",
+      })
+    },
+    onError: (err: any) => {
+      toast({ title: "Bulk publish failed", description: err.message, variant: "destructive" })
+    },
+  })
+
   const bulkRestoreMutation = useMutation({
     mutationFn: async (articleIds: string[]) => {
       const res = await apiRequest("POST", "/api/admin/knowledge/bulk-restore", { articleIds })
@@ -1075,6 +1096,30 @@ export default function KnowledgeAdmin() {
               <span className="text-sm font-medium" data-testid="text-selected-count">
                 {selectedArticles.length} selected
               </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const pendingIds = selectedArticles.filter(function(id) {
+                    return articles?.find(function(a) { return a.id === id && a.status === "pending" })
+                  })
+                  if (pendingIds.length === 0) {
+                    toast({ title: "No pending articles selected", description: "Only pending articles can be published", variant: "destructive" })
+                    return
+                  }
+                  if (confirm("Publish " + pendingIds.length + " article(s)?")) {
+                    bulkPublishMutation.mutate(pendingIds)
+                  }
+                }}
+                disabled={bulkPublishMutation.isPending}
+                data-testid="button-bulk-publish"
+              >
+                {bulkPublishMutation.isPending ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Publishing...</>
+                ) : (
+                  <><Send className="mr-2 h-4 w-4" /> Publish Selected</>
+                )}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
