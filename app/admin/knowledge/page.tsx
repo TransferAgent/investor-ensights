@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -652,6 +652,33 @@ export default function KnowledgeAdmin() {
     },
   })
 
+  const sortedCampaignGroups = useMemo(() => {
+    if (!articles?.length) return []
+    const campaignMap = new Map<string, { campaign: KnowledgeCampaign | null; articles: KnowledgeArticle[] }>()
+    for (const a of articles) {
+      const key = a.campaignId || "uncategorized"
+      if (!campaignMap.has(key)) {
+        const c = campaigns?.find(c => c.id === key) || null
+        campaignMap.set(key, { campaign: c, articles: [] })
+      }
+      campaignMap.get(key)!.articles.push(a)
+    }
+    return Array.from(campaignMap.entries()).sort((a, b) => {
+      if (a[0] === "uncategorized") return 1
+      if (b[0] === "uncategorized") return -1
+      return (b[1].campaign?.createdAt || "").localeCompare(a[1].campaign?.createdAt || "")
+    })
+  }, [articles, campaigns])
+
+  const toggleCampaign = useCallback((key: string) => {
+    setExpandedCampaigns(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }, [])
+
   function resetForm() {
     setFormSlug("")
     setFormTitle("")
@@ -1126,30 +1153,6 @@ export default function KnowledgeAdmin() {
               No articles found. Create your first press release.
             </Card>
           ) : (() => {
-            const campaignMap = new Map<string, { campaign: KnowledgeCampaign | null; articles: KnowledgeArticle[] }>()
-            for (const a of articles) {
-              const key = a.campaignId || "uncategorized"
-              if (!campaignMap.has(key)) {
-                const c = campaigns?.find(c => c.id === key) || null
-                campaignMap.set(key, { campaign: c, articles: [] })
-              }
-              campaignMap.get(key)!.articles.push(a)
-            }
-            const sortedGroups = Array.from(campaignMap.entries()).sort((a, b) => {
-              if (a[0] === "uncategorized") return 1
-              if (b[0] === "uncategorized") return -1
-              return (b[1].campaign?.createdAt || "").localeCompare(a[1].campaign?.createdAt || "")
-            })
-
-            const toggleCampaign = (key: string) => {
-              setExpandedCampaigns(prev => {
-                const next = new Set(prev)
-                if (next.has(key)) next.delete(key)
-                else next.add(key)
-                return next
-              })
-            }
-
             const renderArticleRow = (a: KnowledgeArticle) => (
               <TableRow key={a.id} data-testid={`row-article-${a.id}`}>
                 <TableCell>
@@ -1272,7 +1275,7 @@ export default function KnowledgeAdmin() {
 
             return (
               <div className="space-y-3" data-testid="campaign-grouped-view">
-                {sortedGroups.map(([key, group]) => {
+                {sortedCampaignGroups.map(([key, group]) => {
                   const isExpanded = expandedCampaigns.has(key)
                   const publishedCount = group.articles.filter(a => a.status === "published").length
                   const pendingCount = group.articles.filter(a => a.status === "pending").length
