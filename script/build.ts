@@ -17,7 +17,6 @@ async function buildAll() {
   console.log("creating production entry point...");
   await mkdir("dist", { recursive: true });
   const entryScript = `
-const { execSync } = require("child_process");
 const path = require("path");
 
 process.env.PORT = process.env.PORT || "5000";
