@@ -380,6 +380,24 @@ export default function KnowledgeAdmin() {
     },
   })
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const results = []
+      for (const id of ids) {
+        const res = await apiRequest("DELETE", `/api/admin/knowledge/${id}`)
+        results.push(res)
+      }
+      return results
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/coverage"] })
+      toast({ title: "Articles deleted" })
+      setSelectedArticles([])
+    },
+  })
+
   const generateMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/knowledge/generate-local-vibe", {
@@ -1025,6 +1043,24 @@ export default function KnowledgeAdmin() {
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Archiving...</>
                 ) : (
                   <><Archive className="mr-2 h-4 w-4" /> Archive Selected</>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (selectedArticles.length === 0) return
+                  if (confirm(`Permanently delete ${selectedArticles.length} article(s)? This cannot be undone.`)) {
+                    bulkDeleteMutation.mutate(selectedArticles)
+                  }
+                }}
+                disabled={bulkDeleteMutation.isPending}
+                data-testid="button-bulk-delete"
+              >
+                {bulkDeleteMutation.isPending ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</>
+                ) : (
+                  <><Trash2 className="mr-2 h-4 w-4 text-destructive" /> Delete Selected</>
                 )}
               </Button>
               <Button
