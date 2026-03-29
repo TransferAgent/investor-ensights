@@ -1,6 +1,7 @@
 "use client"
 
 import { Building2, Mail } from "lucide-react"
+import CookieConsent from "./cookie-consent"
 
 export default function LoginPanel() {
   return (
@@ -29,9 +30,10 @@ export default function LoginPanel() {
         <span className="text-lg font-bold text-white">Tableicity</span>
       </div>
 
+      <CookieConsent />
       <div className="absolute inset-0 overflow-y-auto flex items-center justify-center p-6 z-[3]">
         <div
-          className="w-full max-w-[420px] rounded-2xl p-8 cursor-pointer transition-transform hover:scale-[1.02]"
+          className="w-full max-w-[420px] rounded-2xl p-8"
           style={{
             border: "1px solid rgba(99,179,237,0.2)",
             boxShadow:
@@ -39,9 +41,6 @@ export default function LoginPanel() {
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             background: "rgba(13, 20, 35, 0.92)",
-          }}
-          onMouseEnter={() => {
-            window.location.href = "https://app.tableicity.com/login"
           }}
         >
           <div className="text-center mb-6">
