@@ -37,9 +37,10 @@ export default function CookieConsent() {
 
   return (
     <div
-      className="absolute left-1/2 z-[10]"
+      className="fixed z-[9999]"
       style={{
-        bottom: "140px",
+        bottom: "24px",
+        left: "50%",
         transform: "translateX(-50%)",
         width: "100%",
         maxWidth: "380px",
