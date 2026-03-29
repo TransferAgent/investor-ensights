@@ -55,7 +55,8 @@ export async function POST(req: NextRequest) {
   for (const city of realCities) {
     try {
       const cityNameSlug = city.cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
-      const articleSlug = `tableicity-${cityNameSlug}-cap-table`;
+      const templateSlug = template.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "").replace(/^-+/, "");
+      const articleSlug = `tableicity-${cityNameSlug}-${templateSlug}`;
       const title = replacePlaceholders(template.titlePattern, city);
       const headline = replacePlaceholders(template.headlinePattern, city);
       const subheadline = template.subheadlinePattern ? replacePlaceholders(template.subheadlinePattern, city) : undefined;
