@@ -41,8 +41,8 @@ export default function CookieConsent() {
 
   return (
     <div
-      className="absolute left-[8%] right-[8%] z-[10]"
-      style={{ top: "150px" }}
+      className="absolute z-[10]"
+      style={{ top: "150px", left: "50%", transform: "translateX(-50%)", width: "84%" }}
       data-testid="cookie-consent-card"
     >
       <div
