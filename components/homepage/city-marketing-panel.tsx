@@ -48,6 +48,7 @@ interface CityMarketingPanelProps {
   body: string
   cityName: string
   stateCode: string
+  citySlug?: string
   streetAddress?: string | null
   zipCode?: string | null
   phoneNumber?: string | null
@@ -64,6 +65,7 @@ export default function CityMarketingPanel({
   body,
   cityName,
   stateCode,
+  citySlug,
   streetAddress,
   zipCode,
   phoneNumber,
@@ -255,16 +257,27 @@ export default function CityMarketingPanel({
 
         {articles.length > 0 && (
           <div className="border-t border-white/10 pt-4 mb-4" data-testid="section-press-releases">
-            <h3 className="text-[10px] uppercase tracking-wider text-blue-200/50 mb-3 font-normal">
-              Press Releases
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[10px] uppercase tracking-wider text-blue-200/50 font-normal">
+                Press Releases
+              </h3>
+              {articles.length > 2 && citySlug && (
+                <Link
+                  href={"/locations/" + citySlug + "/press-releases"}
+                  className="text-[10px] uppercase tracking-wider text-blue-400 hover:text-blue-300 transition-colors font-normal"
+                  data-testid="link-see-more-press-releases"
+                >
+                  See More
+                </Link>
+              )}
+            </div>
             <div className="space-y-2">
-              {articles.map((article) => (
+              {articles.slice(0, 2).map((article) => (
                 <Link
                   key={article.slug}
-                  href={`/discovery/knowledge/${article.slug}`}
+                  href={"/discovery/knowledge/" + article.slug}
                   className="block p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10"
-                  data-testid={`link-article-${article.slug}`}
+                  data-testid={"link-article-" + article.slug}
                 >
                   <h4 className="text-sm font-medium text-white/90 leading-tight">
                     {article.headline}

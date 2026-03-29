@@ -172,6 +172,7 @@ export default async function CityPage({
           body={body}
           cityName={city.cityName}
           stateCode={city.stateCode}
+          citySlug={city.slug}
           streetAddress={city.streetAddress}
           zipCode={city.zipCode}
           phoneNumber={city.phoneNumber}
