@@ -817,6 +817,11 @@ export default function KnowledgeAdmin() {
           <p className="text-sm text-muted-foreground mt-1">Create, edit, publish, and archive press releases</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" asChild data-testid="button-view-live">
+            <a href="/sitemap.xml" target="_blank" rel="noopener">
+              <Eye className="mr-2 h-4 w-4" /> View Live
+            </a>
+          </Button>
           <Dialog open={bulkOpen} onOpenChange={(o) => { setBulkOpen(o); if (!o) { setBulkState(""); setBulkSelected([]); setBulkDirective(""); setBulkResult(null) } }}>
             <DialogTrigger asChild>
               <Button variant="outline" data-testid="button-bulk-generate">
