@@ -158,7 +158,7 @@ export default function LoginPanel() {
             <p className="text-sm" style={{ color: "#718096" }}>
               Don&apos;t have an account?{" "}
               <a
-                href="https://www.tableicity.com/register"
+                href="https://app.tableicity.com/register"
                 className="font-medium hover:underline"
                 style={{ color: "#63B3ED" }}
                 data-testid="link-create-account"
@@ -169,7 +169,7 @@ export default function LoginPanel() {
             <p className="text-sm" style={{ color: "#718096" }}>
               Or{" "}
               <a
-                href="https://www.tableicity.com/launch"
+                href="https://app.tableicity.com/launch"
                 className="font-medium hover:underline"
                 style={{ color: "#48BB78" }}
                 data-testid="link-free-trial"
