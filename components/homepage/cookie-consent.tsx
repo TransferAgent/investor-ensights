@@ -1,45 +1,24 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X } from "lucide-react"
 
 const REDIRECT_URL = "https://app.tableicity.com/login"
 
 export default function CookieConsent() {
   const [mounted, setMounted] = useState(false)
-  const [visible, setVisible] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    try {
-      const consent = localStorage.getItem("cookie-consent-accepted")
-      const dismissed = localStorage.getItem("cookie-consent-dismissed")
-      if (!consent && dismissed !== "true") {
-        setVisible(true)
-      }
-    } catch (e) {
-      // localStorage not available
-    }
   }, [])
 
   if (!mounted) return null
-  if (!visible) return null
 
   function doAccept() {
-    try { localStorage.setItem("cookie-consent-accepted", "true") } catch (e) {}
-    setVisible(false)
     window.location.href = REDIRECT_URL
   }
 
   function doReject() {
-    try { localStorage.setItem("cookie-consent-accepted", "rejected") } catch (e) {}
-    setVisible(false)
     window.location.href = REDIRECT_URL
-  }
-
-  function doDismiss() {
-    try { localStorage.setItem("cookie-consent-dismissed", "true") } catch (e) {}
-    setVisible(false)
   }
 
   return (
@@ -59,17 +38,8 @@ export default function CookieConsent() {
       >
         <div style={{ height: "4px", background: "#2B6CB0" }} />
 
-        <div style={{ padding: "16px", position: "relative" }}>
-          <button
-            onClick={doDismiss}
-            className="absolute top-3 right-3 text-gray-500 hover:text-gray-300 transition-colors"
-            style={{ background: "transparent", border: "none", cursor: "pointer" }}
-            data-testid="button-cookie-dismiss"
-          >
-            <X className="h-4 w-4" />
-          </button>
-
-          <div className="flex items-start gap-3 pr-6">
+        <div style={{ padding: "16px" }}>
+          <div className="flex items-start gap-3">
             <div
               className="shrink-0 mt-0.5 flex items-center justify-center"
               style={{
