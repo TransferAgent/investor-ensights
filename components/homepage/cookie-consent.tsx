@@ -41,14 +41,9 @@ export default function CookieConsent() {
 
   return (
     <div
-      className="fixed z-[9999]"
+      className="relative z-[10] mb-4"
       style={{
-        bottom: "24px",
-        left: "50%",
-        transform: "translateX(-50%)",
         width: "100%",
-        maxWidth: "380px",
-        padding: "0 16px",
       }}
       data-testid="cookie-consent-card"
     >
@@ -58,7 +53,7 @@ export default function CookieConsent() {
           border: "1px solid rgba(99, 179, 237, 0.3)",
           borderRadius: "12px",
           overflow: "hidden",
-          boxShadow: "0 15px 40px rgba(0, 0, 0, 0.5)",
+          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.4)",
         }}
       >
         <div style={{ height: "4px", background: "#2B6CB0" }} />

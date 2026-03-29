@@ -1,6 +1,7 @@
 "use client"
 
 import { Building2, Mail } from "lucide-react"
+import CookieConsent from "./cookie-consent"
 
 export default function LoginPanel() {
   return (
@@ -31,7 +32,7 @@ export default function LoginPanel() {
 
       <div className="absolute inset-0 overflow-y-auto flex items-center justify-center p-6 z-[3]">
         <div
-          className="w-full max-w-[420px] rounded-2xl p-8"
+          className="w-full max-w-[420px] rounded-2xl p-8 relative"
           style={{
             border: "1px solid rgba(99,179,237,0.2)",
             boxShadow:
@@ -69,6 +70,8 @@ export default function LoginPanel() {
               Equity Management for Startups
             </p>
           </div>
+
+          <CookieConsent />
 
           <form
             className="space-y-4"

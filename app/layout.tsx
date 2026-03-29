@@ -2,7 +2,6 @@ import type { Metadata } from "next"
 import { Open_Sans } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import CookieConsent from "@/components/homepage/cookie-consent"
 import "./globals.css"
 
 const openSans = Open_Sans({
@@ -31,7 +30,6 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
-          <CookieConsent />
           <Toaster />
         </ThemeProvider>
       </body>
