@@ -6,34 +6,38 @@ import { X, Cookie } from "lucide-react"
 const REDIRECT_URL = "https://app.tableicity.com/login"
 
 export default function CookieConsent() {
+  const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const consent = localStorage.getItem("cookie-consent-accepted")
-    const dismissed = localStorage.getItem("cookie-consent-dismissed")
-    if (!consent && dismissed !== "true") {
-      setVisible(true)
-    }
+    setMounted(true)
+    try {
+      const consent = localStorage.getItem("cookie-consent-accepted")
+      const dismissed = localStorage.getItem("cookie-consent-dismissed")
+      if (!consent && dismissed !== "true") {
+        setVisible(true)
+      }
+    } catch (e) {}
   }, [])
 
+  if (!mounted || !visible) return null
+
   const handleAccept = () => {
-    localStorage.setItem("cookie-consent-accepted", "true")
+    try { localStorage.setItem("cookie-consent-accepted", "true") } catch (e) {}
     setVisible(false)
     window.location.href = REDIRECT_URL
   }
 
   const handleReject = () => {
-    localStorage.setItem("cookie-consent-accepted", "rejected")
+    try { localStorage.setItem("cookie-consent-accepted", "rejected") } catch (e) {}
     setVisible(false)
     window.location.href = REDIRECT_URL
   }
 
   const handleDismiss = () => {
-    localStorage.setItem("cookie-consent-dismissed", "true")
+    try { localStorage.setItem("cookie-consent-dismissed", "true") } catch (e) {}
     setVisible(false)
   }
-
-  if (!visible) return null
 
   return (
     <div

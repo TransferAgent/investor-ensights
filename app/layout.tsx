@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { Open_Sans } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import CookieConsentWrapper from "@/components/homepage/cookie-consent-wrapper"
+import CookieConsent from "@/components/homepage/cookie-consent"
 import "./globals.css"
 
 const openSans = Open_Sans({
@@ -31,7 +31,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
-          <CookieConsentWrapper />
+          <CookieConsent />
           <Toaster />
         </ThemeProvider>
       </body>
