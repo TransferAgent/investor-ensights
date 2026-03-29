@@ -1,1 +1,9 @@
-{}
+{
+  "[project]/components/homepage/cookie-consent.tsx [app-client] (ecmascript, next/dynamic entry)": {
+    "id": "[project]/components/homepage/cookie-consent.tsx [app-client] (ecmascript, next/dynamic entry)",
+    "files": [
+      "static/chunks/_162aa583._.js",
+      "static/chunks/components_homepage_cookie-consent_tsx_ac0b6978._.js"
+    ]
+  }
+}

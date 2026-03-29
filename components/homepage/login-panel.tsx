@@ -1,7 +1,6 @@
 "use client"
 
 import { Building2, Mail } from "lucide-react"
-import CookieConsent from "./cookie-consent"
 
 export default function LoginPanel() {
   return (
@@ -30,7 +29,6 @@ export default function LoginPanel() {
         <span className="text-lg font-bold text-white">Tableicity</span>
       </div>
 
-      <CookieConsent />
       <div className="absolute inset-0 overflow-y-auto flex items-center justify-center p-6 z-[3]">
         <div
           className="w-full max-w-[420px] rounded-2xl p-8"
