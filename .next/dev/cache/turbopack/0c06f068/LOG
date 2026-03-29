@@ -10079,3 +10079,9 @@ FAM | META SEQ | SST SEQ         | RANGE
     |          | 00006984 00006991 00006996 00007002 SST DELETED
     |          | 00006896 00006903 00006908 00006915 00006920 00006929 00006938 00006947 00006952 00006961 00006970 00006982 00006988 00006995 00007001 META DELETED
     |          | 00007006 META DELETED
+Time 2026-03-29T00:02:01.060005707Z
+Commit 00007019 4 keys in 31ms 453µs 998ns
+FAM | META SEQ | SST SEQ         | RANGE
+  1 | 00007017 | 00007014 SST    |                         O                                                                            | 3ffdfb3b7d50fcf1-3ffdfb3b7d50fcf1 (0 MiB, fresh)
+  0 | 00007018 | 00007016 SST    |                        [=======================================================================]     | 3aefa6fd5cf2deb4-f42f94001fcb5351 (0 MiB, fresh)
+  2 | 00007019 | 00007015 SST    |                         O                                                                            | 3ffdfb3b7d50fcf1-3ffdfb3b7d50fcf1 (0 MiB, fresh)
