@@ -798,8 +798,8 @@ export default function KnowledgeAdmin() {
         <Textarea id="metaDesc" value={formMetaDesc} onChange={(e) => setFormMetaDesc(e.target.value)} placeholder="SEO meta description" rows={2} data-testid="input-meta-desc" />
       </div>
       <div>
-        <Label htmlFor="subheadline">Subheadline</Label>
-        <Input id="subheadline" value={formSubheadline} onChange={(e) => setFormSubheadline(e.target.value)} placeholder="Optional subheadline" data-testid="input-subheadline" />
+        <Label htmlFor="subheadline">Subheadline (HTML supported)</Label>
+        <Textarea id="subheadline" value={formSubheadline} onChange={(e) => setFormSubheadline(e.target.value)} placeholder="Optional subheadline — supports <h2>, <strong>, etc." rows={2} className="font-mono text-xs" data-testid="input-subheadline" />
       </div>
       <div>
         <Label htmlFor="body">Body HTML</Label>
