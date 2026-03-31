@@ -2138,20 +2138,20 @@ function TemplateForm({ initial, onSubmit, isPending }: {
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Launch Narrative v1" data-testid="input-template-name" />
       </div>
       <div>
-        <Label>Title Pattern</Label>
+        <Label>Meta Title</Label>
         <Input value={titlePattern} onChange={(e) => setTitlePattern(e.target.value)} placeholder="e.g., Cap Table Readiness in {{city}}, {{state_code}} | Tableicity" data-testid="input-template-title" />
       </div>
       <div>
-        <Label>Headline Pattern</Label>
-        <Input value={headlinePattern} onChange={(e) => setHeadlinePattern(e.target.value)} placeholder="e.g., {{city}}, {{state_name}} Founders Embrace Privacy-First Cap Table Management" data-testid="input-template-headline" />
-      </div>
-      <div>
-        <Label>Subheadline Pattern</Label>
-        <Textarea value={subheadlinePattern} onChange={(e) => setSubheadlinePattern(e.target.value)} rows={2} data-testid="input-template-subheadline" />
-      </div>
-      <div>
-        <Label>Meta Description Pattern</Label>
+        <Label>Meta Description</Label>
         <Textarea value={metaDescriptionPattern} onChange={(e) => setMetaDescriptionPattern(e.target.value)} rows={2} data-testid="input-template-meta" />
+      </div>
+      <div>
+        <Label>Headline Pattern (HTML supported)</Label>
+        <Textarea value={headlinePattern} onChange={(e) => setHeadlinePattern(e.target.value)} placeholder="e.g., {{city}}, {{state_name}} Founders Embrace Privacy-First Cap Table Management" rows={2} className="font-mono text-xs" data-testid="input-template-headline" />
+      </div>
+      <div>
+        <Label>Subheadline Pattern (HTML supported)</Label>
+        <Textarea value={subheadlinePattern} onChange={(e) => setSubheadlinePattern(e.target.value)} rows={2} className="font-mono text-xs" data-testid="input-template-subheadline" />
       </div>
       <div>
         <Label>Dateline Pattern</Label>
