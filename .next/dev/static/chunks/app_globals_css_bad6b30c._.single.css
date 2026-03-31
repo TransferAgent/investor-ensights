@@ -4793,9 +4793,44 @@ input[type="search"]::-webkit-search-cancel-button {
   color: hsl(var(--sidebar-accent-foreground) / var(--tw-text-opacity, 1));
 }
 
+.prose-headings\:font-semibold :where(h1, h2, h3, h4, h5, h6, th):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  font-weight: 600;
+}
+
 .prose-headings\:text-white :where(h1, h2, h3, h4, h5, h6, th):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+
+.prose-headings\:text-blue-200 :where(h1, h2, h3, h4, h5, h6, th):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  --tw-text-opacity: 1;
+  color: rgb(191 219 254 / var(--tw-text-opacity, 1));
+}
+
+.prose-h2\:mb-4 :where(h2):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  margin-bottom: 1rem;
+}
+
+.prose-h2\:mt-8 :where(h2):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  margin-top: 2rem;
+}
+
+.prose-h2\:text-xl :where(h2):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+.prose-h3\:mb-3 :where(h3):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  margin-bottom: .75rem;
+}
+
+.prose-h3\:mt-6 :where(h3):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  margin-top: 1.5rem;
+}
+
+.prose-h3\:text-lg :where(h3):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
 }
 
 .prose-p\:text-blue-100\/80 :where(p):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
