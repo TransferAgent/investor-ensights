@@ -116,14 +116,10 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           </p>
         )}
 
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight" data-testid="text-headline">
-          {article.headline}
-        </h1>
+        <div className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight" data-testid="text-headline" dangerouslySetInnerHTML={{ __html: article.headline }} />
 
         {article.subheadline && (
-          <p className="text-lg text-blue-200/70 mb-8" data-testid="text-subheadline">
-            {article.subheadline}
-          </p>
+          <div className="text-lg text-blue-200/70 mb-8" data-testid="text-subheadline" dangerouslySetInnerHTML={{ __html: article.subheadline }} />
         )}
 
         <div className="flex flex-wrap items-center gap-4 mb-8 text-sm text-blue-200/50 border-b border-white/10 pb-6">
