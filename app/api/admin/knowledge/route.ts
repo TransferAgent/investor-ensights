@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
   const article = await storage.createKnowledgeArticle({
     slug,
     title: sanitizeString(body.title || body.headline || "Untitled"),
-    headline: sanitizeString(body.headline || body.title || "Untitled"),
-    subheadline: body.subheadline ? sanitizeString(body.subheadline) : null,
+    headline: body.headline || body.title || "Untitled",
+    subheadline: body.subheadline || null,
     dateline: body.dateline ? sanitizeString(body.dateline) : null,
     metaDescription: body.metaDescription ? sanitizeString(body.metaDescription) : null,
     bodyHtml: body.bodyHtml || "<p></p>",

@@ -23,8 +23,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const data: any = {};
 
   if (body.title !== undefined) data.title = sanitizeString(body.title);
-  if (body.headline !== undefined) data.headline = sanitizeString(body.headline);
-  if (body.subheadline !== undefined) data.subheadline = body.subheadline ? sanitizeString(body.subheadline) : null;
+  if (body.headline !== undefined) data.headline = body.headline;
+  if (body.subheadline !== undefined) data.subheadline = body.subheadline || null;
   if (body.dateline !== undefined) data.dateline = body.dateline ? sanitizeString(body.dateline) : null;
   if (body.metaDescription !== undefined) data.metaDescription = body.metaDescription ? sanitizeString(body.metaDescription) : null;
   if (body.bodyHtml !== undefined) data.bodyHtml = body.bodyHtml;

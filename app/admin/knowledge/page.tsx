@@ -790,7 +790,7 @@ export default function KnowledgeAdmin() {
         <Textarea id="headline" value={formHeadline} onChange={(e) => setFormHeadline(e.target.value)} placeholder="Press release headline — supports <h2>, <strong>, etc." rows={2} className="font-mono text-xs" data-testid="input-headline" />
       </div>
       <div>
-        <Label htmlFor="title">SEO Title</Label>
+        <Label htmlFor="title">Meta Title</Label>
         <Input id="title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="SEO page title" data-testid="input-title" />
       </div>
       <div>
