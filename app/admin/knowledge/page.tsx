@@ -1366,7 +1366,7 @@ export default function KnowledgeAdmin() {
                                   aria-label={"Select " + a.headline}
                                 />
                               </TableCell>
-                              <TableCell className="font-medium max-w-[200px] truncate">{a.headline}</TableCell>
+                              <TableCell className="font-medium max-w-[200px] truncate">{a.headline.replace(/<[^>]*>/g, "")}</TableCell>
                               <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">{a.slug}</TableCell>
                               <TableCell>
                                 <Badge variant="outline" className={statusColors[a.status] || ""} data-testid={`badge-status-${a.id}`}>
@@ -1972,7 +1972,7 @@ export default function KnowledgeAdmin() {
                   <TableBody>
                     {articles?.filter(a => a.status === "published").slice(0, 10).map(a => (
                       <TableRow key={a.id}>
-                        <TableCell className="text-sm max-w-[200px] truncate">{a.headline}</TableCell>
+                        <TableCell className="text-sm max-w-[200px] truncate">{a.headline.replace(/<[^>]*>/g, "")}</TableCell>
                         <TableCell className="text-muted-foreground">—</TableCell>
                         <TableCell className="text-muted-foreground">—</TableCell>
                         <TableCell className="text-muted-foreground">—</TableCell>
