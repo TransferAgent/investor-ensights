@@ -1870,6 +1870,7 @@ export default function KnowledgeAdmin() {
                   <TemplateForm
                     onSubmit={(data) => createTemplateMutation.mutate(data)}
                     isPending={createTemplateMutation.isPending}
+                    cities={cities || []}
                   />
                 </DialogContent>
               </Dialog>
@@ -1924,6 +1925,7 @@ export default function KnowledgeAdmin() {
                   initial={editTemplate}
                   onSubmit={(data) => updateTemplateMutation.mutate({ id: editTemplate.id, data })}
                   isPending={updateTemplateMutation.isPending}
+                  cities={cities || []}
                 />
               )}
             </DialogContent>
@@ -2116,10 +2118,11 @@ export default function KnowledgeAdmin() {
   )
 }
 
-function TemplateForm({ initial, onSubmit, isPending }: {
+function TemplateForm({ initial, onSubmit, isPending, cities }: {
   initial?: KnowledgeTemplateItem
   onSubmit: (data: any) => void
   isPending: boolean
+  cities: CityRecord[]
 }) {
   const [name, setName] = useState(initial?.name || "")
   const [titlePattern, setTitlePattern] = useState(initial?.titlePattern || "")
@@ -2130,6 +2133,21 @@ function TemplateForm({ initial, onSubmit, isPending }: {
   const [bodyHtmlPattern, setBodyHtmlPattern] = useState(initial?.bodyHtmlPattern || "")
   const [boilerplateHtml, setBoilerplateHtml] = useState(initial?.boilerplateHtml || "")
   const [ogImageUrl, setOgImageUrl] = useState(initial?.ogImageUrl || "https://www.tableicity.com/beast-06-zk-network.png")
+  const [previewCity, setPreviewCity] = useState("")
+  const [showPreview, setShowPreview] = useState(false)
+
+  const replacePlaceholders = (pattern: string) => {
+    const city = cities.find(c => c.slug === previewCity)
+    if (!city || !pattern) return pattern
+    return pattern
+      .replace(/\{\{city\}\}/g, city.cityName)
+      .replace(/\{\{city_upper\}\}/g, city.cityName.toUpperCase())
+      .replace(/\{\{state_name\}\}/g, (city as any).stateName || "")
+      .replace(/\{\{state_code\}\}/g, city.stateCode || "")
+      .replace(/\{\{slug\}\}/g, city.slug)
+      .replace(/\{\{landmarks\}\}/g, ((city as any).localLandmarks || (city as any).landmarks || []).join(", ") || "local business districts")
+      .replace(/\{\{nearby_cities\}\}/g, ((city as any).nearbyCities || []).join(", ") || "surrounding communities")
+  }
 
   return (
     <div className="space-y-4 pt-2">
@@ -2169,6 +2187,65 @@ function TemplateForm({ initial, onSubmit, isPending }: {
         <Label>OG Image URL</Label>
         <Input value={ogImageUrl} onChange={(e) => setOgImageUrl(e.target.value)} data-testid="input-template-og-image" />
       </div>
+
+      <div className="border rounded-lg p-4 bg-muted/20">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-sm">Live Preview</h3>
+          <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)} data-testid="button-toggle-preview">
+            {showPreview ? "Hide Preview" : "Show Preview"}
+          </Button>
+        </div>
+        {showPreview && (
+          <div className="space-y-3">
+            <Select value={previewCity} onValueChange={setPreviewCity}>
+              <SelectTrigger data-testid="select-template-preview-city">
+                <SelectValue placeholder="Pick a city to preview..." />
+              </SelectTrigger>
+              <SelectContent>
+                {[...cities].sort((a, b) => a.cityName.localeCompare(b.cityName)).map(c => (
+                  <SelectItem key={c.slug} value={c.slug}>{c.cityName}, {c.stateCode}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {previewCity && (
+              <div className="rounded-lg overflow-hidden border border-white/10" data-testid="template-preview-panel">
+                <div className="bg-[#0f172a] p-6 space-y-4">
+                  {datelinePattern && (
+                    <p className="text-xs uppercase tracking-wider text-blue-200/50">{replacePlaceholders(datelinePattern)}</p>
+                  )}
+                  <h1 className="text-2xl font-bold text-white leading-tight" dangerouslySetInnerHTML={{ __html: replacePlaceholders(headlinePattern).replace(/<\/?h[1-6][^>]*>/gi, "") }} />
+                  {subheadlinePattern && (
+                    <h2 className="text-sm font-normal text-blue-200/70" dangerouslySetInnerHTML={{ __html: replacePlaceholders(subheadlinePattern).replace(/<\/?h[1-6][^>]*>/gi, "") }} />
+                  )}
+                  <div className="text-xs text-blue-200/50 border-b border-white/10 pb-3">
+                    By Tableicity &middot; {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                  </div>
+                  <div
+                    className="prose prose-sm prose-invert max-w-none
+                      prose-headings:text-blue-200/70 prose-headings:font-medium
+                      prose-h2:text-base prose-h2:mt-4 prose-h2:mb-2
+                      prose-h3:text-sm prose-h3:mt-3 prose-h3:mb-1
+                      prose-p:text-blue-100/80 prose-p:text-xs
+                      prose-strong:text-white prose-li:text-blue-100/80 prose-li:text-xs
+                      prose-a:text-blue-400"
+                    dangerouslySetInnerHTML={{ __html: replacePlaceholders(bodyHtmlPattern) }}
+                  />
+                  {boilerplateHtml && (
+                    <div className="mt-4 pt-4 border-t border-white/10">
+                      <p className="text-[10px] uppercase tracking-wider text-blue-200/40 mb-2">About Tableicity</p>
+                      <div className="text-xs text-blue-200/50" dangerouslySetInnerHTML={{ __html: replacePlaceholders(boilerplateHtml) }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {!previewCity && (
+              <p className="text-xs text-muted-foreground text-center py-2">Pick a city above to see how the template will look</p>
+            )}
+          </div>
+        )}
+      </div>
+
       <Button
         onClick={() => onSubmit({ name, titlePattern, headlinePattern, subheadlinePattern: subheadlinePattern || undefined, metaDescriptionPattern: metaDescriptionPattern || undefined, datelinePattern: datelinePattern || undefined, bodyHtmlPattern, boilerplateHtml: boilerplateHtml || undefined, ogImageUrl: ogImageUrl || undefined })}
         disabled={isPending || !name || !titlePattern || !headlinePattern || !bodyHtmlPattern}

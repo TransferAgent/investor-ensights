@@ -3749,19 +3749,19 @@ input[type="search"]::-webkit-search-cancel-button {
 }
 
 .city-body-html h2 {
-  color: #fff;
+  color: #bfdbfeb3;
   margin-top: 1rem;
   margin-bottom: .5rem;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .city-body-html h3 {
-  color: #fff;
+  color: #bfdbfeb3;
   margin-top: .75rem;
   margin-bottom: .375rem;
   font-size: .875rem;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .city-body-html h4 {
@@ -4912,43 +4912,20 @@ input[type="search"]::-webkit-search-cancel-button {
   color: hsl(var(--sidebar-accent-foreground) / var(--tw-text-opacity, 1));
 }
 
-.prose-headings\:font-semibold :where(h1, h2, h3, h4, h5, h6, th):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-  font-weight: 600;
-}
-
 .prose-headings\:font-medium :where(h1, h2, h3, h4, h5, h6, th):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
   font-weight: 500;
-}
-
-.prose-headings\:text-white :where(h1, h2, h3, h4, h5, h6, th):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-  --tw-text-opacity: 1;
-  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
-}
-
-.prose-headings\:text-blue-200 :where(h1, h2, h3, h4, h5, h6, th):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-  --tw-text-opacity: 1;
-  color: rgb(191 219 254 / var(--tw-text-opacity, 1));
 }
 
 .prose-headings\:text-blue-200\/70 :where(h1, h2, h3, h4, h5, h6, th):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
   color: #bfdbfeb3;
 }
 
-.prose-h2\:mb-4 :where(h2):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-  margin-bottom: 1rem;
-}
-
-.prose-h2\:mt-8 :where(h2):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-  margin-top: 2rem;
-}
-
 .prose-h2\:mb-3 :where(h2):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
   margin-bottom: .75rem;
 }
 
-.prose-h2\:text-xl :where(h2):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
+.prose-h2\:mt-8 :where(h2):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  margin-top: 2rem;
 }
 
 .prose-h2\:text-lg :where(h2):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
@@ -4956,21 +4933,12 @@ input[type="search"]::-webkit-search-cancel-button {
   line-height: 1.75rem;
 }
 
-.prose-h3\:mb-3 :where(h3):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-  margin-bottom: .75rem;
-}
-
-.prose-h3\:mt-6 :where(h3):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-  margin-top: 1.5rem;
-}
-
 .prose-h3\:mb-2 :where(h3):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
   margin-bottom: .5rem;
 }
 
-.prose-h3\:text-lg :where(h3):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-  font-size: 1.125rem;
-  line-height: 1.75rem;
+.prose-h3\:mt-6 :where(h3):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  margin-top: 1.5rem;
 }
 
 .prose-h3\:text-base :where(h3):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
@@ -5506,42 +5474,6 @@ input[type="search"]::-webkit-search-cancel-button {
 
 .\[\&_\[cmdk-item\]_svg\]\:w-5 [cmdk-item] svg {
   width: 1.25rem;
-}
-
-.\[\&_h1\]\:m-0 h1 {
-  margin: 0;
-}
-
-.\[\&_h1\]\:font-\[inherit\] h1 {
-  font-family: inherit;
-}
-
-.\[\&_h1\]\:text-\[inherit\] h1 {
-  color: inherit;
-}
-
-.\[\&_h2\]\:m-0 h2 {
-  margin: 0;
-}
-
-.\[\&_h2\]\:font-\[inherit\] h2 {
-  font-family: inherit;
-}
-
-.\[\&_h2\]\:text-\[inherit\] h2 {
-  color: inherit;
-}
-
-.\[\&_h3\]\:m-0 h3 {
-  margin: 0;
-}
-
-.\[\&_h3\]\:font-\[inherit\] h3 {
-  font-family: inherit;
-}
-
-.\[\&_h3\]\:text-\[inherit\] h3 {
-  color: inherit;
 }
 
 .\[\&_p\]\:leading-relaxed p {
