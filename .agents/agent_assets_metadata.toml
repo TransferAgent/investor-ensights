@@ -18,3 +18,9 @@ id = "P9I_aP7xgAZVH53xH7AzL"
 uri = "file://John/Migration.md"
 type = "text"
 title = "Migration Guide — Dev vs Production"
+
+[[outputs]]
+id = "EcORiXSyGrMqFOe2JD6kp"
+uri = "file://John/EU_Handover.md"
+type = "text"
+title = "EU Remix Handover Document"
