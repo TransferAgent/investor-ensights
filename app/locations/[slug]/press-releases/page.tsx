@@ -65,7 +65,7 @@ export default async function PressReleasesPage({ params }: { params: Promise<{ 
                 data-testid={"link-article-" + article.slug}
               >
                 <h2 className="text-base font-medium text-white/90 leading-tight">
-                  {article.headline}
+                  {article.headline.replace(/<[^>]*>/g, "")}
                 </h2>
                 {article.metaDescription && (
                   <p className="text-sm text-blue-200/60 mt-1.5 line-clamp-2">

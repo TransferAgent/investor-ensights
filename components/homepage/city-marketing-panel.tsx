@@ -280,7 +280,7 @@ export default function CityMarketingPanel({
                   data-testid={"link-article-" + article.slug}
                 >
                   <h4 className="text-sm font-medium text-white/90 leading-tight">
-                    {article.headline}
+                    {article.headline.replace(/<[^>]*>/g, "")}
                   </h4>
                   {article.metaDescription && (
                     <p className="text-xs text-blue-200/60 mt-1 line-clamp-2">
