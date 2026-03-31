@@ -775,31 +775,31 @@ export default function KnowledgeAdmin() {
 
   const articleForm = (isEdit: boolean) => (
     <div className="grid gap-4 max-h-[70vh] overflow-y-auto pr-2">
-      <div>
-        <Label htmlFor="slug">Slug</Label>
-        <Input id="slug" value={formSlug} onChange={(e) => setFormSlug(e.target.value)} placeholder="my-press-release" data-testid="input-slug" />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-[1fr_auto] gap-4">
         <div>
-          <Label htmlFor="title">SEO Title</Label>
-          <Input id="title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="SEO page title" data-testid="input-title" />
+          <Label htmlFor="slug">Slug</Label>
+          <Input id="slug" value={formSlug} onChange={(e) => setFormSlug(e.target.value)} placeholder="my-press-release" data-testid="input-slug" />
         </div>
         <div>
           <Label htmlFor="dateline">Dateline</Label>
-          <Input id="dateline" value={formDateline} onChange={(e) => setFormDateline(e.target.value)} placeholder="NEW YORK, March 18, 2026" data-testid="input-dateline" />
+          <Input id="dateline" value={formDateline} onChange={(e) => setFormDateline(e.target.value)} placeholder="NEW YORK, March 18, 2026" className="w-[220px]" data-testid="input-dateline" />
         </div>
       </div>
       <div>
-        <Label htmlFor="headline">Headline</Label>
-        <Input id="headline" value={formHeadline} onChange={(e) => setFormHeadline(e.target.value)} placeholder="Press release headline" data-testid="input-headline" />
+        <Label htmlFor="headline">Headline (HTML supported)</Label>
+        <Textarea id="headline" value={formHeadline} onChange={(e) => setFormHeadline(e.target.value)} placeholder="Press release headline — supports <h2>, <strong>, etc." rows={2} className="font-mono text-xs" data-testid="input-headline" />
       </div>
       <div>
-        <Label htmlFor="subheadline">Subheadline</Label>
-        <Input id="subheadline" value={formSubheadline} onChange={(e) => setFormSubheadline(e.target.value)} placeholder="Optional subheadline" data-testid="input-subheadline" />
+        <Label htmlFor="title">SEO Title</Label>
+        <Input id="title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="SEO page title" data-testid="input-title" />
       </div>
       <div>
         <Label htmlFor="metaDesc">Meta Description</Label>
         <Textarea id="metaDesc" value={formMetaDesc} onChange={(e) => setFormMetaDesc(e.target.value)} placeholder="SEO meta description" rows={2} data-testid="input-meta-desc" />
+      </div>
+      <div>
+        <Label htmlFor="subheadline">Subheadline</Label>
+        <Input id="subheadline" value={formSubheadline} onChange={(e) => setFormSubheadline(e.target.value)} placeholder="Optional subheadline" data-testid="input-subheadline" />
       </div>
       <div>
         <Label htmlFor="body">Body HTML</Label>
