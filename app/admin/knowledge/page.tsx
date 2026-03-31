@@ -695,7 +695,7 @@ export default function KnowledgeAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] })
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
-      toast({ title: "Campaign deleted", description: "Articles moved to Uncategorized" })
+      toast({ title: "Campaign deleted", description: "Campaign and all its articles have been deleted" })
     },
   })
 
@@ -1302,7 +1302,7 @@ export default function KnowledgeAdmin() {
                             className="h-7 w-7"
                             onClick={(e) => {
                               e.stopPropagation()
-                              if (confirm("Delete campaign \"" + group.campaign!.name + "\"? Articles will be moved to Uncategorized.")) {
+                              if (confirm("Delete campaign \"" + group.campaign!.name + "\" and all its articles? This cannot be undone.")) {
                                 deleteCampaignMutation.mutate(group.campaign!.id)
                               }
                             }}

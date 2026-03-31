@@ -695,7 +695,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCampaign(id: string): Promise<void> {
-    await db.update(knowledgeArticles).set({ campaignId: null }).where(eq(knowledgeArticles.campaignId, id));
+    await db.delete(knowledgeArticles).where(eq(knowledgeArticles.campaignId, id));
     await db.delete(knowledgeCampaigns).where(eq(knowledgeCampaigns.id, id));
   }
 }
