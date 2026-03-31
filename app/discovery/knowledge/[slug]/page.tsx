@@ -145,9 +145,9 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
 
         <div
           className="prose prose-invert prose-blue max-w-none
-            prose-headings:text-blue-200 prose-headings:font-semibold
-            prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-4
-            prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-3
+            prose-headings:text-blue-200/70 prose-headings:font-medium
+            prose-h2:text-lg prose-h2:mt-8 prose-h2:mb-3
+            prose-h3:text-base prose-h3:mt-6 prose-h3:mb-2
             prose-p:text-blue-100/80
             prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline
             prose-strong:text-white prose-li:text-blue-100/80"
