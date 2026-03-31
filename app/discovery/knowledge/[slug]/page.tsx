@@ -116,10 +116,10 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           </p>
         )}
 
-        <div className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight [&_h1]:text-[inherit] [&_h1]:font-[inherit] [&_h1]:m-0 [&_h2]:text-[inherit] [&_h2]:font-[inherit] [&_h2]:m-0 [&_h3]:text-[inherit] [&_h3]:font-[inherit] [&_h3]:m-0" data-testid="text-headline" dangerouslySetInnerHTML={{ __html: article.headline }} />
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight" data-testid="text-headline" dangerouslySetInnerHTML={{ __html: article.headline.replace(/<\/?h[1-6][^>]*>/gi, "") }} />
 
         {article.subheadline && (
-          <div className="text-lg text-blue-200/70 mb-8 [&_h1]:text-[inherit] [&_h1]:font-[inherit] [&_h1]:m-0 [&_h2]:text-[inherit] [&_h2]:font-[inherit] [&_h2]:m-0 [&_h3]:text-[inherit] [&_h3]:font-[inherit] [&_h3]:m-0" data-testid="text-subheadline" dangerouslySetInnerHTML={{ __html: article.subheadline }} />
+          <h2 className="text-lg font-normal text-blue-200/70 mb-8" data-testid="text-subheadline" dangerouslySetInnerHTML={{ __html: article.subheadline.replace(/<\/?h[1-6][^>]*>/gi, "") }} />
         )}
 
         <div className="flex flex-wrap items-center gap-4 mb-8 text-sm text-blue-200/50 border-b border-white/10 pb-6">
