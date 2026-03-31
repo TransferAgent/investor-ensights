@@ -206,6 +206,7 @@ export default function KnowledgeAdmin() {
   const [autoPublish, setAutoPublish] = useState(true)
   const [generateResult, setGenerateResult] = useState<any>(null)
   const [selectedArticles, setSelectedArticles] = useState<string[]>([])
+  const [toolbarTemplateId, setToolbarTemplateId] = useState("")
 
   const [studioTemplateId, setStudioTemplateId] = useState("")
   const [studioStateFilter, setStudioStateFilter] = useState("")
@@ -313,7 +314,7 @@ export default function KnowledgeAdmin() {
       if (!res.ok) throw new Error("Failed to load templates")
       return res.json()
     },
-    enabled: activeTab === "templates" || activeTab === "content-studio",
+    enabled: activeTab === "templates" || activeTab === "content-studio" || activeTab === "articles",
   })
 
   const createTemplateMutation = useMutation({
@@ -628,6 +629,29 @@ export default function KnowledgeAdmin() {
     },
     onError: (err: any) => {
       toast({ title: "Bulk restore failed", description: err.message, variant: "destructive" })
+    },
+  })
+
+  const bulkApplyTemplateMutation = useMutation({
+    mutationFn: async ({ articleIds, templateId }: { articleIds: string[]; templateId: string }) => {
+      const res = await apiRequest("POST", "/api/admin/knowledge/bulk-apply-template", { articleIds, templateId })
+      return res.json()
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/analytics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/coverage"] })
+      setSelectedArticles([])
+      setToolbarTemplateId("")
+      const parts: string[] = []
+      if (data.updated > 0) parts.push(data.updated + " updated")
+      if (data.skipped > 0) parts.push(data.skipped + " skipped")
+      if (data.errors > 0) parts.push(data.errors + " errors")
+      toast({ title: "Template applied", description: parts.join(", ") })
+    },
+    onError: (err: any) => {
+      toast({ title: "Apply template failed", description: err.message, variant: "destructive" })
     },
   })
 
@@ -1197,10 +1221,43 @@ export default function KnowledgeAdmin() {
                   <><ArchiveRestore className="mr-2 h-4 w-4" /> Restore Selected</>
                 )}
               </Button>
+              <div className="flex items-center gap-1 ml-2 pl-2 border-l">
+                <Select value={toolbarTemplateId} onValueChange={setToolbarTemplateId}>
+                  <SelectTrigger className="h-8 w-[180px] text-xs" data-testid="select-toolbar-template">
+                    <SelectValue placeholder="Pick template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(knowledgeTemplates || []).map(function(t) {
+                      return (
+                        <SelectItem key={t.id} value={t.id} data-testid={"select-template-" + t.id}>
+                          {t.name}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!toolbarTemplateId || selectedArticles.length === 0 || bulkApplyTemplateMutation.isPending}
+                  onClick={function() {
+                    if (confirm("Apply template to " + selectedArticles.length + " article(s)? This will overwrite their content with the selected template.")) {
+                      bulkApplyTemplateMutation.mutate({ articleIds: selectedArticles, templateId: toolbarTemplateId })
+                    }
+                  }}
+                  data-testid="button-apply-template"
+                >
+                  {bulkApplyTemplateMutation.isPending ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Applying...</>
+                  ) : (
+                    <><Layers className="mr-2 h-4 w-4" /> Apply Template</>
+                  )}
+                </Button>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setSelectedArticles([])}
+                onClick={function() { setSelectedArticles([]); setToolbarTemplateId("") }}
                 data-testid="button-clear-selection"
               >
                 Clear

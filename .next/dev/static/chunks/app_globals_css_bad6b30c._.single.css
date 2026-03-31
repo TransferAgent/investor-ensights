@@ -1256,10 +1256,6 @@ body {
   pointer-events: auto;
 }
 
-.\!visible {
-  visibility: visible !important;
-}
-
 .visible {
   visibility: visible;
 }
@@ -1384,10 +1380,6 @@ body {
 
 .top-2 {
   top: .5rem;
-}
-
-.top-3 {
-  top: .75rem;
 }
 
 .top-3\.5 {
@@ -3003,10 +2995,6 @@ body {
   padding-right: .625rem;
 }
 
-.pr-6 {
-  padding-right: 1.5rem;
-}
-
 .pr-8 {
   padding-right: 2rem;
 }
@@ -3269,11 +3257,6 @@ body {
 .text-gray-400 {
   --tw-text-opacity: 1;
   color: rgb(156 163 175 / var(--tw-text-opacity, 1));
-}
-
-.text-gray-500 {
-  --tw-text-opacity: 1;
-  color: rgb(107 114 128 / var(--tw-text-opacity, 1));
 }
 
 .text-gray-600 {
@@ -4055,11 +4038,6 @@ input[type="search"]::-webkit-search-cancel-button {
 .hover\:text-foreground:hover {
   --tw-text-opacity: 1;
   color: hsl(var(--foreground) / var(--tw-text-opacity, 1));
-}
-
-.hover\:text-gray-300:hover {
-  --tw-text-opacity: 1;
-  color: rgb(209 213 219 / var(--tw-text-opacity, 1));
 }
 
 .hover\:text-muted-foreground:hover {

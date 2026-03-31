@@ -70,6 +70,7 @@ All under `app/api/`:
 - `admin/knowledge/coverage/route.ts` — GET city coverage tracker (matches articles to cities via city_slug field)
 - `admin/knowledge/generation-log/route.ts` — GET generation log entries with daily count
 - `knowledge/draft/route.ts` — POST structured draft ingestion (G5 contract v1: pending-only, validated, audited, rate-limited, content quality guards)
+- `admin/knowledge/bulk-apply-template/route.ts` — POST apply a knowledge template to selected articles in place (updates content, preserves slug/status/datePublished)
 - `knowledge/generate-local-vibe/route.ts` — POST generate Local Vibe draft for a city (G6/G7: versioned prompt template, generation logging)
 - `knowledge/bulk-generate/route.ts` — POST bulk generate Local Vibes (max 50 cities, concurrency 3, 30-day duplicate skip)
 - `admin/data-store/route.ts` — GET/POST data store files (upload via multipart form)
