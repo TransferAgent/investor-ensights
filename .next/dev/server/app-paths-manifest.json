@@ -1,3 +1,8 @@
 {
+  "/[slug]/page": "app/[slug]/page.js",
+  "/api/admin/cities/[id]/route": "app/api/admin/cities/[id]/route.js",
+  "/api/admin/cities/bulk-csv/route": "app/api/admin/cities/bulk-csv/route.js",
+  "/api/admin/cities/route": "app/api/admin/cities/route.js",
+  "/api/admin/login/route": "app/api/admin/login/route.js",
   "/page": "app/page.js"
 }
