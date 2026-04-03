@@ -1,11 +1,1 @@
-{
-  "version": 4,
-  "routes": {},
-  "dynamicRoutes": {},
-  "notFoundRoutes": [],
-  "preview": {
-    "previewModeId": "239f75483d270754c4cb3f36f299849c",
-    "previewModeSigningKey": "90116a90d18e851cf8400a6b0b51e7624ad48793057ec155d186688721a4b7cb",
-    "previewModeEncryptionKey": "80315a27616eee28b679cebfb05dc1b19a2d7cd6b47c45dcfe55d5e9dd3d58b8"
-  }
-}
+{"version":4,"routes":{"/locations/albuquerque-nm":{},"/locations/atlanta-ga":{},"/locations/austin-tx":{},"/locations/boston-ma":{},"/locations/chicago-il":{},"/locations/dallas-tx":{},"/locations/denver-co":{},"/locations/fontana-ca":{},"/locations/houston-tx":{},"/locations/irvine-ca":{},"/locations/los-angeles-ca":{},"/locations/miami-fl":{},"/locations/nashville-tn":{},"/locations/new-york-ny":{},"/locations/philadelphia-pa":{},"/locations/phoenix-az":{},"/locations/portland-or":{},"/locations/san-diego-ca":{},"/locations/san-francisco-ca":{},"/locations/seattle-wa":{},"/locations/testcity-3vtw-h-ca":{}},"dynamicRoutes":{"/locations/[slug]":{"dataRoute":null,"dataRouteRegex":null,"fallback":null,"fallbackRevalidate":false,"fallbackSourceRoute":"/locations/[slug]","routeRegex":"^\\/locations\\/([^/]+?)(?:\\/)?$","allowHeader":[]}},"notFoundRoutes":[],"preview":{"previewModeId":"f63a208a92358784f865cd0a1bf51204","previewModeSigningKey":"d3a33062afd2f6ec601b8de8d35f8f46fc6b433e48b6aba74a5324909b5a9569","previewModeEncryptionKey":"629fc32f890af6222da140bbae5db4be757d2268f6cbcbb8508b56cb148ec09c"}}
