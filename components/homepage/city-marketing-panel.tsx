@@ -15,23 +15,33 @@ import {
 } from "lucide-react"
 
 const SLIDES = [
-  "/beast-01-hash-wall.png",
-  "/beast-02-code-vault.png",
-  "/beast-03-masked-table.png",
-  "/beast-04-reveal-mode.png",
-  "/beast-05-core-value-desk.png",
-  "/beast-06-zk-network.png",
-  "/beast-07-lock-shield.png",
+  "/gallery/1_G-A_Normal_Cap.png",
+  "/gallery/2_G-B_SAFE_Agreement.png",
+  "/gallery/3_G-C_ESOP.png",
+  "/gallery/4_G-01_Hash_Wall.png",
+  "/gallery/5_G-03_D_Encrypted.png",
+  "/gallery/6_G-04_E_DATA_Store.png",
+  "/gallery/7_G-05_Core_Value_Desk.png",
 ]
 
 const SLIDE_ALT_TEMPLATES = [
-  "Tableicity Encrypted Hash: Privacy-first cap table platform using SHA-256 encryption for equity ownership protection in {{city}}, {{state}} — a secure alternative to Carta.",
-  "Tableicity secure cap table code architecture featuring SHA-256 hashing, GDPR compliance, and Zero-Knowledge Proof stakeholder verification for {{city}}, {{state}} startups.",
-  "Tableicity Cap Table Dashboard showing encrypted stakeholder identities with pseudonymous hash labels for {{city}}, {{state}} founders — ownership data stays private by default.",
-  "Tableicity Cap Table Dashboard after auditor reveal showing real stakeholder names for {{city}}, {{state}} compliance — consent-based 30-minute identity access.",
+  "Tableicity Cap Table Dashboard for {{city}}, {{state}} founders — stakeholder equity distribution, share classes, and ownership breakdown in a privacy-first capitalization table.",
+  "Tableicity SAFE Agreement Management for {{city}}, {{state}} startups — tracking Simple Agreements for Future Equity with valuation caps, discount rates, and conversion terms.",
+  "Tableicity ESOP Management for {{city}}, {{state}} companies — Employee Stock Option Pool hierarchy with vesting schedules, grant tracking, and exercise status.",
+  "Tableicity Encrypted Hash Wall for {{city}}, {{state}} — SHA-256 hashed stakeholder identities protecting equity ownership data from leaks.",
+  "Tableicity Encrypted Data View for {{city}}, {{state}} founders — privacy-first cap table with pseudonymous identifiers and consent-based auditor reveal.",
+  "Tableicity Data Store for {{city}}, {{state}} companies — encrypted document vault for cap table records, stakeholder agreements, and compliance artifacts.",
   "Tableicity Core Value Desk — founder workspace showcasing the privacy-first equity management philosophy for {{city}}, {{state}} startups.",
-  "Tableicity Cap Table Dashboard showing SHA-256 hashed stakeholder identities, ZK-Proof verification network, and 30-minute auditor reveal access control for {{city}}, {{state}}.",
-  "Privacy-first capitalization table management software in {{city}}, {{state}} featuring encrypted stakeholder names and time-boxed auditor access to prevent data leaks.",
+]
+
+const SLIDE_OBJECT_POSITION = [
+  "left center",
+  "left center",
+  "left center",
+  "center",
+  "center",
+  "center",
+  "center",
 ]
 
 interface CityArticle {
@@ -76,8 +86,8 @@ export default function CityMarketingPanel({
   articles = [],
 }: CityMarketingPanelProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
-  const SLIDE_DURATIONS = [7200, 7200, 14400, 14400, 14400, 7200, 7200]
-  const SLIDE_END_SCALE: Record<number, number> = { 2: 1.62, 3: 1.62, 4: 1.62 }
+  const SLIDE_DURATIONS = [14400, 9000, 14400, 7200, 14400, 14400, 14400]
+  const SLIDE_END_SCALE: Record<number, number> = { 0: 1.62, 1: 1.31, 2: 1.62, 3: 1.08, 4: 1.62, 5: 1.62, 6: 1.62 }
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -137,6 +147,7 @@ export default function CityMarketingPanel({
                 src={SLIDES[currentSlide]}
                 alt={SLIDE_ALT_TEMPLATES[currentSlide].replace(/\{\{city\}\}/g, cityName).replace(/\{\{state\}\}/g, stateCode)}
                 className="absolute inset-0 w-full h-full object-cover"
+                style={{ objectPosition: SLIDE_OBJECT_POSITION[currentSlide] }}
                 initial={{ opacity: 0, scale: 1.0 }}
                 animate={{ opacity: 1, scale: SLIDE_END_SCALE[currentSlide] || 1.08 }}
                 exit={{ opacity: 0 }}
