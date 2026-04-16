@@ -128,12 +128,8 @@ export default function MarketingPanel() {
           </div>
         </header>
 
-        <h2 className="text-sm leading-relaxed mb-4 text-blue-200/80 font-normal" data-testid="text-pitch-h2">
-          Cap Table Solution for Equity Management
-        </h2>
-
         <h3 className="text-sm leading-relaxed mb-4 text-blue-200/80 font-normal" data-testid="text-pitch-h3">
-          One leaked or hacked screenshot of your Cap Table can cost millions in a lost deal or trigger a regulatory nightmare. Mitigate this risk by ensuring your equity ownership remains pseudonymous through SHA-256 Encryption with on-demand auditor reveal. Built for Founders who refuse to treat their ownership data as public property.
+          Forget the hassle of Demo Reservation systems—experience an immediate, user-friendly test drive. With just three clicks, you're inside a live, seeded cap table featuring founders, employees, investors, and vesting schedules. Model funding rounds, simulate exits, and explore features via a guided checklist, all in minutes.
         </h3>
 
         <div className="mb-8 w-full">
