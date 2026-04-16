@@ -129,7 +129,7 @@ export default function MarketingPanel() {
         </header>
 
         <h3 className="text-sm leading-relaxed mb-4 text-blue-200/80 font-normal" data-testid="text-pitch-h3">
-          Forget the hassle of Demo Reservation systems—experience an immediate, user-friendly test drive. With just three clicks, you're inside a live, seeded cap table featuring founders, employees, investors, and vesting schedules. Model funding rounds, simulate exits, and explore features via a guided checklist, all in minutes.
+          Forget the hassle of booking a demo from Cake or Carta—experience an immediate, user-friendly test drive. With just three clicks, you&apos;re inside a live, seeded cap table featuring founders, employees, investors, and vesting schedules. Model funding rounds, simulate exits, and explore features via a guided checklist, all in minutes.
         </h3>
 
         <div className="mb-8 w-full">
