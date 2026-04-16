@@ -103,7 +103,7 @@ export default function MarketingPanel() {
 
   return (
     <div
-      className="hidden lg:flex lg:w-[45%] flex-col justify-between overflow-hidden"
+      className="hidden lg:flex lg:w-[45%] flex-col justify-between overflow-y-auto max-h-screen"
       style={{ backgroundColor: "#0f1b2d" }}
     >
       <div className="p-10 xl:p-12 flex flex-col justify-between h-full">
