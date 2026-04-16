@@ -162,6 +162,13 @@ export default function MarketingPanel() {
           </div>
         </div>
 
+        <p className="text-sm leading-relaxed mb-6 text-blue-200/80 font-normal" data-testid="text-gallery-caption">
+          Once ready, create your private, isolated cap table. Powered by SHA-256 encryption, Tableicity ensures privacy-first protection for your equity data. Experience the fastest, most intuitive way to bring your cap table to life. No spreadsheets, no waiting—just results. Tableicity: your cap table, when you&apos;re ready.{" "}
+          <span className="font-semibold tracking-wide text-sky-300" data-testid="text-patent-pending">
+            PATENT PENDING
+          </span>
+        </p>
+
         <div className="border-t border-white/10 pt-5">
           <h2 className="text-xs uppercase tracking-wider text-blue-200/50 mb-3 font-normal" data-testid="text-features-h2">
             Everything you need — built in
