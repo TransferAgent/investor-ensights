@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 
-const REDIRECT_URL = "https://liquidencrypted.com/"
+const REDIRECT_URL = "https://app.tableicity.com/login"
 
 export default function CookieConsent() {
   const [mounted, setMounted] = useState(false)
