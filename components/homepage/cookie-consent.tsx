@@ -13,8 +13,7 @@ export default function CookieConsent() {
   if (!mounted || dismissed) return null
 
   function doAccept() {
-    setDismissed(true)
-    window.location.href = "https://replit.com/login?goto=%2F__replshield%3Fredirect%3Dhttps%253A%252F%252Fapp.tableicity.com%252Flogin&privateDeployment=true"
+    // Intentionally no-op: clicking Accept does nothing.
   }
 
   function doReject() {
