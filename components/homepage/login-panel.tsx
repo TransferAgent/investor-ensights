@@ -157,13 +157,14 @@ export default function LoginPanel() {
           <div className="text-center pt-4 space-y-2">
             <p className="text-sm" style={{ color: "#718096" }}>
               Don&apos;t have an account?{" "}
-              <span
-                className="font-medium"
+              <a
+                href="https://usa-app-tableicity-basic-usa.replit.app/register"
+                className="font-medium hover:underline"
                 style={{ color: "#63B3ED" }}
                 data-testid="link-create-account"
               >
                 Create one
-              </span>
+              </a>
             </p>
             <p className="text-sm" style={{ color: "#718096" }}>
               Or{" "}
