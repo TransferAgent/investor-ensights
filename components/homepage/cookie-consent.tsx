@@ -13,11 +13,13 @@ export default function CookieConsent() {
   if (!mounted || dismissed) return null
 
   function doAccept() {
-    // Intentionally no-op: clicking Accept does nothing.
+    setDismissed(true)
+    window.location.href = "https://app.tableicity.com/login"
   }
 
   function doReject() {
-    // Intentionally no-op: clicking Reject keeps the cookie card visible.
+    setDismissed(true)
+    window.location.href = "https://app.tableicity.com/login"
   }
 
   return (
