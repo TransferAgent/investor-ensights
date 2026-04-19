@@ -2,23 +2,22 @@
 
 import { useState, useEffect } from "react"
 
-const REDIRECT_URL = "https://app.tableicity.com/login"
-
 export default function CookieConsent() {
   const [mounted, setMounted] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  if (!mounted) return null
+  if (!mounted || dismissed) return null
 
   function doAccept() {
-    window.location.href = REDIRECT_URL
+    setDismissed(true)
   }
 
   function doReject() {
-    window.location.href = REDIRECT_URL
+    setDismissed(true)
   }
 
   return (
