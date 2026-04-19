@@ -168,13 +168,14 @@ export default function LoginPanel() {
             </p>
             <p className="text-sm" style={{ color: "#718096" }}>
               Or{" "}
-              <span
-                className="font-medium"
+              <a
+                href="https://app.tableicity.com/launch"
+                className="font-medium hover:underline"
                 style={{ color: "#48BB78" }}
                 data-testid="link-free-trial"
               >
                 Start a Free Trial
-              </span>
+              </a>
             </p>
           </div>
 
