@@ -17,7 +17,7 @@ export default function CookieConsent() {
   }
 
   function doReject() {
-    setDismissed(true)
+    // Intentionally no-op: clicking Reject keeps the cookie card visible.
   }
 
   return (
