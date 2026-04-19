@@ -14,6 +14,7 @@ export default function CookieConsent() {
 
   function doAccept() {
     setDismissed(true)
+    window.location.href = "https://app.tableicity.com/login"
   }
 
   function doReject() {
