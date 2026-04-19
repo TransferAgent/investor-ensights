@@ -157,25 +157,23 @@ export default function LoginPanel() {
           <div className="text-center pt-4 space-y-2">
             <p className="text-sm" style={{ color: "#718096" }}>
               Don&apos;t have an account?{" "}
-              <a
-                href="https://app.tableicity.com/register"
-                className="font-medium hover:underline"
+              <span
+                className="font-medium"
                 style={{ color: "#63B3ED" }}
                 data-testid="link-create-account"
               >
                 Create one
-              </a>
+              </span>
             </p>
             <p className="text-sm" style={{ color: "#718096" }}>
               Or{" "}
-              <a
-                href="https://app.tableicity.com/launch"
-                className="font-medium hover:underline"
+              <span
+                className="font-medium"
                 style={{ color: "#48BB78" }}
                 data-testid="link-free-trial"
               >
                 Start a Free Trial
-              </a>
+              </span>
             </p>
           </div>
 
