@@ -1,0 +1,44 @@
+System Audit Report — April 21, 2026
+✅ What's working
+App boots clean on port 5000 (Next.js 16.1.6, Turbopack). Homepage renders the Tableicity two‑panel marketing + login layout. Browser console is clean (only the React DevTools tip + HMR connected).
+Database: connected, already seeded (seed step short‑circuits correctly).
+HMR: connected and working.
+Stack documentation: replit.md is detailed, accurate, and matches the actual Next.js App Router layout I see on disk.
+⚠️ Issues found
+1. TypeScript — 33 errors (build runs, but npm run check fails)
+31× TS2554 — every API route calls verifySession(req), but lib/auth.ts defines verifySession() with zero parameters (it reads the cookie via next/headers). At runtime JS ignores the extra arg, so it works, but the type contract is broken across the entire admin API surface.
+2× TS2769 / 1× TS2769 —
+app/api/admin/knowledge/analytics/route.ts:46 — a .reduce initial value is typed too narrowly (0|1|2|3 literal union instead of number).
+script/migrate-data.ts:92 — inserts description and name into a Drizzle table that no longer has those columns. The script is out of sync with the current shared/schema.ts.
+2. Next.js 16 deprecation
+Workflow log: ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Your non‑www → www 301 in middleware.ts will need to be migrated to the new proxy convention before the next major Next.js release.
+⚠ Cross origin request detected from …replit.dev — needs allowedDevOrigins set in next.config.mjs to silence and to be future‑proof.
+3. Stack drift / dead code in the repo
+The project migrated from Express + Vite + Wouter SPA to Next.js, but a lot of the old stack is still on disk and in dependencies:
+
+Leftover directories that are no longer wired in:
+server/ (Express entrypoint, vite.ts, routes.ts, static.ts, production.ts)
+client/ (old Vite SPA root with index.html, src/, public/)
+components/ and hooks/ at the project root — duplicates of app//lib/ paths and not the same as Next's expected locations
+vite.config.ts, start-next.js, start-next.sh, dist/
+package.json is misleading: name is rest-express; dev/build/start scripts launch tsx server/index.ts and node dist/index.cjs, but the actual workflow command for Next is hidden inside server/index.ts (which then shells out). Dependencies still pull in Express 5, Passport, Vite 5, Wouter, connect-pg-simple, memorystore, ws, etc., none of which are needed by the Next app.
+Two PostCSS configs present: postcss.config.js and postcss.config.mjs.
+app/'\[slug\]' directory shows up alongside app/[slug]/ in the listing — there's a duplicate folder with literally‑escaped brackets in its name. Worth confirming and deleting the bogus one.
+4. Repo hygiene
+Large binaries committed at project root: homepage_after.png (404K), homepage_before.png (462K), press_release_full.png (807K), plus tsconfig.tsbuildinfo (280K) — should live under attached_assets/ (or be gitignored for the buildinfo).
+John/ directory at the repo root contains personal/working files (zip archives, screenshots, an EU_Handover.md, etc.). Likely shouldn't be tracked in the app repo.
+.next/ is 414 MB on disk — expected for dev, but worth knowing.
+5. Security / config posture
+lib/auth.ts falls back to "dev-secret-change-me" when SESSION_SECRET is unset. Fine for dev, but worth a hard‑fail guard in production.
+Default admin credentials are still admin / admin123 per replit.md. Make sure those are rotated before the deployment is shared publicly.
+.env.example is complete and matches what replit.md documents.
+6. Deployment config
+.replit uses autoscale and runs node ./dist/index.cjs, which is built by tsx script/build.ts. Worth a sanity check that the build script still produces a valid Next standalone bundle, since I didn't run it as part of the audit.
+Recommended cleanup priorities
+Fix verifySession signature (one line in lib/auth.ts to accept an optional req arg, or remove the arg from all callers) — clears 31 of 33 TS errors instantly.
+Patch the two real TS errors in analytics/route.ts and script/migrate-data.ts.
+Migrate middleware.ts → proxy.ts before Next forces it.
+Delete dead stack: server/, client/, root‑level components/ & hooks/ (after confirming nothing imports them), vite.config.ts, start-next.*, duplicate postcss.config.js, and the escaped‑bracket app folder.
+Trim package.json to only the deps Next actually uses, and rewrite dev/build/start to call next directly.
+Move root PNGs into attached_assets/ and gitignore tsconfig.tsbuildinfo and .next/.
+Decide what to do with the John/ directory.
