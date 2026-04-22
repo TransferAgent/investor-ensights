@@ -456,3 +456,229 @@ export type KnowledgeArticle = typeof knowledgeArticles.$inferSelect;
 export type InsertKnowledgeArticle = z.infer<typeof insertKnowledgeArticleSchema>;
 export type KnowledgeArticleVersion = typeof knowledgeArticleVersions.$inferSelect;
 export type InsertKnowledgeArticleVersion = z.infer<typeof insertKnowledgeArticleVersionSchema>;
+
+export const newsroomAgents = pgTable(
+  "newsroom_agents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    role: varchar("role", { length: 50 }).notNull().unique(),
+    displayName: varchar("display_name", { length: 100 }).notNull(),
+    description: text("description"),
+    provider: varchar("provider", { length: 50 }),
+    modelEndpoint: varchar("model_endpoint", { length: 255 }),
+    providerKeyRef: varchar("provider_key_ref", { length: 100 }),
+    systemPrompt: text("system_prompt"),
+    sources: jsonb("sources").default([]).notNull(),
+    config: jsonb("config").default({}).notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("newsroom_agents_role_idx").on(table.role),
+  ]
+);
+
+export const newsroomPipelineJobs = pgTable(
+  "newsroom_pipeline_jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    citySlug: text("city_slug").notNull(),
+    status: varchar("status", { length: 30 }).notNull().default("queued"),
+    currentStage: varchar("current_stage", { length: 50 }),
+    agentsCompleted: jsonb("agents_completed").default([]).notNull(),
+    dryRun: boolean("dry_run").default(false).notNull(),
+    payload: jsonb("payload").default({}).notNull(),
+    errorMessage: text("error_message"),
+    claimedBy: varchar("claimed_by", { length: 100 }),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("newsroom_jobs_status_idx").on(table.status),
+    index("newsroom_jobs_city_idx").on(table.citySlug),
+    index("newsroom_jobs_heartbeat_idx").on(table.heartbeatAt),
+  ]
+);
+
+export const newsroomAgentRuns = pgTable(
+  "newsroom_agent_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    agentId: uuid("agent_id").notNull().references(() => newsroomAgents.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id").references(() => newsroomPipelineJobs.id, { onDelete: "set null" }),
+    citySlug: text("city_slug"),
+    status: varchar("status", { length: 30 }).notNull().default("queued"),
+    dryRun: boolean("dry_run").default(false).notNull(),
+    input: jsonb("input").default({}).notNull(),
+    output: jsonb("output"),
+    errorMessage: text("error_message"),
+    tokensUsed: integer("tokens_used"),
+    costUsd: numeric("cost_usd", { precision: 10, scale: 4 }),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("newsroom_runs_agent_idx").on(table.agentId),
+    index("newsroom_runs_job_idx").on(table.jobId),
+    index("newsroom_runs_status_idx").on(table.status),
+    index("newsroom_runs_created_idx").on(table.createdAt),
+  ]
+);
+
+export const newsroomAgentKnowledge = pgTable(
+  "newsroom_agent_knowledge",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    agentId: uuid("agent_id").notNull().references(() => newsroomAgents.id, { onDelete: "cascade" }),
+    citySlug: text("city_slug"),
+    key: varchar("key", { length: 255 }).notNull(),
+    value: jsonb("value").notNull(),
+    sourceUrl: text("source_url"),
+    confidence: numeric("confidence", { precision: 5, scale: 2 }),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("newsroom_knowledge_agent_idx").on(table.agentId),
+    index("newsroom_knowledge_city_idx").on(table.citySlug),
+    index("newsroom_knowledge_key_idx").on(table.key),
+  ]
+);
+
+export const newsroomSourceDocuments = pgTable(
+  "newsroom_source_documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sourceUrl: text("source_url").notNull(),
+    contentHash: varchar("content_hash", { length: 64 }).notNull(),
+    citySlug: text("city_slug"),
+    title: text("title"),
+    rawContent: text("raw_content"),
+    cleanContent: text("clean_content"),
+    fetchedByAgentId: uuid("fetched_by_agent_id").references(() => newsroomAgents.id, { onDelete: "set null" }),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("newsroom_sources_hash_idx").on(table.contentHash),
+    index("newsroom_sources_city_idx").on(table.citySlug),
+  ]
+);
+
+export const newsroomLeadSignals = pgTable(
+  "newsroom_lead_signals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    citySlug: text("city_slug").notNull(),
+    companyName: text("company_name").notNull(),
+    tierScore: integer("tier_score"),
+    fundingTotalUsd: numeric("funding_total_usd", { precision: 14, scale: 2 }),
+    investorCount: integer("investor_count"),
+    signalType: varchar("signal_type", { length: 50 }),
+    payload: jsonb("payload").default({}).notNull(),
+    sourceDocumentId: uuid("source_document_id").references(() => newsroomSourceDocuments.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("newsroom_leads_city_idx").on(table.citySlug),
+    index("newsroom_leads_tier_idx").on(table.tierScore),
+  ]
+);
+
+export const newsroomReviewQueue = pgTable(
+  "newsroom_review_queue",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    jobId: uuid("job_id").references(() => newsroomPipelineJobs.id, { onDelete: "set null" }),
+    citySlug: text("city_slug").notNull(),
+    draftPayload: jsonb("draft_payload").notNull(),
+    qcScore: integer("qc_score"),
+    qcNotes: text("qc_notes"),
+    status: varchar("status", { length: 30 }).notNull().default("pending"),
+    reviewerNotes: text("reviewer_notes"),
+    reviewedBy: varchar("reviewed_by", { length: 100 }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    publishedArticleId: uuid("published_article_id").references(() => knowledgeArticles.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("newsroom_review_status_idx").on(table.status),
+    index("newsroom_review_city_idx").on(table.citySlug),
+  ]
+);
+
+export const newsroomInternalLinkSuggestions = pgTable(
+  "newsroom_internal_link_suggestions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reviewQueueId: uuid("review_queue_id").references(() => newsroomReviewQueue.id, { onDelete: "cascade" }),
+    articleId: uuid("article_id").references(() => knowledgeArticles.id, { onDelete: "cascade" }),
+    targetSlug: text("target_slug").notNull(),
+    anchorText: text("anchor_text").notNull(),
+    position: integer("position"),
+    accepted: boolean("accepted").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("newsroom_links_review_idx").on(table.reviewQueueId),
+    index("newsroom_links_article_idx").on(table.articleId),
+  ]
+);
+
+export const insertNewsroomAgentSchema = createInsertSchema(newsroomAgents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertNewsroomPipelineJobSchema = createInsertSchema(newsroomPipelineJobs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertNewsroomAgentRunSchema = createInsertSchema(newsroomAgentRuns).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertNewsroomAgentKnowledgeSchema = createInsertSchema(newsroomAgentKnowledge).omit({
+  id: true,
+  fetchedAt: true,
+});
+export const insertNewsroomReviewQueueSchema = createInsertSchema(newsroomReviewQueue).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type NewsroomAgent = typeof newsroomAgents.$inferSelect;
+export type InsertNewsroomAgent = z.infer<typeof insertNewsroomAgentSchema>;
+export type NewsroomPipelineJob = typeof newsroomPipelineJobs.$inferSelect;
+export type InsertNewsroomPipelineJob = z.infer<typeof insertNewsroomPipelineJobSchema>;
+export type NewsroomAgentRun = typeof newsroomAgentRuns.$inferSelect;
+export type InsertNewsroomAgentRun = z.infer<typeof insertNewsroomAgentRunSchema>;
+export type NewsroomAgentKnowledge = typeof newsroomAgentKnowledge.$inferSelect;
+export type NewsroomSourceDocument = typeof newsroomSourceDocuments.$inferSelect;
+export type NewsroomLeadSignal = typeof newsroomLeadSignals.$inferSelect;
+export type NewsroomReviewQueue = typeof newsroomReviewQueue.$inferSelect;
+export type NewsroomInternalLinkSuggestion = typeof newsroomInternalLinkSuggestions.$inferSelect;
+
+export const NEWSROOM_AGENT_ROLES = [
+  "researcher",
+  "data_analyst",
+  "copywriter",
+  "seo_qc",
+  "internal_linker",
+] as const;
+export type NewsroomAgentRole = typeof NEWSROOM_AGENT_ROLES[number];
+
+export const NEWSROOM_PIPELINE_STAGES = [
+  "researcher",
+  "data_analyst",
+  "copywriter",
+  "seo_qc",
+  "internal_linker",
+  "review",
+  "published",
+] as const;
+export type NewsroomPipelineStage = typeof NEWSROOM_PIPELINE_STAGES[number];
