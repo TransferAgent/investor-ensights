@@ -21,7 +21,7 @@ function highlightBrandInBody(html: string): string {
           firstReplaced = true;
           return `<a href="https://www.tableicity.com" class="text-blue-400 hover:underline">Tableicity</a>`;
         }
-        return `<span class="text-blue-400">Tableicity</span>`;
+        return "Tableicity";
       });
     })
     .join("");
