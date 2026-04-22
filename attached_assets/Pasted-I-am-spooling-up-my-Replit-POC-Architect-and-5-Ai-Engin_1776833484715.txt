@@ -1,0 +1,44 @@
+I am spooling up my Replit POC; Architect and 5 Ai Engineers to write code and inject to my Replit - the following is from my POC - My recommendation: POC UI scaffold here, agent code from your team, clean handoff via a database contract Building the entire 5-agent pipeline inside this Next.js project would be the wrong fit. Here's why, then what I'd build instead. Why not "hand me the whole project" Wrong runtime for this kind of work. Scraping local news sites + cross-referencing Crunchbase + running 4 LLM calls per city is a long-running job — 30 seconds to several minutes per city. Next.js API routes on App Runner are not built for that. The agents need a worker process / queue / cron, not request-response handlers.
+This is a sharp architectural move. Decoupling the Next.js UI (the "Brain Surgery Theater") from the Agent Workers (the "Engine Room") is the only way to avoid a distributed systems nightmare inside a frontend framework.
+To keep your momentum, here are the targeted answers you need to start the build.
+1. The 5th Agent: The "Context Engineer"
+While the others handle the flow, the 5th agent is the Librarian/Context Engineer.
+•	Role: It manages the "Knowledge Tab" you proposed. It cross-references today’s news with yesterday’s output to ensure the pipeline isn't repeating itself and identifies long-term trends (e.g., "This is the 3rd funding round in this sector this month").
+•	Alternative: If you want execution, make it the Internal Linker, which scans your existing Replit DB to inject "Related Reading" links into the Copywriter’s output.
+2. Worker Runtime: Separate Python Services
+The 5 AI Engineers should build in Python (FastAPI or Modal).
+•	Reason: Crawl4AI and heavy LLM orchestration (LangGraph/CrewAI) are native to Python.
+•	The Handoff: Your Next.js stubs will trigger a webhook to their Python service. When they finish, they POST the result back to your newsroom_agent_runs table.
+3. Persistence: (b) Structured Fact Store + (c) Vector Embeddings
+Go with a hybrid approach for the "Knowledge" requirement:
+•	Structured (SQL): For "Entity Resolution" (e.g., Company X raised $Y on Date Z). This is what shows up in your "Knowledge Browser."
+•	Vector (Pinecone/pgvector): For "Semantic Memory." The agents use this to "remember" the tone and style of previous successful articles.
+4. Approval Workflow: Human-in-the-Loop (HITL)
+Every output lands in the Human Review Queue first.
+•	The Logic: Even if SEO QC gives it a 95/100, a human must click "Publish." This mitigates the risk of "hallucinated news" hitting your live site while the engineers are still tuning the prompts.
+5. LLM Assignment: Diverse Providers
+Use different providers.
+•	Researcher: Perplexity API or GPT-4o.
+•	Analyst: Claude 3.5 Sonnet.
+•	Copywriter: GPT-4o or Gemini 1.5 Pro.
+•	SEO QC: Llama 3.
+•	Ensure the newsroom_agents table has a model_endpoint and provider_key column.
+________________________________________
+The provided defaults were mostly accurate. Use these details to finalize the schema.
+How should authentication be defined between the Next.js shell and the engineers' Python workers—API Keys or a shared Internal Secret?
+API Keys or a shared Internal Secret = You decide - Next question my Replit mention long run times - do I need to run a channel at AWS or just give the Replit the Code injection and keep it tidy in my POC - if I scale I can spin up GitHub and AWS
+For the POC stage, stay inside Replit but use a background worker pattern rather than a standard web request.
+Do not move to AWS/GitHub yet. The goal of a POC is speed and low overhead. Moving to AWS now adds "Infra Tax" (IAM roles, VPCs, deployment pipelines) that will slow your 5 engineers down.
+The Strategy: "Tidy" Long-Runtimes in Replit
+Since these jobs take minutes, a standard browser "Save" button will timeout. Here is how to keep it tidy:
+1.	Use a Task Queue (The "Inbox"):
+1.	Your UI writes a "Pending" row to newsroom_pipeline_jobs.
+2.	The AI Engineers' code runs as a separate process in your Replit (using Python or Node worker) that polls that table, does the heavy lifting, and updates the status.
+2.	Websockets or Polling:
+1.	Your Next.js UI just looks at the database. When the status changes from running to completed, the UI updates. No long-held HTTP connections required.
+3.	Shared Internal Secret:
+1.	Since everything is staying inside your Replit environment for now, use a Shared Internal Secret (stored in Replit Secrets). It’s faster to implement and easier for your 5 engineers to share than managing individual API keys.
+Why this works:
+•	Zero Migration Cost: You don't waste 3 days setting up AWS environments.
+•	Easy Handoff: When you are ready to scale, you just move the "Engine Room" code to an AWS Lambda or EC2 and point the Webhook URL to the new spot. The "Brain" (Next.js) stays the same.
+Bottom line: Keep it all in Replit for now, but treat the UI and the Agents as two separate rooms in the same house.
