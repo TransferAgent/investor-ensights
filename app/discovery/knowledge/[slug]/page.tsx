@@ -4,6 +4,29 @@ import { storage } from "@/lib/storage";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://www.tableicity.com";
 
+function highlightBrandInBody(html: string): string {
+  let firstReplaced = false;
+  let inAnchor = false;
+  const tokens = html.split(/(<[^>]*>)/);
+  return tokens
+    .map((token) => {
+      if (token.startsWith("<")) {
+        if (/^<a[\s>]/i.test(token)) inAnchor = true;
+        else if (/^<\/a>/i.test(token)) inAnchor = false;
+        return token;
+      }
+      if (inAnchor) return token;
+      return token.replace(/\bTableicity\b/g, () => {
+        if (!firstReplaced) {
+          firstReplaced = true;
+          return `<a href="https://www.tableicity.com" class="text-blue-400 hover:underline">Tableicity</a>`;
+        }
+        return `<span class="text-blue-400">Tableicity</span>`;
+      });
+    })
+    .join("");
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const article = await storage.getKnowledgeArticleBySlug(slug);
@@ -151,7 +174,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
             prose-p:text-blue-100/80
             prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline
             prose-strong:text-white prose-li:text-blue-100/80"
-          dangerouslySetInnerHTML={{ __html: article.bodyHtml }}
+          dangerouslySetInnerHTML={{ __html: highlightBrandInBody(article.bodyHtml) }}
           data-testid="article-body"
         />
 
