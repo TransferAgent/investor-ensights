@@ -177,6 +177,7 @@ interface KnowledgeTemplateItem {
   boilerplateHtml: string | null
   ogImageUrl: string | null
   isActive: boolean
+  allowIndexing: boolean
   createdAt: string
   updatedAt: string
 }
@@ -2138,6 +2139,7 @@ function TemplateForm({ initial, onSubmit, isPending, cities }: {
   const [bodyHtmlPattern, setBodyHtmlPattern] = useState(initial?.bodyHtmlPattern || "")
   const [boilerplateHtml, setBoilerplateHtml] = useState(initial?.boilerplateHtml || "")
   const [ogImageUrl, setOgImageUrl] = useState(initial?.ogImageUrl || "https://www.tableicity.com/beast-06-zk-network.png")
+  const [allowIndexing, setAllowIndexing] = useState(initial?.allowIndexing ?? true)
   const [previewCity, setPreviewCity] = useState("")
   const [showPreview, setShowPreview] = useState(false)
 
@@ -2252,7 +2254,7 @@ function TemplateForm({ initial, onSubmit, isPending, cities }: {
       </div>
 
       <Button
-        onClick={() => onSubmit({ name, titlePattern, headlinePattern, subheadlinePattern: subheadlinePattern || undefined, metaDescriptionPattern: metaDescriptionPattern || undefined, datelinePattern: datelinePattern || undefined, bodyHtmlPattern, boilerplateHtml: boilerplateHtml || undefined, ogImageUrl: ogImageUrl || undefined })}
+        onClick={() => onSubmit({ name, titlePattern, headlinePattern, subheadlinePattern: subheadlinePattern || undefined, metaDescriptionPattern: metaDescriptionPattern || undefined, datelinePattern: datelinePattern || undefined, bodyHtmlPattern, boilerplateHtml: boilerplateHtml || undefined, ogImageUrl: ogImageUrl || undefined, allowIndexing })}
         disabled={isPending || !name || !titlePattern || !headlinePattern || !bodyHtmlPattern}
         className="w-full"
         data-testid="button-submit-template"

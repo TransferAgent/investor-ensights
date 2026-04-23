@@ -1,5 +1,4 @@
 {
-  "/api/admin/login/route": "app/api/admin/login/route.js",
-  "/api/admin/templates/route": "app/api/admin/templates/route.js",
+  "/api/admin/knowledge-templates/route": "app/api/admin/knowledge-templates/route.js",
   "/page": "app/page.js"
 }

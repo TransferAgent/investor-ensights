@@ -387,6 +387,7 @@ export const knowledgeTemplates = pgTable(
     boilerplateHtml: text("boilerplate_html"),
     ogImageUrl: text("og_image_url"),
     isActive: boolean("is_active").notNull().default(true),
+    allowIndexing: boolean("allow_indexing").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
