@@ -39,6 +39,7 @@ interface ContentTemplate {
   ctaUrlPattern: string | null
   isActive: boolean
   isDefault: boolean
+  allowIndexing: boolean
   version: number
   createdBy: string | null
   createdAt: string
@@ -67,6 +68,7 @@ function TemplateForm({
     ctaUrlPattern: template?.ctaUrlPattern || "",
     isActive: template?.isActive ?? true,
     isDefault: template?.isDefault ?? false,
+    allowIndexing: template?.allowIndexing ?? true,
     _previewBody: false as boolean,
   })
 
@@ -254,6 +256,14 @@ function TemplateForm({
             data-testid="switch-default"
           />
           <Label>Default Template</Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={form.allowIndexing}
+            onCheckedChange={(v) => update("allowIndexing", v)}
+            data-testid="switch-allow-indexing"
+          />
+          <Label>Allow Indexing (off = noindex)</Label>
         </div>
       </div>
 

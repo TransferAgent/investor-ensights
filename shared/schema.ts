@@ -64,6 +64,7 @@ export const contentTemplates = pgTable(
     ctaUrlPattern: varchar("cta_url_pattern", { length: 255 }),
     isActive: boolean("is_active").default(true).notNull(),
     isDefault: boolean("is_default").default(false).notNull(),
+    allowIndexing: boolean("allow_indexing").default(true).notNull(),
     version: integer("version").default(1).notNull(),
     createdBy: varchar("created_by", { length: 100 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
