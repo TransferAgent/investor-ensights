@@ -94,7 +94,7 @@ All under `app/api/`:
 
 ### Database Tables
 1. **city_locations** — City data (name, state, slug, address, coordinates, landmarks, nearby cities, publish status)
-2. **content_templates** — Reusable content templates with placeholder patterns
+2. **content_templates** — Reusable content templates with placeholder patterns. `allowIndexing` (default true) — when a template is assigned to a city via `upsertAssignment`/`bulkAssignTemplate`, the city's `allowIndexing` is automatically synced from the template (safe-by-default if template is OFF).
 3. **city_content_assignments** — Join table linking cities to templates
 4. **admin_users** — Admin accounts with scrypt-hashed passwords
 5. **admin_audit_log** — Tracks all admin actions (login, create, update, delete) with username, action, entity type/id, and timestamp
@@ -105,7 +105,7 @@ All under `app/api/`:
 10. **knowledge_generation_log** — Audit trail for every generation call (city_slug, directive, status, error_message, timestamp)
 11. **knowledge_campaigns** — Campaign grouping for press releases (name, slug, templateId FK, status, description, articleCount)
 12. **data_store_files** — File uploads (Word, PDF, TXT, HTML, Markdown) with base64 storage, tri-state status (pending/approved/rejected), notes, audit trail
-13. **knowledge_templates** — Reusable press release templates with placeholder patterns ({{city}}, {{state_name}}, etc.) for bulk article generation
+13. **knowledge_templates** — Reusable press release templates with placeholder patterns ({{city}}, {{state_name}}, etc.) for bulk article generation. `allowIndexing` (default true) — at generation time, articles created from a template inherit `robots` accordingly (`noindex, nofollow,...` when OFF). Per-article `robots` is owned by the article after creation; the template flag never overrides at render time.
 
 ### Security Features
 - **Password hashing**: scrypt with random salt (Node.js built-in)

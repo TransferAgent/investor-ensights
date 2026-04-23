@@ -67,6 +67,9 @@ export async function POST(req: NextRequest) {
 
       const now = new Date();
       const articleStatus = autoPublish ? "published" : "pending";
+      const robotsForArticle = template.allowIndexing
+        ? "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+        : "noindex, nofollow, max-snippet:-1, max-image-preview:large, max-video-preview:-1";
 
       const existingArticles = await db.select().from(knowledgeArticles).where(eq(knowledgeArticles.citySlug, city.slug));
       const existingArticle = existingArticles.find(a => a.slug === articleSlug) || null;
@@ -86,6 +89,7 @@ export async function POST(req: NextRequest) {
             bodyHtml,
             boilerplateHtml,
             ogImageUrl: template.ogImageUrl || "https://www.tableicity.com/beast-06-zk-network.png",
+            robots: robotsForArticle,
             dateModified: now,
             status: autoPublish ? "published" : "pending",
             datePublished: autoPublish ? (existingArticle.datePublished || now) : null,
@@ -111,7 +115,7 @@ export async function POST(req: NextRequest) {
           bodyHtml,
           boilerplateHtml,
           ogImageUrl: template.ogImageUrl || "https://www.tableicity.com/beast-06-zk-network.png",
-          robots: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+          robots: robotsForArticle,
           canonicalUrl: `https://www.tableicity.com/discovery/knowledge/${articleSlug}`,
           datePublished: autoPublish ? now : undefined,
           dateModified: now,

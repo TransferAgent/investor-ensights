@@ -286,13 +286,32 @@ export class DatabaseStorage implements IStorage {
         .set(data)
         .where(eq(cityContentAssignments.id, existing.id))
         .returning();
+      await this.syncCityIndexingFromTemplate(data.cityId, data.templateId);
       return updated;
     }
     const [created] = await db
       .insert(cityContentAssignments)
       .values(data)
       .returning();
+    await this.syncCityIndexingFromTemplate(data.cityId, data.templateId);
     return created;
+  }
+
+  private async syncCityIndexingFromTemplate(
+    cityId: string,
+    templateId: string | null | undefined
+  ): Promise<void> {
+    if (!templateId) return;
+    const [tpl] = await db
+      .select({ allowIndexing: contentTemplates.allowIndexing })
+      .from(contentTemplates)
+      .where(eq(contentTemplates.id, templateId))
+      .limit(1);
+    if (!tpl) return;
+    await db
+      .update(cityLocations)
+      .set({ allowIndexing: tpl.allowIndexing, updatedAt: new Date() })
+      .where(eq(cityLocations.id, cityId));
   }
 
   async bulkAssignTemplate(
