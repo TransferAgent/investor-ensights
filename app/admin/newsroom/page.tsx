@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { apiRequest, queryClient } from "@/lib/queryClient"
 import { Bot, PlayCircle, FileSearch, Users, PenLine, ShieldCheck, Link2, Activity } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface Agent {
   id: string
@@ -85,6 +86,64 @@ function statusColor(status: string) {
   }
 }
 
+interface InternalLink {
+  id: string
+  targetSlug: string
+  anchorText: string
+  position: number | null
+  accepted: boolean
+}
+
+function ReviewCard({ item, onAction, pending }: { item: ReviewItem; onAction: (status: "approved" | "rejected") => void; pending: boolean }) {
+  const draft = (item.draftPayload || {}) as any
+  const isV1 = draft?.version === "v1"
+  const { data: links } = useQuery<InternalLink[]>({
+    queryKey: ["/api/admin/newsroom/internal-links", { reviewQueueId: item.id }],
+    queryFn: async () => {
+      const url = new URL("/api/admin/newsroom/internal-links", window.location.origin)
+      url.searchParams.set("reviewQueueId", item.id)
+      const res = await fetch(url.toString(), { credentials: "include" })
+      return res.json()
+    },
+  })
+  return (
+    <Card className="p-4" data-testid={`card-review-${item.id}`}>
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-sm">{item.citySlug}</span>
+          {item.qcScore != null && <Badge variant="outline">QC {item.qcScore}/100</Badge>}
+          {isV1 ? <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">v1 schema ✓</Badge> : <Badge variant="destructive">non-v1 — cannot publish</Badge>}
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" disabled={pending} onClick={() => onAction("rejected")} data-testid={`button-reject-${item.id}`}>Reject</Button>
+          <Button size="sm" disabled={pending} onClick={() => onAction("approved")} data-testid={`button-approve-${item.id}`}>Approve & Publish</Button>
+        </div>
+      </div>
+      {isV1 && (
+        <div className="mb-2 space-y-1 text-sm">
+          <div><span className="text-muted-foreground">Title:</span> <span className="font-medium" data-testid={`text-draft-title-${item.id}`}>{draft.title}</span></div>
+          <div><span className="text-muted-foreground">Slug:</span> <code className="text-xs">{draft.suggestedSlug}</code></div>
+          {draft.headline && <div><span className="text-muted-foreground">H1:</span> {draft.headline}</div>}
+        </div>
+      )}
+      {links && links.length > 0 && (
+        <div className="mb-2">
+          <div className="text-xs font-medium text-muted-foreground mb-1">Suggested internal links ({links.length})</div>
+          <ul className="text-xs space-y-0.5">
+            {links.map((l) => (
+              <li key={l.id} className="flex gap-2"><code>/{l.targetSlug}</code> <span className="text-muted-foreground">→</span> <span>{l.anchorText}</span></li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <details className="text-xs text-muted-foreground">
+        <summary className="cursor-pointer">Raw draft payload</summary>
+        <pre className="mt-2 overflow-auto rounded bg-muted p-2">{JSON.stringify(item.draftPayload, null, 2)}</pre>
+      </details>
+    </Card>
+  )
+}
+
 export default function NewsroomPage() {
   const [citySlug, setCitySlug] = useState("")
   const [dryRun, setDryRun] = useState(true)
@@ -136,12 +195,31 @@ export default function NewsroomPage() {
     },
   })
 
+  const { toast } = useToast()
   const reviewMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "approved" | "rejected" }) => {
-      return apiRequest("PATCH", `/api/admin/newsroom/review/${id}`, { status })
+      const res = await apiRequest("PATCH", `/api/admin/newsroom/review/${id}`, { status })
+      return res.json() as Promise<{ review: ReviewItem; publishedArticle: { id: string; slug: string; status: string; robots: string } | null }>
     },
-    onSuccess: () => {
+    onSuccess: (data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/review"] })
+      if (vars.status === "approved" && data.publishedArticle) {
+        toast({
+          title: "Published as pending knowledge article",
+          description: `Slug: ${data.publishedArticle.slug} — robots: noindex (safe-default). Flip to live from the Knowledge tab.`,
+        })
+      } else if (vars.status === "rejected") {
+        toast({ title: "Draft rejected", description: "No article was created." })
+      }
+    },
+    onError: (err: Error) => {
+      const raw = err?.message || "Failed to update review"
+      let msg = raw
+      const m = raw.match(/^\d+:\s*(.+)$/s)
+      if (m) {
+        try { const body = JSON.parse(m[1]); if (body?.error) msg = body.error } catch { msg = m[1] }
+      }
+      toast({ title: "Review action failed", description: msg, variant: "destructive" })
     },
   })
 
@@ -285,37 +363,7 @@ export default function NewsroomPage() {
             {!review || review.length === 0 ? (
               <Card className="p-8 text-center text-muted-foreground">Review queue is empty.</Card>
             ) : (
-              review.map((r) => (
-                <Card key={r.id} className="p-4" data-testid={`card-review-${r.id}`}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <div>
-                      <span className="font-mono text-sm">{r.citySlug}</span>
-                      {r.qcScore != null && (
-                        <Badge className="ml-2" variant="outline">QC {r.qcScore}/100</Badge>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => reviewMutation.mutate({ id: r.id, status: "rejected" })}
-                        data-testid={`button-reject-${r.id}`}
-                      >Reject</Button>
-                      <Button
-                        size="sm"
-                        onClick={() => reviewMutation.mutate({ id: r.id, status: "approved" })}
-                        data-testid={`button-approve-${r.id}`}
-                      >Approve</Button>
-                    </div>
-                  </div>
-                  <details className="text-xs text-muted-foreground">
-                    <summary className="cursor-pointer">Draft payload</summary>
-                    <pre className="mt-2 overflow-auto rounded bg-muted p-2">
-                      {JSON.stringify(r.draftPayload, null, 2)}
-                    </pre>
-                  </details>
-                </Card>
-              ))
+              review.map((r) => <ReviewCard key={r.id} item={r} onAction={(status) => reviewMutation.mutate({ id: r.id, status })} pending={reviewMutation.isPending} />)
             )}
           </div>
         </TabsContent>
