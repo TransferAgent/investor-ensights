@@ -57,6 +57,7 @@ import {
   ChevronRight,
   FolderOpen,
   Folder,
+  ShieldOff,
 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 
@@ -180,7 +181,7 @@ interface KnowledgeTemplateItem {
   updatedAt: string
 }
 
-type TabType = "articles" | "content-studio" | "analytics" | "coverage" | "templates"
+type TabType = "articles" | "content-studio" | "analytics" | "coverage" | "templates" | "seo-visibility"
 
 export default function KnowledgeAdmin() {
   const { toast } = useToast()
@@ -1077,13 +1078,14 @@ export default function KnowledgeAdmin() {
       )}
 
       <div className="flex gap-2 mb-4">
-        {(["articles", "content-studio", "templates", "analytics", "coverage"] as TabType[]).map((tab) => {
+        {(["articles", "content-studio", "templates", "analytics", "coverage", "seo-visibility"] as TabType[]).map((tab) => {
           const tabLabels: Record<string, string> = {
             "articles": "Articles",
             "content-studio": "Content Studio",
             "templates": "Templates",
             "analytics": "Analytics",
             "coverage": "Coverage",
+            "seo-visibility": "SEO Visibility",
           }
           return (
             <Button
@@ -1098,11 +1100,14 @@ export default function KnowledgeAdmin() {
               {tab === "templates" && <Layers className="mr-1.5 h-3.5 w-3.5" />}
               {tab === "analytics" && <BarChart3 className="mr-1.5 h-3.5 w-3.5" />}
               {tab === "coverage" && <Map className="mr-1.5 h-3.5 w-3.5" />}
+              {tab === "seo-visibility" && <ShieldOff className="mr-1.5 h-3.5 w-3.5" />}
               {tabLabels[tab] || tab}
             </Button>
           )
         })}
       </div>
+
+      {activeTab === "seo-visibility" && <SeoVisibilitySection />}
 
       {activeTab === "articles" && (
         <>
@@ -2255,6 +2260,228 @@ function TemplateForm({ initial, onSubmit, isPending, cities }: {
         {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
         {initial ? "Update Template" : "Create Template"}
       </Button>
+    </div>
+  )
+}
+
+interface PreviewItem { id: string; slug: string; title: string }
+interface PreviewResp {
+  totals: {
+    published: number
+    willFlipToNoindex: number
+    willKeepIndexed: number
+    alreadyNoindex: number
+    safeListSize: number
+    safeListMissing: number
+  }
+  willFlip: PreviewItem[]
+  willKeep: PreviewItem[]
+  alreadyNoindex: PreviewItem[]
+  safeListMissing: string[]
+}
+
+function SeoVisibilitySection() {
+  const { toast } = useToast()
+  const [safeListText, setSafeListText] = useState("")
+  const [preview, setPreview] = useState<PreviewResp | null>(null)
+  const [restoreSlugsText, setRestoreSlugsText] = useState("")
+  const [showAllFlips, setShowAllFlips] = useState(false)
+
+  const indexedSlugs = useMemo(
+    () =>
+      safeListText
+        .split(/[\s,]+/)
+        .map((s) => s.trim())
+        .filter(Boolean),
+    [safeListText]
+  )
+
+  const previewMut = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/knowledge/seo-visibility/preview", {
+        indexedSlugs,
+      })
+      return (await res.json()) as PreviewResp
+    },
+    onSuccess: (data) => setPreview(data),
+    onError: (e: any) => toast({ title: "Preview failed", description: e.message, variant: "destructive" }),
+  })
+
+  const applyMut = useMutation({
+    mutationFn: async (allowMissing: boolean) => {
+      const res = await apiRequest("POST", "/api/admin/knowledge/seo-visibility/apply", {
+        indexedSlugs,
+        confirm: true,
+        allowMissing,
+      })
+      return await res.json()
+    },
+    onSuccess: (data) => {
+      if (data.aborted) {
+        toast({
+          title: "Aborted: safe-list slugs not found",
+          description: `${data.safeListMissing.length} slug(s) on your safe-list were not found among published articles. Re-confirm to proceed anyway.`,
+          variant: "destructive",
+        })
+        return
+      }
+      toast({ title: "Bulk noindex applied", description: `Flipped ${data.flipped} articles to noindex.` })
+      setPreview(null)
+      previewMut.mutate()
+    },
+    onError: (e: any) => toast({ title: "Apply failed", description: e.message, variant: "destructive" }),
+  })
+
+  const restoreMut = useMutation({
+    mutationFn: async () => {
+      const slugs = restoreSlugsText
+        .split(/[\s,]+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+      if (!slugs.length) throw new Error("Enter at least one slug")
+      const res = await apiRequest("PATCH", "/api/admin/knowledge/seo-visibility/apply", { slugs })
+      return await res.json()
+    },
+    onSuccess: (data) => {
+      toast({ title: "Restored", description: `Restored ${data.restored} articles to default robots.` })
+      setRestoreSlugsText("")
+    },
+    onError: (e: any) => toast({ title: "Restore failed", description: e.message, variant: "destructive" }),
+  })
+
+  return (
+    <div className="space-y-6">
+      <Card className="p-6 border-amber-300 bg-amber-50/40">
+        <div className="flex items-start gap-3 mb-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+          <div>
+            <h2 className="text-lg font-semibold">Bulk SEO Visibility Control</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Flip every published press release to <code className="bg-white px-1.5 py-0.5 rounded text-xs">noindex, follow</code>{" "}
+              <strong>except</strong> the safe-list of slugs you paste below (slugs Google has already indexed). Articles already
+              noindexed are skipped. Each change is snapshotted into article version history and audit-logged. Reversible per article.
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <Label htmlFor="safe-list">Indexed slug safe-list (one per line, or comma-separated)</Label>
+        <p className="text-xs text-muted-foreground mt-1 mb-2">
+          These slugs will <strong>stay indexed</strong>. Everything else (currently still set to index) will be flipped to noindex.
+        </p>
+        <Textarea
+          id="safe-list"
+          rows={6}
+          placeholder={"pr-hash-256-launch\nzkp-noir-v1-release\n..."}
+          value={safeListText}
+          onChange={(e) => setSafeListText(e.target.value)}
+          data-testid="textarea-safe-list"
+          className="font-mono text-xs"
+        />
+        <div className="text-xs text-muted-foreground mt-1">{indexedSlugs.length} slug(s) parsed.</div>
+
+        <div className="flex gap-2 mt-4">
+          <Button
+            onClick={() => previewMut.mutate()}
+            disabled={previewMut.isPending}
+            data-testid="button-preview-seo-flip"
+          >
+            {previewMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Eye className="h-4 w-4 mr-2" />}
+            Dry-run preview
+          </Button>
+          {preview && preview.totals.willFlipToNoindex > 0 && (
+            <Button
+              variant="destructive"
+              onClick={() => {
+                const allowMissing = preview.totals.safeListMissing > 0
+                const baseMsg = `Flip ${preview.totals.willFlipToNoindex} published articles to noindex? ${preview.totals.willKeepIndexed} on the safe-list will stay indexed. Reversible per article.`
+                const warn = allowMissing
+                  ? `\n\nWARNING: ${preview.totals.safeListMissing} safe-list slug(s) were not found among published articles — they will be ignored. Continue anyway?`
+                  : ""
+                if (confirm(baseMsg + warn)) applyMut.mutate(allowMissing)
+              }}
+              disabled={applyMut.isPending}
+              data-testid="button-apply-seo-flip"
+            >
+              {applyMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ShieldOff className="h-4 w-4 mr-2" />}
+              Apply: noindex {preview.totals.willFlipToNoindex} articles
+            </Button>
+          )}
+        </div>
+      </Card>
+
+      {preview && (
+        <Card className="p-6">
+          <h3 className="font-semibold mb-3">Preview Summary</h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4 text-sm">
+            <div className="rounded border p-3"><div className="text-xs text-muted-foreground">Published total</div><div className="text-2xl font-semibold" data-testid="stat-published">{preview.totals.published}</div></div>
+            <div className="rounded border p-3 bg-red-50"><div className="text-xs text-muted-foreground">Will flip → noindex</div><div className="text-2xl font-semibold text-red-700" data-testid="stat-flip">{preview.totals.willFlipToNoindex}</div></div>
+            <div className="rounded border p-3 bg-emerald-50"><div className="text-xs text-muted-foreground">Will keep indexed</div><div className="text-2xl font-semibold text-emerald-700" data-testid="stat-keep">{preview.totals.willKeepIndexed}</div></div>
+            <div className="rounded border p-3"><div className="text-xs text-muted-foreground">Already noindex</div><div className="text-2xl font-semibold" data-testid="stat-already">{preview.totals.alreadyNoindex}</div></div>
+            <div className="rounded border p-3"><div className="text-xs text-muted-foreground">Safe-list missing</div><div className="text-2xl font-semibold text-amber-700" data-testid="stat-missing">{preview.totals.safeListMissing}</div></div>
+          </div>
+
+          {preview.safeListMissing.length > 0 && (
+            <div className="rounded border border-amber-300 bg-amber-50 p-3 mb-4 text-sm">
+              <strong>Warning:</strong> these safe-list slugs were not found among published articles:{" "}
+              <code className="text-xs">{preview.safeListMissing.join(", ")}</code>
+            </div>
+          )}
+
+          {preview.willKeep.length > 0 && (
+            <div className="mb-4">
+              <h4 className="font-medium text-sm mb-2 text-emerald-700">Will stay indexed ({preview.willKeep.length})</h4>
+              <ul className="text-xs space-y-1 max-h-40 overflow-auto border rounded p-2">
+                {preview.willKeep.map((a) => (
+                  <li key={a.id} data-testid={`keep-${a.slug}`}><code>{a.slug}</code> — {a.title}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {preview.willFlip.length > 0 && (
+            <div>
+              <h4 className="font-medium text-sm mb-2 text-red-700">Will flip to noindex ({preview.willFlip.length})</h4>
+              <ul className="text-xs space-y-1 max-h-60 overflow-auto border rounded p-2">
+                {(showAllFlips ? preview.willFlip : preview.willFlip.slice(0, 25)).map((a) => (
+                  <li key={a.id} data-testid={`flip-${a.slug}`}><code>{a.slug}</code> — {a.title}</li>
+                ))}
+              </ul>
+              {preview.willFlip.length > 25 && (
+                <Button variant="link" size="sm" onClick={() => setShowAllFlips((v) => !v)}>
+                  {showAllFlips ? "Show less" : `Show all ${preview.willFlip.length}`}
+                </Button>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
+
+      <Card className="p-6">
+        <h3 className="font-semibold mb-2">Per-article restore</h3>
+        <p className="text-xs text-muted-foreground mb-2">
+          Paste slugs to restore back to the default indexable robots directive (one per line or comma-separated).
+        </p>
+        <Textarea
+          rows={3}
+          value={restoreSlugsText}
+          onChange={(e) => setRestoreSlugsText(e.target.value)}
+          placeholder="my-article-slug"
+          className="font-mono text-xs"
+          data-testid="textarea-restore-slugs"
+        />
+        <Button
+          className="mt-3"
+          variant="outline"
+          onClick={() => restoreMut.mutate()}
+          disabled={restoreMut.isPending}
+          data-testid="button-restore-slugs"
+        >
+          {restoreMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ArchiveRestore className="h-4 w-4 mr-2" />}
+          Restore to indexable
+        </Button>
+      </Card>
     </div>
   )
 }

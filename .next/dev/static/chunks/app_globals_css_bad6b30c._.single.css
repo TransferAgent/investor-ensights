@@ -1776,8 +1776,16 @@ body {
   max-height: 8rem;
 }
 
+.max-h-40 {
+  max-height: 10rem;
+}
+
 .max-h-48 {
   max-height: 12rem;
+}
+
+.max-h-60 {
+  max-height: 15rem;
 }
 
 .max-h-64 {
@@ -2555,6 +2563,11 @@ body {
   border-color: var(--color-border);
 }
 
+.border-amber-300 {
+  --tw-border-opacity: 1;
+  border-color: rgb(252 211 77 / var(--tw-border-opacity, 1));
+}
+
 .border-blue-500\/20 {
   border-color: #3b82f633;
 }
@@ -2668,6 +2681,15 @@ body {
   background-color: hsl(var(--accent) / var(--tw-bg-opacity, 1));
 }
 
+.bg-amber-50 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 251 235 / var(--tw-bg-opacity, 1));
+}
+
+.bg-amber-50\/40 {
+  background-color: #fffbeb66;
+}
+
 .bg-background {
   --tw-bg-opacity: 1;
   background-color: hsl(var(--background) / var(--tw-bg-opacity, 1));
@@ -2708,6 +2730,11 @@ body {
 .bg-destructive {
   --tw-bg-opacity: 1;
   background-color: hsl(var(--destructive) / var(--tw-bg-opacity, 1));
+}
+
+.bg-emerald-50 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(236 253 245 / var(--tw-bg-opacity, 1));
 }
 
 .bg-foreground {
@@ -2773,6 +2800,11 @@ body {
   background-color: rgb(254 226 226 / var(--tw-bg-opacity, 1));
 }
 
+.bg-red-50 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(254 242 242 / var(--tw-bg-opacity, 1));
+}
+
 .bg-red-500\/10 {
   background-color: #ef44441a;
 }
@@ -2794,6 +2826,11 @@ body {
 
 .bg-transparent {
   background-color: #0000;
+}
+
+.bg-white {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
 }
 
 .bg-white\/5 {
@@ -3231,6 +3268,16 @@ body {
   color: rgb(245 158 11 / var(--tw-text-opacity, 1));
 }
 
+.text-amber-600 {
+  --tw-text-opacity: 1;
+  color: rgb(217 119 6 / var(--tw-text-opacity, 1));
+}
+
+.text-amber-700 {
+  --tw-text-opacity: 1;
+  color: rgb(180 83 9 / var(--tw-text-opacity, 1));
+}
+
 .text-black {
   --tw-text-opacity: 1;
   color: rgb(0 0 0 / var(--tw-text-opacity, 1));
@@ -3301,6 +3348,11 @@ body {
 .text-destructive-foreground {
   --tw-text-opacity: 1;
   color: hsl(var(--destructive-foreground) / var(--tw-text-opacity, 1));
+}
+
+.text-emerald-700 {
+  --tw-text-opacity: 1;
+  color: rgb(4 120 87 / var(--tw-text-opacity, 1));
 }
 
 .text-foreground {
@@ -3397,6 +3449,11 @@ body {
 .text-red-500 {
   --tw-text-opacity: 1;
   color: rgb(239 68 68 / var(--tw-text-opacity, 1));
+}
+
+.text-red-700 {
+  --tw-text-opacity: 1;
+  color: rgb(185 28 28 / var(--tw-text-opacity, 1));
 }
 
 .text-red-800 {

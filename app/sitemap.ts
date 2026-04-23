@@ -26,12 +26,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }))
 
-  const articleEntries: MetadataRoute.Sitemap = articles.map((article) => ({
-    url: `${BASE_URL}/discovery/knowledge/${article.slug}`,
-    lastModified: article.dateModified,
-    changeFrequency: "weekly" as const,
-    priority: 0.7,
-  }))
+  const articleEntries: MetadataRoute.Sitemap = articles
+    .filter((a) => !(a.robots || "").toLowerCase().includes("noindex"))
+    .map((article) => ({
+      url: `${BASE_URL}/discovery/knowledge/${article.slug}`,
+      lastModified: article.dateModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }))
 
   return [
     {

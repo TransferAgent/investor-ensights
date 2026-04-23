@@ -1,3 +1,4 @@
 {
+  "/api/admin/knowledge/seo-visibility/apply/route": "app/api/admin/knowledge/seo-visibility/apply/route.js",
   "/page": "app/page.js"
 }

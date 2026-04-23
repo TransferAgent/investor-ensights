@@ -452,6 +452,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/admin/knowledge/seo-visibility/apply/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/knowledge/seo-visibility/apply">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/knowledge/seo-visibility/apply/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/admin/knowledge/seo-visibility/preview/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/knowledge/seo-visibility/preview">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/knowledge/seo-visibility/preview/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/admin/knowledge/sync-template/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/knowledge/sync-template">> = Specific

@@ -39,13 +39,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     };
   }
 
+  const robotsString = (article.robots || "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1").toLowerCase();
+  const isNoindex = robotsString.includes("noindex");
+  const isNofollow = robotsString.includes("nofollow");
+
   return {
     title: article.title,
     description: article.metaDescription || undefined,
     alternates: { canonical: `${BASE_URL}/discovery/knowledge/${article.slug}` },
     robots: {
-      index: true,
-      follow: true,
+      index: !isNoindex,
+      follow: !isNofollow,
       "max-snippet": -1 as any,
       "max-image-preview": "large" as any,
       "max-video-preview": -1 as any,
