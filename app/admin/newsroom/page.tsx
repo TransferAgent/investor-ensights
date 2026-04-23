@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,8 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { apiRequest, queryClient } from "@/lib/queryClient"
-import { Bot, PlayCircle, FileSearch, Users, PenLine, ShieldCheck, Link2, Activity } from "lucide-react"
+import { Bot, PlayCircle, FileSearch, Users, PenLine, ShieldCheck, Link2, Activity, AlertTriangle, RotateCcw, Settings, DollarSign } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 
 interface Agent {
   id: string
@@ -29,8 +32,31 @@ interface Job {
   agentsCompleted: string[]
   dryRun: boolean
   errorMessage: string | null
+  claimedBy: string | null
+  claimedAt: string | null
+  heartbeatAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+interface CostRollup {
+  totals: {
+    total_tokens: string | number
+    total_cost_usd: string
+    total_runs: number
+    dry_runs: number
+    runs_24h: number
+    cost_24h: string
+    cost_7d: string
+  }
+  byJob: Array<{ job_id: string; runs: number; tokens: string | number; cost_usd: string }>
+  byAgent: Array<{ agent_id: string; runs: number; tokens: string | number; cost_usd: string }>
+}
+
+const STALE_LEASE_MS = 5 * 60 * 1000
+function isStale(job: Job): boolean {
+  if (job.status !== "running" || !job.heartbeatAt) return false
+  return Date.now() - new Date(job.heartbeatAt).getTime() > STALE_LEASE_MS
 }
 
 interface Run {
@@ -148,6 +174,8 @@ export default function NewsroomPage() {
   const [citySlug, setCitySlug] = useState("")
   const [dryRun, setDryRun] = useState(true)
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null)
+  const [jobFilter, setJobFilter] = useState<"all" | "live" | "dry">("all")
 
   const { data: agents, isLoading: agentsLoading } = useQuery<Agent[]>({
     queryKey: ["/api/admin/newsroom/agents"],
@@ -156,6 +184,21 @@ export default function NewsroomPage() {
   const { data: jobs } = useQuery<Job[]>({
     queryKey: ["/api/admin/newsroom/jobs"],
     refetchInterval: 5000,
+  })
+
+  const { data: cost } = useQuery<CostRollup>({
+    queryKey: ["/api/admin/newsroom/cost-rollup"],
+    refetchInterval: 10000,
+  })
+
+  const releaseMutation = useMutation({
+    mutationFn: async (jobId: string) => {
+      return apiRequest("POST", `/api/admin/newsroom/jobs/${jobId}/release`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/jobs"] })
+      toast({ title: "Lease released", description: "Job returned to queued — next worker can claim it." })
+    },
   })
 
   const { data: runs } = useQuery<Run[]>({
@@ -266,6 +309,22 @@ export default function NewsroomPage() {
         </div>
       </Card>
 
+      {cost && (
+        <Card className="mb-6 p-4" data-testid="card-cost-rollup">
+          <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            Cost rollup
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            <div><div className="text-xs text-muted-foreground">Runs (all)</div><div className="text-lg font-semibold" data-testid="text-cost-total-runs">{cost.totals.total_runs} <span className="text-xs font-normal text-muted-foreground">({cost.totals.dry_runs} dry)</span></div></div>
+            <div><div className="text-xs text-muted-foreground">Tokens (all)</div><div className="text-lg font-semibold">{Number(cost.totals.total_tokens).toLocaleString()}</div></div>
+            <div><div className="text-xs text-muted-foreground">Cost (all)</div><div className="text-lg font-semibold" data-testid="text-cost-total">${Number(cost.totals.total_cost_usd).toFixed(4)}</div></div>
+            <div><div className="text-xs text-muted-foreground">Cost 24h</div><div className="text-lg font-semibold" data-testid="text-cost-24h">${Number(cost.totals.cost_24h).toFixed(4)}</div></div>
+            <div><div className="text-xs text-muted-foreground">Cost 7d</div><div className="text-lg font-semibold" data-testid="text-cost-7d">${Number(cost.totals.cost_7d).toFixed(4)}</div></div>
+          </div>
+        </Card>
+      )}
+
       <Tabs defaultValue="agents">
         <TabsList>
           <TabsTrigger value="agents" data-testid="tab-agents">Agents</TabsTrigger>
@@ -309,15 +368,25 @@ export default function NewsroomPage() {
                         </span>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-3 w-full"
-                      onClick={() => setSelectedAgentId(a.id)}
-                      data-testid={`button-view-knowledge-${a.role}`}
-                    >
-                      View knowledge
-                    </Button>
+                    <div className="mt-3 flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setSelectedAgentId(a.id)}
+                        data-testid={`button-view-knowledge-${a.role}`}
+                      >
+                        View knowledge
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingAgent(a)}
+                        data-testid={`button-edit-agent-${a.role}`}
+                      >
+                        <Settings className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </Card>
                 )
               })}
@@ -326,6 +395,18 @@ export default function NewsroomPage() {
         </TabsContent>
 
         <TabsContent value="pipeline" className="mt-4">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Filter:</span>
+            <Button size="sm" variant={jobFilter === "all" ? "default" : "outline"} onClick={() => setJobFilter("all")} data-testid="filter-jobs-all">All</Button>
+            <Button size="sm" variant={jobFilter === "live" ? "default" : "outline"} onClick={() => setJobFilter("live")} data-testid="filter-jobs-live">Live only</Button>
+            <Button size="sm" variant={jobFilter === "dry" ? "default" : "outline"} onClick={() => setJobFilter("dry")} data-testid="filter-jobs-dry">Dry only</Button>
+            {jobs && jobs.some(isStale) && (
+              <Badge variant="destructive" className="ml-2" data-testid="badge-stale-count">
+                <AlertTriangle className="mr-1 h-3 w-3" />
+                {jobs.filter(isStale).length} stale
+              </Badge>
+            )}
+          </div>
           <Card className="p-0 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-left">
@@ -334,25 +415,49 @@ export default function NewsroomPage() {
                   <th className="px-4 py-2 font-medium">Stage</th>
                   <th className="px-4 py-2 font-medium">Status</th>
                   <th className="px-4 py-2 font-medium">Mode</th>
+                  <th className="px-4 py-2 font-medium">Worker</th>
                   <th className="px-4 py-2 font-medium">Created</th>
+                  <th className="px-4 py-2 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {!jobs || jobs.length === 0 ? (
-                  <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No jobs yet. Enqueue one above.</td></tr>
-                ) : (
-                  jobs.map((j) => (
-                    <tr key={j.id} className="border-t" data-testid={`row-job-${j.id}`}>
+                {(() => {
+                  const filtered = (jobs || []).filter((j) =>
+                    jobFilter === "all" ? true : jobFilter === "live" ? !j.dryRun : j.dryRun
+                  )
+                  if (filtered.length === 0) {
+                    return <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No jobs match this filter.</td></tr>
+                  }
+                  return filtered.map((j) => {
+                    const stale = isStale(j)
+                    return (
+                    <tr key={j.id} className={`border-t ${stale ? "bg-red-50" : ""}`} data-testid={`row-job-${j.id}`}>
                       <td className="px-4 py-2 font-mono">{j.citySlug}</td>
                       <td className="px-4 py-2">{j.currentStage || "—"}</td>
                       <td className="px-4 py-2">
                         <span className={`px-2 py-0.5 rounded text-xs ${statusColor(j.status)}`}>{j.status}</span>
+                        {stale && <Badge variant="destructive" className="ml-2" data-testid={`badge-stale-${j.id}`}><AlertTriangle className="mr-1 h-3 w-3" />stale</Badge>}
                       </td>
                       <td className="px-4 py-2">{j.dryRun ? <Badge variant="outline">dry</Badge> : <Badge>live</Badge>}</td>
+                      <td className="px-4 py-2 text-xs text-muted-foreground">{j.claimedBy || "—"}</td>
                       <td className="px-4 py-2 text-xs text-muted-foreground">{new Date(j.createdAt).toLocaleString()}</td>
+                      <td className="px-4 py-2">
+                        {(stale || j.status === "running") && (
+                          <Button
+                            size="sm"
+                            variant={stale ? "destructive" : "outline"}
+                            disabled={releaseMutation.isPending}
+                            onClick={() => releaseMutation.mutate(j.id)}
+                            data-testid={`button-release-${j.id}`}
+                          >
+                            <RotateCcw className="mr-1 h-3 w-3" />
+                            Release
+                          </Button>
+                        )}
+                      </td>
                     </tr>
-                  ))
-                )}
+                  )})
+                })()}
               </tbody>
             </table>
           </Card>
@@ -457,6 +562,101 @@ export default function NewsroomPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      <AgentEditor agent={editingAgent} onClose={() => setEditingAgent(null)} />
     </div>
+  )
+}
+
+function AgentEditor({ agent, onClose }: { agent: Agent | null; onClose: () => void }) {
+  const { toast } = useToast()
+  const [form, setForm] = useState<{ provider: string; modelEndpoint: string; systemPrompt: string; sources: string; isActive: boolean }>({
+    provider: "", modelEndpoint: "", systemPrompt: "", sources: "", isActive: true,
+  })
+
+  const { data: full } = useQuery<any>({
+    queryKey: agent ? ["/api/admin/newsroom/agents", agent.id] : ["__noop__"],
+    queryFn: async () => {
+      if (!agent) return null
+      const all = await (await fetch("/api/admin/newsroom/agents", { credentials: "include" })).json()
+      return all.find((a: any) => a.id === agent.id)
+    },
+    enabled: !!agent,
+  })
+
+  useEffect(() => {
+    if (full) {
+      setForm({
+        provider: full.provider || "",
+        modelEndpoint: full.modelEndpoint || "",
+        systemPrompt: full.systemPrompt || "",
+        sources: Array.isArray(full.sources) ? full.sources.join("\n") : "",
+        isActive: full.isActive,
+      })
+    }
+  }, [full])
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!agent) return
+      return apiRequest("PATCH", `/api/admin/newsroom/agents/${agent.id}`, {
+        provider: form.provider || null,
+        modelEndpoint: form.modelEndpoint || null,
+        systemPrompt: form.systemPrompt || null,
+        sources: form.sources.split("\n").map((s) => s.trim()).filter(Boolean),
+        isActive: form.isActive,
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/agents"] })
+      toast({ title: "Agent updated", description: `${agent?.displayName} configuration saved.` })
+      onClose()
+    },
+    onError: (err: Error) => {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" })
+    },
+  })
+
+  return (
+    <Dialog open={!!agent} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Configure agent: {agent?.displayName}</DialogTitle>
+        </DialogHeader>
+        {!full ? (
+          <div className="py-8"><Skeleton className="h-32" /></div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Provider</label>
+                <Input value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })} placeholder="anthropic, openai, perplexity..." data-testid="input-agent-provider" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Model endpoint</label>
+                <Input value={form.modelEndpoint} onChange={(e) => setForm({ ...form, modelEndpoint: e.target.value })} placeholder="claude-3-5-sonnet, gpt-4o..." data-testid="input-agent-model" />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">System prompt</label>
+              <Textarea value={form.systemPrompt} onChange={(e) => setForm({ ...form, systemPrompt: e.target.value })} rows={6} className="font-mono text-xs" data-testid="textarea-agent-prompt" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Sources (one per line)</label>
+              <Textarea value={form.sources} onChange={(e) => setForm({ ...form, sources: e.target.value })} rows={4} className="font-mono text-xs" placeholder="wbjournal.com&#10;sec.gov/edgar" data-testid="textarea-agent-sources" />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={form.isActive} onCheckedChange={(v) => setForm({ ...form, isActive: v })} data-testid="switch-agent-active" />
+              Active (eligible to run)
+            </label>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button disabled={save.isPending || !full} onClick={() => save.mutate()} data-testid="button-save-agent">
+            {save.isPending ? "Saving..." : "Save changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

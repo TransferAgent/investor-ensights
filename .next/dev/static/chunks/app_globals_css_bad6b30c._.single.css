@@ -1772,6 +1772,10 @@ body {
   height: 100svh;
 }
 
+.h-32 {
+  height: 8rem;
+}
+
 .max-h-32 {
   max-height: 8rem;
 }
@@ -5098,6 +5102,10 @@ input[type="search"]::-webkit-search-cancel-button {
 
   .sm\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sm\:grid-cols-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .sm\:flex-row {

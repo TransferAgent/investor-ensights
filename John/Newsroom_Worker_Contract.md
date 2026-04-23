@@ -66,8 +66,10 @@ Call every 30 seconds during long work to prevent another worker from stealing y
 
 **Body**
 ```json
-{ "jobId": "uuid", "currentStage": "researcher" }
+{ "jobId": "uuid", "currentStage": "researcher", "workerId": "py-worker-01" }
 ```
+
+`workerId` is optional but **recommended** — when supplied, the heartbeat is only accepted if the job is still `status='running'` AND `claimed_by = workerId`. If the lease was forcibly released by an admin, or stolen by another worker, the endpoint returns **HTTP 409** `{"ok":false,"error":"lease lost ..."}`. On 409, the worker MUST stop work immediately and either re-claim or exit gracefully.
 
 ---
 

@@ -533,10 +533,28 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/admin/newsroom/cost-rollup/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/newsroom/cost-rollup">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/newsroom/cost-rollup/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/admin/newsroom/internal-links/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/newsroom/internal-links">> = Specific
   const handler = {} as typeof import("../../../app/api/admin/newsroom/internal-links/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/admin/newsroom/jobs/[id]/release/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/newsroom/jobs/[id]/release">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/newsroom/jobs/[id]/release/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
