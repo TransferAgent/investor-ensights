@@ -70,6 +70,13 @@ export async function generateMetadata({
     alternates: {
       canonical: `${BASE_URL}/locations/${city.slug}`,
     },
+    robots: {
+      index: city.allowIndexing,
+      follow: true,
+      "max-snippet": -1 as any,
+      "max-image-preview": "large" as any,
+      "max-video-preview": -1 as any,
+    },
     openGraph: {
       title,
       description,

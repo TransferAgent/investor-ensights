@@ -1,4 +1,6 @@
 {
-  "/api/admin/knowledge/seo-visibility/apply/route": "app/api/admin/knowledge/seo-visibility/apply/route.js",
+  "/api/admin/knowledge/seo-visibility/preview/route": "app/api/admin/knowledge/seo-visibility/preview/route.js",
+  "/api/admin/knowledge/seo-visibility/protected-list/route": "app/api/admin/knowledge/seo-visibility/protected-list/route.js",
+  "/api/admin/login/route": "app/api/admin/login/route.js",
   "/page": "app/page.js"
 }

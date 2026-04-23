@@ -10,12 +10,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     storage.getKnowledgeArticles("published"),
   ])
 
-  const cityEntries: MetadataRoute.Sitemap = cities.map((city) => ({
-    url: `${BASE_URL}/locations/${city.slug}`,
-    lastModified: city.updatedAt,
-    changeFrequency: "weekly" as const,
-    priority: 0.8,
-  }))
+  const cityEntries: MetadataRoute.Sitemap = cities
+    .filter((c) => c.allowIndexing !== false)
+    .map((city) => ({
+      url: `${BASE_URL}/locations/${city.slug}`,
+      lastModified: city.updatedAt,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }))
 
   const pageEntries: MetadataRoute.Sitemap = pages
     .filter((p) => p.isPublished)

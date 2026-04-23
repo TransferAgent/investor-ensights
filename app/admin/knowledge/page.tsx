@@ -2264,42 +2264,69 @@ function TemplateForm({ initial, onSubmit, isPending, cities }: {
   )
 }
 
-interface PreviewItem { id: string; slug: string; title: string }
+
+interface FlipItemArticle { id: string; slug: string; title: string }
+interface FlipItemCity { id: string; slug: string; label: string }
 interface PreviewResp {
-  totals: {
-    published: number
+  parsed: {
+    articleSafeList: string[]
+    citySafeList: string[]
+    homeCount: number
+    unknownEntries: string[]
+  }
+  articles: {
+    total: number
     willFlipToNoindex: number
     willKeepIndexed: number
     alreadyNoindex: number
-    safeListSize: number
-    safeListMissing: number
+    safeListMissing: string[]
+    willFlip: FlipItemArticle[]
+    willKeep: FlipItemArticle[]
   }
-  willFlip: PreviewItem[]
-  willKeep: PreviewItem[]
-  alreadyNoindex: PreviewItem[]
-  safeListMissing: string[]
+  cities: {
+    total: number
+    willFlipToNoindex: number
+    willKeepIndexed: number
+    alreadyNoindex: number
+    safeListMissing: string[]
+    willFlip: FlipItemCity[]
+    willKeep: FlipItemCity[]
+  }
 }
 
 function SeoVisibilitySection() {
   const { toast } = useToast()
   const [safeListText, setSafeListText] = useState("")
   const [preview, setPreview] = useState<PreviewResp | null>(null)
-  const [restoreSlugsText, setRestoreSlugsText] = useState("")
-  const [showAllFlips, setShowAllFlips] = useState(false)
+  const [restoreText, setRestoreText] = useState("")
+  const [showAllArticleFlips, setShowAllArticleFlips] = useState(false)
+  const [showAllCityFlips, setShowAllCityFlips] = useState(false)
 
-  const indexedSlugs = useMemo(
+  const indexedUrls = useMemo(
     () =>
       safeListText
-        .split(/[\s,]+/)
+        .split(/[\r\n,]+/)
         .map((s) => s.trim())
         .filter(Boolean),
     [safeListText]
   )
 
+  const loadProtectedMut = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("GET", "/api/admin/knowledge/seo-visibility/protected-list")
+      return await res.json() as { urls: string[]; count: number }
+    },
+    onSuccess: (data) => {
+      setSafeListText(data.urls.join("\n"))
+      toast({ title: "Loaded protected list", description: `${data.count} URLs from John/PR DO NOT TOUCH/.` })
+    },
+    onError: (e: any) => toast({ title: "Load failed", description: e.message, variant: "destructive" }),
+  })
+
   const previewMut = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/admin/knowledge/seo-visibility/preview", {
-        indexedSlugs,
+        indexedUrls,
       })
       return (await res.json()) as PreviewResp
     },
@@ -2310,7 +2337,7 @@ function SeoVisibilitySection() {
   const applyMut = useMutation({
     mutationFn: async (allowMissing: boolean) => {
       const res = await apiRequest("POST", "/api/admin/knowledge/seo-visibility/apply", {
-        indexedSlugs,
+        indexedUrls,
         confirm: true,
         allowMissing,
       })
@@ -2318,14 +2345,19 @@ function SeoVisibilitySection() {
     },
     onSuccess: (data) => {
       if (data.aborted) {
+        const a = data.articleSafeListMissing?.length || 0
+        const c = data.citySafeListMissing?.length || 0
         toast({
-          title: "Aborted: safe-list slugs not found",
-          description: `${data.safeListMissing.length} slug(s) on your safe-list were not found among published articles. Re-confirm to proceed anyway.`,
+          title: "Aborted: safe-list entries not found",
+          description: `${a} article slug(s) and ${c} city slug(s) on your safe-list were not found. Re-confirm to proceed anyway.`,
           variant: "destructive",
         })
         return
       }
-      toast({ title: "Bulk noindex applied", description: `Flipped ${data.flipped} articles to noindex.` })
+      toast({
+        title: "Bulk noindex applied",
+        description: `Flipped ${data.articlesFlipped} articles and ${data.citiesFlipped} cities.`,
+      })
       setPreview(null)
       previewMut.mutate()
     },
@@ -2334,20 +2366,25 @@ function SeoVisibilitySection() {
 
   const restoreMut = useMutation({
     mutationFn: async () => {
-      const slugs = restoreSlugsText
-        .split(/[\s,]+/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-      if (!slugs.length) throw new Error("Enter at least one slug")
-      const res = await apiRequest("PATCH", "/api/admin/knowledge/seo-visibility/apply", { slugs })
+      const urls = restoreText.split(/[\r\n,]+/).map((s) => s.trim()).filter(Boolean)
+      if (!urls.length) throw new Error("Enter at least one slug or URL")
+      const res = await apiRequest("PATCH", "/api/admin/knowledge/seo-visibility/apply", { urls })
       return await res.json()
     },
     onSuccess: (data) => {
-      toast({ title: "Restored", description: `Restored ${data.restored} articles to default robots.` })
-      setRestoreSlugsText("")
+      toast({
+        title: "Restored",
+        description: `Restored ${data.articlesRestored} article(s) and ${data.citiesRestored} city/cities to indexable.`,
+      })
+      setRestoreText("")
     },
     onError: (e: any) => toast({ title: "Restore failed", description: e.message, variant: "destructive" }),
   })
+
+  const totalMissing =
+    (preview?.articles.safeListMissing.length || 0) + (preview?.cities.safeListMissing.length || 0)
+  const totalFlip =
+    (preview?.articles.willFlipToNoindex || 0) + (preview?.cities.willFlipToNoindex || 0)
 
   return (
     <div className="space-y-6">
@@ -2355,49 +2392,60 @@ function SeoVisibilitySection() {
         <div className="flex items-start gap-3 mb-3">
           <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
           <div>
-            <h2 className="text-lg font-semibold">Bulk SEO Visibility Control</h2>
+            <h2 className="text-lg font-semibold">Bulk SEO Visibility Control (Cities + PRs)</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Flip every published press release to <code className="bg-white px-1.5 py-0.5 rounded text-xs">noindex, follow</code>{" "}
-              <strong>except</strong> the safe-list of slugs you paste below (slugs Google has already indexed). Articles already
-              noindexed are skipped. Each change is snapshotted into article version history and audit-logged. Reversible per article.
+              Paste a mixed list of URLs or slugs Google has confirmed indexed. Everything else (published cities + published PRs)
+              will be parked: cities → <code className="bg-white px-1.5 py-0.5 rounded text-xs">allowIndexing=false</code>, PRs →{" "}
+              <code className="bg-white px-1.5 py-0.5 rounded text-xs">noindex, follow</code>. PR changes are snapshotted into version history. Reversible per item.
             </p>
           </div>
         </div>
       </Card>
 
       <Card className="p-6">
-        <Label htmlFor="safe-list">Indexed slug safe-list (one per line, or comma-separated)</Label>
-        <p className="text-xs text-muted-foreground mt-1 mb-2">
-          These slugs will <strong>stay indexed</strong>. Everything else (currently still set to index) will be flipped to noindex.
+        <div className="flex items-center justify-between mb-2">
+          <Label htmlFor="safe-list">Indexed URL safe-list (one per line; supports full URLs or bare slugs)</Label>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => loadProtectedMut.mutate()}
+            disabled={loadProtectedMut.isPending}
+            data-testid="button-load-protected"
+          >
+            {loadProtectedMut.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <FolderOpen className="h-3.5 w-3.5 mr-1.5" />}
+            Load 41 protected URLs
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mb-2">
+          These URLs will <strong>stay indexed</strong>. URL prefix decides routing:{" "}
+          <code className="text-xs">/locations/&lt;slug&gt;</code> targets a city,{" "}
+          <code className="text-xs">/discovery/knowledge/&lt;slug&gt;</code> targets a press release. The bare homepage{" "}
+          <code className="text-xs">/</code> is ignored (always indexed).
         </p>
         <Textarea
           id="safe-list"
-          rows={6}
-          placeholder={"pr-hash-256-launch\nzkp-noir-v1-release\n..."}
+          rows={10}
+          placeholder={"https://www.tableicity.com/locations/austin-tx\nhttps://www.tableicity.com/discovery/knowledge/tableicity-boston-cap-table"}
           value={safeListText}
           onChange={(e) => setSafeListText(e.target.value)}
           data-testid="textarea-safe-list"
           className="font-mono text-xs"
         />
-        <div className="text-xs text-muted-foreground mt-1">{indexedSlugs.length} slug(s) parsed.</div>
+        <div className="text-xs text-muted-foreground mt-1">{indexedUrls.length} entry/entries parsed.</div>
 
         <div className="flex gap-2 mt-4">
-          <Button
-            onClick={() => previewMut.mutate()}
-            disabled={previewMut.isPending}
-            data-testid="button-preview-seo-flip"
-          >
+          <Button onClick={() => previewMut.mutate()} disabled={previewMut.isPending} data-testid="button-preview-seo-flip">
             {previewMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Eye className="h-4 w-4 mr-2" />}
             Dry-run preview
           </Button>
-          {preview && preview.totals.willFlipToNoindex > 0 && (
+          {preview && totalFlip > 0 && (
             <Button
               variant="destructive"
               onClick={() => {
-                const allowMissing = preview.totals.safeListMissing > 0
-                const baseMsg = `Flip ${preview.totals.willFlipToNoindex} published articles to noindex? ${preview.totals.willKeepIndexed} on the safe-list will stay indexed. Reversible per article.`
+                const allowMissing = totalMissing > 0
+                const baseMsg = `Flip ${preview.articles.willFlipToNoindex} PR(s) to noindex AND ${preview.cities.willFlipToNoindex} city/cities to allowIndexing=false?\n\nKeeping ${preview.articles.willKeepIndexed} PR(s) and ${preview.cities.willKeepIndexed} city/cities indexed.\n\nReversible per item.`
                 const warn = allowMissing
-                  ? `\n\nWARNING: ${preview.totals.safeListMissing} safe-list slug(s) were not found among published articles — they will be ignored. Continue anyway?`
+                  ? `\n\nWARNING: ${totalMissing} safe-list entry/entries were not found among published items — they will be ignored. Continue anyway?`
                   : ""
                 if (confirm(baseMsg + warn)) applyMut.mutate(allowMissing)
               }}
@@ -2405,69 +2453,117 @@ function SeoVisibilitySection() {
               data-testid="button-apply-seo-flip"
             >
               {applyMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ShieldOff className="h-4 w-4 mr-2" />}
-              Apply: noindex {preview.totals.willFlipToNoindex} articles
+              Apply: park {totalFlip} item(s)
             </Button>
           )}
         </div>
       </Card>
 
       {preview && (
-        <Card className="p-6">
-          <h3 className="font-semibold mb-3">Preview Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4 text-sm">
-            <div className="rounded border p-3"><div className="text-xs text-muted-foreground">Published total</div><div className="text-2xl font-semibold" data-testid="stat-published">{preview.totals.published}</div></div>
-            <div className="rounded border p-3 bg-red-50"><div className="text-xs text-muted-foreground">Will flip → noindex</div><div className="text-2xl font-semibold text-red-700" data-testid="stat-flip">{preview.totals.willFlipToNoindex}</div></div>
-            <div className="rounded border p-3 bg-emerald-50"><div className="text-xs text-muted-foreground">Will keep indexed</div><div className="text-2xl font-semibold text-emerald-700" data-testid="stat-keep">{preview.totals.willKeepIndexed}</div></div>
-            <div className="rounded border p-3"><div className="text-xs text-muted-foreground">Already noindex</div><div className="text-2xl font-semibold" data-testid="stat-already">{preview.totals.alreadyNoindex}</div></div>
-            <div className="rounded border p-3"><div className="text-xs text-muted-foreground">Safe-list missing</div><div className="text-2xl font-semibold text-amber-700" data-testid="stat-missing">{preview.totals.safeListMissing}</div></div>
-          </div>
-
-          {preview.safeListMissing.length > 0 && (
-            <div className="rounded border border-amber-300 bg-amber-50 p-3 mb-4 text-sm">
-              <strong>Warning:</strong> these safe-list slugs were not found among published articles:{" "}
-              <code className="text-xs">{preview.safeListMissing.join(", ")}</code>
+        <>
+          <Card className="p-6">
+            <h3 className="font-semibold mb-3">Press Releases ({preview.articles.total} published)</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-sm">
+              <div className="rounded border p-3 bg-red-50"><div className="text-xs text-muted-foreground">Will flip → noindex</div><div className="text-2xl font-semibold text-red-700" data-testid="stat-art-flip">{preview.articles.willFlipToNoindex}</div></div>
+              <div className="rounded border p-3 bg-emerald-50"><div className="text-xs text-muted-foreground">Will keep indexed</div><div className="text-2xl font-semibold text-emerald-700" data-testid="stat-art-keep">{preview.articles.willKeepIndexed}</div></div>
+              <div className="rounded border p-3"><div className="text-xs text-muted-foreground">Already noindex</div><div className="text-2xl font-semibold" data-testid="stat-art-already">{preview.articles.alreadyNoindex}</div></div>
+              <div className="rounded border p-3"><div className="text-xs text-muted-foreground">Safe-list missing</div><div className="text-2xl font-semibold text-amber-700" data-testid="stat-art-missing">{preview.articles.safeListMissing.length}</div></div>
             </div>
-          )}
+            {preview.articles.safeListMissing.length > 0 && (
+              <div className="rounded border border-amber-300 bg-amber-50 p-3 mb-4 text-xs">
+                <strong>Article slugs not found:</strong>{" "}
+                <code>{preview.articles.safeListMissing.join(", ")}</code>
+              </div>
+            )}
+            {preview.articles.willKeep.length > 0 && (
+              <div className="mb-4">
+                <h4 className="font-medium text-sm mb-2 text-emerald-700">Will stay indexed ({preview.articles.willKeep.length})</h4>
+                <ul className="text-xs space-y-1 max-h-40 overflow-auto border rounded p-2">
+                  {preview.articles.willKeep.map((a) => (
+                    <li key={a.id} data-testid={`art-keep-${a.slug}`}><code>{a.slug}</code> — {a.title}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {preview.articles.willFlip.length > 0 && (
+              <div>
+                <h4 className="font-medium text-sm mb-2 text-red-700">Will flip to noindex ({preview.articles.willFlip.length})</h4>
+                <ul className="text-xs space-y-1 max-h-60 overflow-auto border rounded p-2">
+                  {(showAllArticleFlips ? preview.articles.willFlip : preview.articles.willFlip.slice(0, 25)).map((a) => (
+                    <li key={a.id} data-testid={`art-flip-${a.slug}`}><code>{a.slug}</code> — {a.title}</li>
+                  ))}
+                </ul>
+                {preview.articles.willFlip.length > 25 && (
+                  <Button variant="link" size="sm" onClick={() => setShowAllArticleFlips((v) => !v)}>
+                    {showAllArticleFlips ? "Show less" : `Show all ${preview.articles.willFlip.length}`}
+                  </Button>
+                )}
+              </div>
+            )}
+          </Card>
 
-          {preview.willKeep.length > 0 && (
-            <div className="mb-4">
-              <h4 className="font-medium text-sm mb-2 text-emerald-700">Will stay indexed ({preview.willKeep.length})</h4>
-              <ul className="text-xs space-y-1 max-h-40 overflow-auto border rounded p-2">
-                {preview.willKeep.map((a) => (
-                  <li key={a.id} data-testid={`keep-${a.slug}`}><code>{a.slug}</code> — {a.title}</li>
-                ))}
-              </ul>
+          <Card className="p-6">
+            <h3 className="font-semibold mb-3">City Pages ({preview.cities.total} published)</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-sm">
+              <div className="rounded border p-3 bg-red-50"><div className="text-xs text-muted-foreground">Will park (allowIndexing=false)</div><div className="text-2xl font-semibold text-red-700" data-testid="stat-city-flip">{preview.cities.willFlipToNoindex}</div></div>
+              <div className="rounded border p-3 bg-emerald-50"><div className="text-xs text-muted-foreground">Will keep indexed</div><div className="text-2xl font-semibold text-emerald-700" data-testid="stat-city-keep">{preview.cities.willKeepIndexed}</div></div>
+              <div className="rounded border p-3"><div className="text-xs text-muted-foreground">Already parked</div><div className="text-2xl font-semibold" data-testid="stat-city-already">{preview.cities.alreadyNoindex}</div></div>
+              <div className="rounded border p-3"><div className="text-xs text-muted-foreground">Safe-list missing</div><div className="text-2xl font-semibold text-amber-700" data-testid="stat-city-missing">{preview.cities.safeListMissing.length}</div></div>
             </div>
-          )}
+            {preview.cities.safeListMissing.length > 0 && (
+              <div className="rounded border border-amber-300 bg-amber-50 p-3 mb-4 text-xs">
+                <strong>City slugs not found:</strong>{" "}
+                <code>{preview.cities.safeListMissing.join(", ")}</code>
+              </div>
+            )}
+            {preview.cities.willKeep.length > 0 && (
+              <div className="mb-4">
+                <h4 className="font-medium text-sm mb-2 text-emerald-700">Will stay indexed ({preview.cities.willKeep.length})</h4>
+                <ul className="text-xs space-y-1 max-h-40 overflow-auto border rounded p-2">
+                  {preview.cities.willKeep.map((c) => (
+                    <li key={c.id} data-testid={`city-keep-${c.slug}`}><code>{c.slug}</code> — {c.label}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {preview.cities.willFlip.length > 0 && (
+              <div>
+                <h4 className="font-medium text-sm mb-2 text-red-700">Will park ({preview.cities.willFlip.length})</h4>
+                <ul className="text-xs space-y-1 max-h-60 overflow-auto border rounded p-2">
+                  {(showAllCityFlips ? preview.cities.willFlip : preview.cities.willFlip.slice(0, 25)).map((c) => (
+                    <li key={c.id} data-testid={`city-flip-${c.slug}`}><code>{c.slug}</code> — {c.label}</li>
+                  ))}
+                </ul>
+                {preview.cities.willFlip.length > 25 && (
+                  <Button variant="link" size="sm" onClick={() => setShowAllCityFlips((v) => !v)}>
+                    {showAllCityFlips ? "Show less" : `Show all ${preview.cities.willFlip.length}`}
+                  </Button>
+                )}
+              </div>
+            )}
+          </Card>
 
-          {preview.willFlip.length > 0 && (
-            <div>
-              <h4 className="font-medium text-sm mb-2 text-red-700">Will flip to noindex ({preview.willFlip.length})</h4>
-              <ul className="text-xs space-y-1 max-h-60 overflow-auto border rounded p-2">
-                {(showAllFlips ? preview.willFlip : preview.willFlip.slice(0, 25)).map((a) => (
-                  <li key={a.id} data-testid={`flip-${a.slug}`}><code>{a.slug}</code> — {a.title}</li>
-                ))}
-              </ul>
-              {preview.willFlip.length > 25 && (
-                <Button variant="link" size="sm" onClick={() => setShowAllFlips((v) => !v)}>
-                  {showAllFlips ? "Show less" : `Show all ${preview.willFlip.length}`}
-                </Button>
-              )}
-            </div>
+          {preview.parsed.unknownEntries.length > 0 && (
+            <Card className="p-4 border-amber-300 bg-amber-50/40">
+              <div className="text-sm">
+                <strong>Unrecognized entries (ignored):</strong>{" "}
+                <code className="text-xs">{preview.parsed.unknownEntries.join(", ")}</code>
+              </div>
+            </Card>
           )}
-        </Card>
+        </>
       )}
 
       <Card className="p-6">
-        <h3 className="font-semibold mb-2">Per-article restore</h3>
+        <h3 className="font-semibold mb-2">Per-item restore</h3>
         <p className="text-xs text-muted-foreground mb-2">
-          Paste slugs to restore back to the default indexable robots directive (one per line or comma-separated).
+          Paste URLs or bare slugs to restore back to indexable (one per line or comma-separated). Cities and PRs both supported.
         </p>
         <Textarea
           rows={3}
-          value={restoreSlugsText}
-          onChange={(e) => setRestoreSlugsText(e.target.value)}
-          placeholder="my-article-slug"
+          value={restoreText}
+          onChange={(e) => setRestoreText(e.target.value)}
+          placeholder="https://www.tableicity.com/locations/austin-tx"
           className="font-mono text-xs"
           data-testid="textarea-restore-slugs"
         />
