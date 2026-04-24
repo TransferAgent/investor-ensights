@@ -1,8 +1,12 @@
-# Halo Integration Memo — v0.1 (Draft for Architect Review)
+# Halo Integration Memo — v0.2
 
 _Authored by App Builder under Architect authorization (post Gate 0 close)._
-_Status: Pending Architect attachment to Gate Table. Not part of Contract v1.1._
+_Status: Ready for Architect attachment to Locked Gate Table v1.0 at Gate 2.5._
 _Scope: Defines how Newsroom workers consult Halo. Does not modify Halo._
+
+**Revision history**
+- **v0.2** (2026-04-23) — Architect redline applied: Researcher uses conditional fallback scrape (Halo first, scrape only if Halo returns zero high-confidence results), preserving the cost-savings thesis. Tier B rewrite caveat documented.
+- **v0.1** — Initial draft, ratified by Architect with one redline.
 
 ---
 
@@ -47,7 +51,17 @@ GET /api/v1/qa-pairs?topic={topic}&persona=tableicity&limit={n}
 ## Newsroom-side integration points
 
 ### Researcher (Gate 2.5 — first integration)
-Before scraping the open web, the Researcher calls `/search?q={city + topic}&persona=tableicity&limit=5`. If Halo returns ≥1 high-confidence result (`score > 0.75`), the Researcher writes those chunks into `newsroom_source_documents` with `source_url` set to a `halo://` pseudo-URL and `fetched_by_agent_id` set to the researcher agent UUID. Web scrape still runs in parallel for freshness, but Halo content gets first-class citizenship in the lead pipeline.
+
+Researcher consults Halo **first**, then conditionally falls back to web scrape. The decision tree is:
+
+1. Call `/search?q={city + topic}&persona=tableicity&limit=5`.
+2. **If Halo returns ≥1 result with `score > 0.75`:** trust Halo. Write those chunks into `newsroom_source_documents` with `source_url` set to a `halo://` pseudo-URL and `fetched_by_agent_id` set to the researcher agent UUID. **Skip the web scrape for this query.**
+3. **If Halo returns zero results, OR all results score ≤ 0.75:** fall back to the web scrape pipeline. Halo had nothing useful to say; we earn the scrape cost.
+4. **If `HALO_ENRICHMENT_ENABLED=false`:** skip Halo entirely and scrape unconditionally (this is the current Gate 2 behavior — Halo is a strict additive layer).
+
+This preserves the original Halo thesis on all three axes simultaneously: fewer ToS issues (we scrape less), token savings (vetted Halo chunks are tighter than scraped HTML), and quality (Halo is John-trained content). Parallel scraping would have given us the quality but forfeited the cost savings.
+
+**Caveat — Tier B rewrites:** When the GSC heal loop re-enqueues an underperforming article for rewrite (Gate 5), the Researcher SHALL scrape in parallel with Halo regardless of Halo's score. Freshness matters more than cost on pages that already proved they're failing. The Architect will revisit this rule at Gate 5.
 
 ### Copywriter (Gate 3 — quality lever)
 At prompt assembly time, the Copywriter calls `/qa-pairs?topic={article_topic}&persona=tableicity&limit=3` and injects the pairs into the system prompt as few-shot examples. This is where Halo earns its keep visibly — articles will sound like they came from John's trained voice, not a generic LLM.

@@ -1,0 +1,94 @@
+Architect Receiving Halo Integration Memo v0.1 — Reading Now
+
+Conductor, acknowledged. Engineer 1 remains asleep pending my orders — correct posture. Let me read the Halo Memo in full before I rule.
+
+Using Tool
+|
+Read
+https://www.genspark.ai/api/files/s/t8JQW5oG
+View
+Architect's Ruling on Halo Integration Memo v0.1
+
+Conductor, I have read the Halo Memo in full. Ruling below.
+
+⚖️ Architect's Ruling — APPROVED WITH ONE REDLINE
+The App Builder has delivered a memo that is tighter than what I would have drafted myself. Every question I would have asked is already answered. Every architectural instinct I would have had is already honored. This is the quality bar I want from the App Builder going forward.
+
+✅ What I am ratifying without modification:
+Halo owns embeddings, not Newsroom. The reasoning (duplicate cost, drift, raw-text access leak) is exactly right. This is better than my earlier instinct that pgvector on Newsroom might consume Halo's embeddings — the App Builder correctly realized a search endpoint is the clean boundary. I am amending my earlier pgvector ruling accordingly: pgvector on Newsroom is now for Newsroom's own agent_knowledge semantic memory only, NOT for Halo content.
+
+Persona-scoping is mandatory, never defaulted. The rule that Halo SHOULD reject calls without an explicit persona=tableicity param is exactly the kind of fail-loud safety I want. Halo has three personas; Newsroom must never accidentally pull from the other two. This prevents a future class of bug before it exists.
+
+Two endpoints, two integration points, Analyst skipped. /search for Researcher, /qa-pairs for Copywriter, Analyst stays on Crunchbase/SEC. Clean. The Analyst skip is correct — Halo is a narrative/Q&A corpus, not a structured financial dataset. Forcing Analyst through Halo would corrupt the scoring signal.
+
+Feature flag spec — fully honored and extended. The App Builder took my HALO_ENRICHMENT_ENABLED amendment and added HALO_PERSONA as a hard-coded, never-overrideable-per-job env var. This is a lock I would have written. Good instinct.
+
+Deterministic bit-identical behavior when flag is off. "No log noise, no latency, no try/catch with silent failures." This is exactly the reproducibility posture Gate 4 (HITL publish) depends on.
+
+3-second timeout, single retry, one INFO log per failure, never ERROR. Halo is optional; treating its failures as errors would pollute the ops signal. Correct call.
+
+24h cache via newsroom_agent_knowledge with source='halo'. Clean reuse of an existing table. No new schema. Cache key on SHA-256 of (persona, query, limit) is defensive.
+
+halo:// pseudo-URL convention for source_url. Small detail, big win — this makes Halo-sourced documents easily filterable in SQL (WHERE source_url LIKE 'halo://%') without adding a new source_type column. Elegant.
+
+No write-back at POC, with three clear reasons. Quality risk, coupling risk, no clear consumer. All three are valid independently. Ratified.
+
+Halo's small ask (3 items). Two endpoints, bearer token, lastUpdatedAt timestamp. Nothing excessive. Reasonable for Conductor to action on Halo side when Gate 2.5 approaches.
+
+🔴 The One Redline
+Web scrape "in parallel" with Halo consult must become "after Halo consult, conditionally."
+
+The memo says:
+
+"Web scrape still runs in parallel for freshness, but Halo content gets first-class citizenship in the lead pipeline."
+
+Architect's redline: Parallel scrape defeats one of the three benefits you originally sold Halo on — fewer ToS issues, less scrape volume, token savings. If we scrape in parallel every time, we pay the scraping cost regardless of whether Halo answered.
+
+Corrected rule:
+
+Researcher calls Halo first.
+If Halo returns ≥1 result with score > 0.75, skip the web scrape for that query. Trust Halo.
+If Halo returns zero results OR all results score below 0.75, then fall back to web scrape.
+If HALO_ENRICHMENT_ENABLED=false, web scrape runs unconditionally (current Gate 2 behavior).
+This preserves the "Halo earns Newsroom savings" thesis. Parallel scraping gives us the quality but not the cost savings. I want both.
+
+One caveat I will accept: For article rewrites (Tier B, the GSC heal loop), parallel scrape IS correct because freshness matters more than cost savings on pages that are already underperforming. I'll revisit this at Gate 5.
+
+🚪 Halo Integration Memo v0.1 — Status Update
+Item	Status
+Memo ratified in principle	✅ Yes
+Ratified without modification	✅ 10 items
+Redlined	🔴 1 item (Researcher parallel scrape → conditional fallback)
+Attached to Gate Table	✅ Pending App Builder's redline correction → then attached as Gate 2.5 reference artifact
+Part of Contract v1.1	❌ No (correctly kept separate)
+📬 Orders — Relay to App Builder via Conductor
+"Architect approves Halo Memo v0.1 with one redline: the Researcher's 'parallel scrape' rule becomes 'conditional fallback scrape' — Halo first, scrape only if Halo returns zero high-confidence (score > 0.75) results. This preserves the cost-savings thesis. Apply the redline, re-issue as v0.2, and the Architect will formally attach v0.2 to Gate 2.5 on the locked Gate Table. No other changes. Wall-clock: 15 minutes. This does NOT disturb Gate 1 — Engineer 1 remains asleep and the platform skeleton work is independent of Halo."
+
+🏛️ Architect's Broader Posture
+Conductor, three things to register:
+
+1. Acknowledging your self-correction on the feature flag. You said: "The feature-flag amendment is right and I should have called it myself; logging that as my mistake to avoid next time."
+
+No, Conductor. Feature flags are an architectural concern, not a conductor concern. Your job is to relay faithfully and surface omissions — which you did, by telling me about Halo. The feature flag is mine to require. You are operating at the correct altitude. Do not demote your own role. You flagged Halo; that was the move.
+
+2. Engineer 1 remains asleep — and that is correct. Gate 1 is open, but "open" means "ready to be worked on" — not "actively being worked on." You are waiting on the Architect's formal kickoff order before waking Engineer 1. That is the right cadence. I am intentionally letting the Halo memo ratify before Engineer 1 starts so that the Gate Table is fully locked when he sees it. Cleaner handoff.
+
+3. I am now ready to publish the locked Gate Table. Once the App Builder returns Halo Memo v0.2 with the redline corrected, I will publish the Locked Gate Table v1.0 — the canonical, signed artifact that names every gate, owner, prerequisite, and known divergence. That is the document Engineer 1 reads cold on Day 1.
+
+📋 Current State of the Board
+Artifact	Status
+Contract v1	Live (compatibility)
+Contract v1.1	✅ Signed
+Gate Table	Draft v0.2 → will lock to v1.0 after Halo Memo v0.2
+Halo Memo v0.1	✅ Ratified with 1 redline
+Halo Memo v0.2	🟡 Pending App Builder (15 min)
+Gate 0	✅ Closed
+Gate 1	🟢 Open (Engineer 1 not yet woken — awaiting Gate Table lock)
+Gate 2	Sealed
+Gate 2.5 (Halo)	Sealed — dependencies almost resolved
+Gate 3	Sealed
+Gate 4	Sealed
+Gate 5	Sealed
+v1.2 schema migration	Logged, deferred Gate 4 → Gate 5 window
+pgvector scope	Amended: Newsroom's own agent_knowledge only; Halo owns its own embeddings
+Ball back to you, Conductor. Carry the one redline to the App Builder. When v0.2 lands, I lock the Gate Table and we wake Engineer 1.
