@@ -1,0 +1,110 @@
+Architect Receiving Conductor's Briefing on Halo — Ruling Below, Then Returning to Replit
+
+Conductor, acknowledged. This is exactly the kind of information a Conductor is supposed to surface to the Architect before gates lock. Thank you for flagging the omission. My ruling follows, then I return to the pending Replit v1.1 matter as you instructed.
+
+🏛️ Architect's Ruling on Halo
+The App Builder is right. I am adopting his read nearly wholesale, with one Architect-level amendment.
+
+What I agree with the App Builder on:
+Halo is not a Gate 0 blocker. Adding it to v1.1 expands the blast radius and couples two products before either is proven. Correct call.
+Halo belongs in the "worker-side optional enrichment" bucket — same conceptual shelf as Crunchbase, pgvector, and NewsData.io. The shell (Next.js admin) stays blind to it. Workers consult it. Contract stays silent. This is architecturally clean.
+Newsroom must function without Halo. Hard dependency = 3am pager. Soft dependency with graceful fallback = resilient.
+The Copywriter few-shot use case is the biggest single quality lever from Halo. Real founder Q&A pairs as few-shot examples beat any prompt engineering the Copywriter Engineer can hand-craft. This is where ROI becomes visible.
+The five questions the App Builder asked are the right five questions. I endorse them verbatim:
+Where does Halo live? (same Postgres / different DB / API / SaaS)
+Access shape? (HTTP + bearer / direct DB / webhook)
+What's in the KB? (cap-table/equity domain-fit vs. broad catalog)
+Does Halo already have vector embeddings?
+Read-only from Newsroom, or do we write back?
+Architect's amendment (one thing the App Builder left implicit):
+Halo integration must be built behind a feature flag, not just a try/catch fallback. Specifically: HALO_ENRICHMENT_ENABLED=true|false in env. When false, workers bypass Halo entirely — no network call, no log noise, no latency. This protects us during Halo outages and during the dry-run / Gate 4 publish where reproducibility matters. Worker behavior must be deterministic given the flag state.
+
+🚪 Updated Gate Table (Architect's Draft v0.2 — Halo inserted)
+I am inserting Gate 2.5 cleanly, per the App Builder's sequencing. Gate 0 and the v1.1 Contract are NOT touched. This keeps the pending ratification clean.
+
+Gate	Name	Owner	Opens When	Closes When
+0	Contract v1.1 Ratified	Architect	Pending v1.1 sign-off	Architect signs v1.1
+1	Database + Worker Skeleton	Engineer 1 (Platform)	Gate 0 closes	Dry-run claim → review end-to-end with fixtures
+2	Researcher + Analyst Agents (web scrape only)	Engineers 2 & 3	Gate 1 closes	Worcester yields ≥1 real source_document + ≥1 lead_signal
+🆕 2.5	Halo Adapter (opt-in enrichment)	Engineer 2 or 3	Gate 2 closes + Conductor answers Halo Qs 1–5	Researcher consults Halo first, falls back to scrape; flag-gated HALO_ENRICHMENT_ENABLED
+3	Copywriter + SEO QC + Halo few-shot injection + Tier A (1,2,3,4)	Engineers 4 & 5	Gate 2.5 closes	Worcester draft passes QC, Jaccard <0.35, uses ≥1 Halo Q&A pair as few-shot if flag=on
+4	HITL Review + Publish (noindex)	Architect + Conductor	Gate 3 closes	1 Worcester article published noindex for human eyes
+5	GSC Loop + Heal (Tier B)	Engineers TBD	Gate 4 + 10 cities live	First auto-rewrite re-enqueued
+Why Gate 2.5 and not Gate 3: The App Builder suggested both. I'm splitting the difference — the adapter is a Gate 2.5 deliverable (cheap, 1-day task), the Copywriter few-shot consumption is a Gate 3 deliverable. This way the Copywriter Engineer at Gate 3 has a working adapter waiting for him; he only has to write the prompt-assembly logic, not also stand up the Halo client.
+
+Explicit Halo dependency added to Gate 2.5 prerequisites: Conductor must answer App Builder's five questions before Gate 2.5 opens. I am formalizing that — call it the "Halo Intake Memo." No memo, no Gate 2.5.
+
+📬 To the Conductor — Action Items on Halo
+Answer App Builder's 5 questions (location, access shape, KB contents, embeddings, read/write). Even rough answers unblock the Gate 2.5 plan.
+Authorize the App Builder to draft the one-page "Halo Integration Memo" he offered. I will review it and attach it to the Gate Table as a referenced document — it does not become part of Contract v1.1.
+Confirm you want Halo in the roadmap at all. If the answer to "what's in the KB?" is "education catalog, 5% domain overlap," then Halo may not be worth the Engineer-days. Better to know now.
+Halo is parked, sequenced, and not disturbing v1.1. Good omission to surface. Moving on.
+
+🔙 Returning to the App Builder's v1.1 Delivery — Gate 0 Ruling
+Conductor, per your instruction, I now return to the pending matter: the App Builder's v1.1 contract package. The Safety Protocol was the pause for you to brief me on Halo. Halo is now logged and sequenced at Gate 2.5. I am now ruling on Gate 0.
+
+I have read the v1.1 file summary and the App Builder's delivery note in full. Here is my ruling.
+
+⚖️ Architect's Ruling on Contract v1.1
+✅ SIGNED WITH TWO CONDITIONS
+I am signing v1.1 and opening Gate 0 for closure — conditional on two items being logged (not rebuilt) before Gate 1 opens. Neither condition blocks the sign itself.
+
+What passes on the merits:
+All 5 patches land 1:1 with orders. Verified against the App Builder's self-report and the v1.1 revision header.
+25 min of a 90-min budget. Disciplined execution.
+No Tier A/B/C scope leakage. Order 3 honored.
+v1 kept live alongside v1.1. Workers written against v1 do not break. Correct.
+Inline > Note (App Builder → Architect) blocks surfacing the schema divergences. This is the protocol I want every engineer using. Transparency over perfection.
+What I am ruling on the schema divergences:
+Architect Prescribed	App Builder Used	Architect's Ruling
+contentMd	clean_content	ACCEPTED. Same purpose, existing column. No migration.
+sourceDomain	(derive from source_url)	ACCEPTED. Trivial derivation. No migration.
+agentRunId (source_docs)	fetched_by_agent_id	ACCEPTED for now, FLAGGED for v1.2. Agent-level FK loses per-run granularity. Acceptable during POC. See Condition 1 below.
+fundingUsd	funding_total_usd	ACCEPTED. More precise name. Prefer this going forward.
+sourceUrl (lead_signals)	FK via source_document_id	ACCEPTED — actually better than my prescription. Normalized. This is how I should have written it.
+agentRunId (lead_signals)	payload jsonb bag	ACCEPTED for POC, FLAGGED for v1.2. Provenance in jsonb is queryable but not enforceable. See Condition 1 below.
+The Two Conditions:
+Condition 1 — v1.2 Schema Migration parked on the Gate Table. The two agent_run_id substitutions (using fetched_by_agent_id on source_documents and payload jsonb on lead_signals) are acceptable for POC but represent a provenance downgrade. For audit, debugging, and future GSC-loop attribution, I want true agent_run_id FKs on both tables eventually. Log this as a deferred v1.2 schema migration owned by Engineer 1, scheduled after Gate 4 (first live article) but before Gate 5 (GSC loop). This is not rebuilt work — it's a logged future.
+
+Condition 2 — Document the divergences in the Gate Table, not just the contract file. The App Builder's inline > Note blocks are good, but the Gate Table is the canonical project artifact. When I publish the locked Gate Table, it will include a "Known Schema Divergences" footer so any engineer reading it cold knows what diverged from the Architect's original prescription and why.
+
+🚪 Gate 0 — FORMALLY CLOSING
+Gate 0 is closed as of this ruling.
+
+This means:
+
+✅ Contract v1.1 is the ratified contract of record
+✅ Halo is logged and sequenced at Gate 2.5 (not in v1.1)
+✅ v1 remains live as a compatibility doc
+✅ Two conditions logged for future enforcement (v1.2 migration + Gate Table footer)
+🚪 Gate 1 — FORMALLY OPENING
+Gate 1 — Database + Worker Skeleton — is now OPEN.
+
+Owner: Engineer 1 (Platform).
+
+Definition of Done:
+
+A dry-run job can be claimed, flow through all 5 agent stages emitting fixture data, hit /review, and complete — with zero LLM calls and zero external scrapes. End-to-end plumbing, no intelligence.
+
+Conductor, you may carry this to the App Builder and Engineer 1:
+
+"Architect signs v1.1. Gate 0 closed. Gate 1 is OPEN for Engineer 1 (Platform). Deliverable: end-to-end dry-run claim → review with fixture data, zero LLM calls, zero scrapes. Two conditions logged: (1) v1.2 migration restoring true agent_run_id FKs on source_documents and lead_signals — deferred until between Gate 4 and Gate 5. (2) Known Schema Divergences footer to appear on the locked Gate Table when published. App Builder: well done on v1.1. Stand down and await Gate 1 engineer questions. Halo is parked at Gate 2.5 — Conductor will deliver Halo Intake Memo answers separately."
+
+📋 Architect's Current State of the Board
+Artifact	Status
+Contract v1	Live (compatibility)
+Contract v1.1	✅ Signed, ratified
+Gate Table	Draft v0.2 (includes Halo at 2.5) — will lock + publish when Engineer 1 delivers Gate 1 skeleton
+Gate 0	✅ Closed
+Gate 1	🟢 Open
+Gate 2	Sealed — awaits Gate 1 close
+Gate 2.5 (Halo)	Sealed — awaits Conductor's Halo Intake Memo answers + Gate 2 close
+Gate 3	Sealed
+Gate 4	Sealed
+Gate 5	Sealed
+v1.2 migration	Logged, deferred to between Gate 4 and Gate 5
+Halo Integration Memo	Pending App Builder draft after Conductor answers 5 questions
+Ball is in your court, Conductor. Two things need to travel back from you:
+
+Relay Gate 1 opening to Engineer 1 (Platform) via the App Builder.
+Answer the App Builder's 5 Halo questions when you're ready — no rush; Gate 2.5 is two gates away.
