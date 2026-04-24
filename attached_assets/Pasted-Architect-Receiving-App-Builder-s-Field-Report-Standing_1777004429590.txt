@@ -1,0 +1,72 @@
+Architect Receiving App Builder's Field Report — Standing By to Issue Orders
+
+Conductor, the App Builder's report is received, read in full, and acknowledged as a high-quality readiness audit. This is exactly the kind of pre-kickoff check I need before I open Gate 0. Before I issue orders, let me deliver my Architect's verdict.
+
+🏛️ Architect's Verdict on the App Builder's Report
+Bottom line: The App Builder is correct on every material point. I am adopting his audit as the Gate 0 pre-work checklist.
+
+He has identified one real gap, four paper-cut gaps, and a Tier A/B/C post-POC roadmap that aligns 1:1 with the Gemini Inject File. I am not going to re-litigate what he got right. I am going to ratify, sequence, and issue orders.
+
+✅ Ratified Findings (Architect Confirms)
+#	App Builder's Finding	Architect's Ruling
+1	newsroom_source_documents has no row shape or write endpoint	CONFIRMED GAP. Blocker for Researcher Engineer. Must close before Gate 1.
+2	newsroom_lead_signals has no row shape	CONFIRMED GAP. Blocker for Analyst Engineer. Must close before Gate 1.
+3	No retry/backoff guidance on /review failures	CONFIRMED. Will produce duplicate articles on transient 500s. Must be in Contract v1.1.
+4	No instruction to reload systemPrompt + sources per job from newsroom_agents	CONFIRMED. Without this, admin edits require worker restart — unacceptable.
+5	No owner named for CREATE EXTENSION pgvector on prod	CONFIRMED. I am assigning ownership below.
+📜 Architect's Orders to the App Builder
+App Builder — you have a green light to patch. Here are your orders, in writing, sequenced.
+
+🔒 Order 1 — Patch the Contract to v1.1 (NOT v2)
+These are additive + clarifying, not breaking. Contract stays at v1 API surface; doc revision bumps to v1.1.
+
+You will deliver the following five patches in one pass, as the App Builder offered:
+
+Patch A — newsroom_source_documents row shape + write path Document the row shape explicitly:
+
+Copy{ id, citySlug, sourceUrl, sourceDomain, fetchedAt, contentMd, contentHash, agentRunId }
+Ruling: Direct Postgres write is authorized for Researcher (high-throughput, batch inserts of raw scrapes). No new HTTP endpoint needed. Add explicit line in contract: "Researcher workers SHALL write to newsroom_source_documents via direct DB insert. content_hash is SHA-256 of contentMd; on conflict DO NOTHING (dedupe)."
+
+Patch B — newsroom_lead_signals row shape Document the row shape explicitly:
+
+Copy{ id, citySlug, companyName, tierScore (1-100), fundingUsd, investorCount,
+  signalType (growth|risk|neutral), sourceUrl, agentRunId, createdAt }
+Ruling: Direct Postgres write is authorized for Data Analyst. Same dedupe pattern as source_documents.
+
+Patch C — Retry/Backoff semantics Add a new section ## Retry / Idempotency with these rules:
+
+All worker POSTs MUST include an Idempotency-Key header (UUIDv4, one per logical operation).
+On 5xx from any endpoint: exponential backoff 2s → 4s → 8s → 16s → fail job after 4 attempts.
+On /review returning 422 slug collision: Copywriter regenerates suggestedSlug by appending -v2, -v3, ... up to -v5 before failing.
+On heartbeat 409 lease-lost: STOP IMMEDIATELY, no retry. Already in v1 — just restate for clarity.
+Patch D — Hot-reload agent config Add one line to the ## Agent IDs section:
+
+"Workers SHALL reload systemPrompt and sources from newsroom_agents at the start of every job (not just worker boot). This honors admin edits without worker restart."
+
+Patch E — pgvector ownership Add one line to the pgvector section:
+
+"Ownership: The Architect authorizes CREATE EXTENSION pgvector on prod. The Data Engineer (Engineer 2) executes it during Gate 2. Workers are forbidden from attempting the CREATE themselves."
+
+🔒 Order 2 — Deliverable Format
+Return to the Conductor, for my approval, a single unified diff or side-by-side showing:
+
+Newsroom_Worker_Contract.md → Newsroom_Worker_Contract_v1.1.md
+Exactly the 5 patches above, nothing more
+No scope creep into Tier A/B/C features yet — those are post-Gate-0
+🔒 Order 3 — What You Will NOT Do Yet
+You will not begin Tier A work (similarity gate, link variance, H1 randomizer, Organization JSON-LD) until I formally open Gate 3 — Quality & Safety. I have logged your Tier A/B/C list and I am adopting it as the canonical post-POC roadmap. Stay in your lane for now.
+
+🔒 Order 4 — ETA
+The App Builder estimated "1 hour." You are authorized 90 minutes of wall-clock. If you hit a snag, the Conductor relays it back to me and I rule.
+
+🚪 Gate Table v0.1 (Architect's Draft — Pre-Publication)
+I am not yet publishing the official Gate Table. Gates will be published the moment the v1.1 Contract patch is approved by me. However, here is the shape I intend, so you and the engineers can anticipate:
+
+Gate	Name	Owner	Opens When	Closes When
+0	Contract v1.1 Ratified	Architect	Now (pending v1.1 patches)	Architect signs v1.1
+1	Database + Worker Skeleton	Engineer 1 (Platform)	Gate 0 closes	Dry-run claim → review completes end-to-end with fixture data
+2	Researcher + Analyst Agents	Engineers 2 & 3	Gate 1 closes	Worcester, MA yields ≥1 real source_document and ≥1 lead_signal
+3	Copywriter + SEO QC (incl. Tier A 1,2,3,4)	Engineers 4 & 5	Gate 2 closes	Worcester draft passes QC gate with Jaccard <0.35 vs. existing 350
+4	HITL Review + Publish (noindex)	Architect + Conductor	Gate 3 closes	1 Worcester article published at noindex for human eyes only
+5	GSC Loop + Heal (Tier B)	Engineers TBD	Gate 4 closes + 10 cities live	First auto-rewrite successfully re-enqueued
+Final Gate Table will be published as a locked artifact the moment Contract v1.1 is signed.
