@@ -1696,6 +1696,10 @@ body {
   height: .875rem;
 }
 
+.h-32 {
+  height: 8rem;
+}
+
 .h-4 {
   height: 1rem;
 }
@@ -1770,10 +1774,6 @@ body {
 
 .h-svh {
   height: 100svh;
-}
-
-.h-32 {
-  height: 8rem;
 }
 
 .max-h-32 {
@@ -2046,6 +2046,10 @@ body {
 
 .min-w-\[var\(--radix-select-trigger-width\)\] {
   min-width: var(--radix-select-trigger-width);
+}
+
+.min-w-\[260px\] {
+  min-width: 260px;
 }
 
 .max-w-2xl {
@@ -2658,6 +2662,10 @@ body {
   border-color: #eab30833;
 }
 
+.border-amber-500\/40 {
+  border-color: #f59e0b66;
+}
+
 .border-l-transparent {
   border-left-color: #0000;
 }
@@ -2862,6 +2870,10 @@ body {
 
 .bg-yellow-500\/90 {
   background-color: #eab308e6;
+}
+
+.bg-amber-500\/15 {
+  background-color: #f59e0b26;
 }
 
 .bg-gradient-to-br {
