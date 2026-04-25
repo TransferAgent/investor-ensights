@@ -191,6 +191,11 @@ export default function NewsroomPage() {
     refetchInterval: 10000,
   })
 
+  const { data: sweepStatus } = useQuery<{ counts: { pipelineJobs: number; agentRuns: number; reviewQueue: number } }>({
+    queryKey: ["/api/admin/newsroom/sweep-dryrun"],
+    refetchInterval: 15000,
+  })
+
   const releaseMutation = useMutation({
     mutationFn: async (jobId: string) => {
       return apiRequest("POST", `/api/admin/newsroom/jobs/${jobId}/release`)
@@ -277,6 +282,22 @@ export default function NewsroomPage() {
           </p>
         </div>
       </div>
+
+      {sweepStatus && sweepStatus.counts.pipelineJobs + sweepStatus.counts.agentRuns + sweepStatus.counts.reviewQueue > 0 && (
+        <Card className="mb-6 p-4 border-amber-500/50 bg-amber-500/5" data-testid="card-gate4-block">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+            <div className="text-sm">
+              <p className="font-semibold text-amber-700 dark:text-amber-400">Audit trail dirty — Gate 4 closure blocked.</p>
+              <p className="mt-1 text-muted-foreground">
+                {sweepStatus.counts.pipelineJobs} dry-run job(s), {sweepStatus.counts.agentRuns} agent run(s), and {sweepStatus.counts.reviewQueue} review queue row(s) present.
+                Per Architect ratification (Gate Table v1.0): the Architect MUST click <strong>Purge dry-run</strong> below — with the Conductor as witness — before Gate 4 can close.
+                If you are reviewing live (non-dry-run) work and dry-run rows are also present, sweep first.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Card className="mb-6 p-4">
         <div className="flex flex-wrap items-end gap-3">

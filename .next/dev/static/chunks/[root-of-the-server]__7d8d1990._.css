@@ -2699,6 +2699,10 @@ body {
   border-color: #f59e0b66;
 }
 
+.border-amber-500\/50 {
+  border-color: #f59e0b80;
+}
+
 .border-blue-500\/20 {
   border-color: #3b82f633;
 }
@@ -2828,6 +2832,10 @@ body {
 
 .bg-amber-500\/15 {
   background-color: #f59e0b26;
+}
+
+.bg-amber-500\/5 {
+  background-color: #f59e0b0d;
 }
 
 .bg-background {
@@ -5195,6 +5203,11 @@ input[type="search"]::-webkit-search-cancel-button {
 .dark\:border-destructive:is(.dark *) {
   --tw-border-opacity: 1;
   border-color: hsl(var(--destructive) / var(--tw-border-opacity, 1));
+}
+
+.dark\:text-amber-400:is(.dark *) {
+  --tw-text-opacity: 1;
+  color: rgb(251 191 36 / var(--tw-text-opacity, 1));
 }
 
 .dark\:after\:border-white\/10:is(.dark *):after {
