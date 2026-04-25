@@ -605,6 +605,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/admin/newsroom/sweep-dryrun/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/newsroom/sweep-dryrun">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/newsroom/sweep-dryrun/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/admin/pages/[id]/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/pages/[id]">> = Specific

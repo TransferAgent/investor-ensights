@@ -1,3 +1,4 @@
 {
+  "/api/admin/newsroom/sweep-dryrun/route": "app/api/admin/newsroom/sweep-dryrun/route.js",
   "/page": "app/page.js"
 }

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { apiRequest, queryClient } from "@/lib/queryClient"
-import { Bot, PlayCircle, FileSearch, Users, PenLine, ShieldCheck, Link2, Activity, AlertTriangle, RotateCcw, Settings, DollarSign } from "lucide-react"
+import { Bot, PlayCircle, FileSearch, Users, PenLine, ShieldCheck, Link2, Activity, AlertTriangle, RotateCcw, Settings, DollarSign, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
@@ -305,6 +305,31 @@ export default function NewsroomPage() {
           >
             <PlayCircle className="mr-2 h-4 w-4" />
             Enqueue pipeline
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              const r = await fetch("/api/admin/newsroom/sweep-dryrun")
+              const p = await r.json()
+              const total = p.counts.pipelineJobs + p.counts.agentRuns + p.counts.reviewQueue
+              if (total === 0) {
+                toast({ title: "Nothing to purge", description: "No dry-run rows in the system." })
+                return
+              }
+              if (!confirm(`Purge ${p.counts.pipelineJobs} jobs + ${p.counts.agentRuns} agent runs + ${p.counts.reviewQueue} review queue rows. Real (live) jobs will not be touched. Continue?`)) return
+              const res = await apiRequest("POST", "/api/admin/newsroom/sweep-dryrun", {})
+              const data = await res.json()
+              toast({ title: "Sweep complete", description: `Deleted ${data.deleted.pipelineJobs} jobs, ${data.deleted.agentRuns} runs, ${data.deleted.reviewQueue} review rows.` })
+              queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/jobs"] })
+              queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/runs"] })
+              queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/review"] })
+              queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/cost-rollup"] })
+            }}
+            data-testid="button-sweep-dryrun"
+            title="Permanently delete every dry_run=true job, agent run, and review queue row. Live data is untouched."
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Purge dry-run
           </Button>
         </div>
       </Card>

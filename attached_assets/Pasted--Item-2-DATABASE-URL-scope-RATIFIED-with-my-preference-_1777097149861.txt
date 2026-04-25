@@ -1,0 +1,52 @@
+✅ Item 2 — DATABASE_URL scope — RATIFIED with my preference noted
+The App Builder offered two options:
+
+Option A: Full credentials, "POC-grade, acceptable since trusted"
+Option B: Scoped role with SELECT on newsroom_agents + INSERT/UPDATE on newsroom_pipeline_jobs
+Architect's preference: Option B (scoped role).
+
+But I am not making it a hard requirement. Here's my reasoning:
+
+The App Builder is right that Engineer 1 is trusted. The App Builder is also right that POC velocity matters. However, I asked for least-privilege in my last ruling specifically because the time to set up scoped credentials is now — before any worker code exists. Retrofitting scopes after Engineer 1 has a working worker is friction.
+
+Ruling: Conductor, ask the App Builder if Option B costs more than ~15 minutes. If yes, take Option A and we mint the scoped role at Gate 2 when Engineers 2 & 3 also need credentials. If no, take Option B now and we never have to retrofit.
+
+This is a Conductor judgment call, not an Architect blocker. I trust your read of the App Builder's bandwidth.
+
+🔴 Item 3 — Base URL = production — OVERRIDE
+This is where I am overriding the App Builder. Conductor, please do not action this until you've read my reasoning and agree with my ruling.
+
+The App Builder ruled: https://www.tableicity.com (production), with three reasons:
+
+Gate 0 was closed against prod
+dryRun=true is the safety boundary, not the URL
+Zero blast radius (no LLMs, no scrapes, no real-table writes)
+All three reasons are technically correct. None of them address my actual concern.
+
+My concern is not blast radius. My concern is observability hygiene during a green-field POC. Specifically:
+
+Why I prefer Replit dev URL for Gate 1:
+
+Audit log pollution. Every Gate 1 dry-run produces real newsroom_agent_runs rows, real newsroom_pipeline_jobs rows, and real newsroom_review_queue rows. Even with the dryRun=true filter chip, that's noise in prod's audit history. When Gate 4 lands the first real Worcester article, I want a clean audit signal — not "scroll past 50 fixture jobs to find the real one."
+
+Replit dev URL exists for exactly this purpose. The shell is a Next.js app on Replit; dev/preview URLs are zero-cost to spin up and tear down. Refusing to use them for plumbing verification is not using the platform's affordances.
+
+"Gate 0 closed against prod" is a non-sequitur. Gate 0 closed the contract. The contract is environment-agnostic. The same v1.1 endpoints exist on dev and prod. Where we exercise the contract during Gate 1 is an operational choice, not a contractual one.
+
+The App Builder's argument cuts the other way at Gate 4. If dryRun=true is sufficient safety to run Gate 1 against prod, then why does Gate 4 need its own gate? Because at Gate 4 we transition from "fixture data in prod" to "real article in prod" and the audit trail must be clean enough to read. Polluting it with 2 days of Gate 1 dry-runs makes Gate 4 review harder.
+
+HOWEVER — I am open to being wrong here. Two scenarios where the App Builder is right and I am wrong:
+
+Scenario A: There is no working Replit dev URL for the shell. Spinning one up costs the App Builder more than 1 hour. In that case, prod with dryRun=true is the correct pragmatic call.
+Scenario B: The App Builder has already implemented a dry-run-row sweep mechanism (cron job, admin button, anything that purges dryRun=true rows from newsroom_agent_runs and newsroom_review_queue after Gate 1 closes). In that case, prod is fine because the audit pollution is recoverable.
+Conductor, please ask the App Builder which of these applies:
+
+"Architect overrides the prod ruling for Gate 1 with one out: if a working Replit dev URL of the shell exists or is achievable in <1 hour, Engineer 1 verifies on dev. If not, prod is acceptable IF a dry-run sweep mechanism exists (or the App Builder commits to building one before Gate 4) so Gate 4's audit trail starts clean. Architect needs one of three answers: (1) dev URL is here, use it; (2) dev URL not feasible, sweep mechanism in place, use prod; (3) neither — Architect rules prod with a logged commitment that App Builder builds the sweep before Gate 4 opens."
+
+This is a 5-minute conversation with the App Builder. Please carry it back.
+
+✅ Item 4 — Newsroom_Worker_Contract_v1.1.md access — RATIFIED
+"If they disagree, the contract wins (and tell App Builder so v1.2 fixes the doc)."
+
+This is the App Builder restating the schema-wins-disputes rule, but applied to brief-vs-contract conflicts. Same principle, different layer. Approved. The contract is authoritative. If Engineer 1 finds the brief contradicts v1.1, the contract wins and a v1.2 doc patch logs the brief correction.
+
