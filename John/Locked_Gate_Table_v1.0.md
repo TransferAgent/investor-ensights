@@ -89,3 +89,4 @@ Engineer 1 should also read `John/Newsroom_Worker_Contract_v1.1.md` as the API s
 | Version | Date | Change | Approved by |
 |---|---|---|---|
 | v1.0 | 2026-04-25 | Initial lock. Gates 0–5 defined. Halo Memo v0.2 attached at Gate 2.5. | Architect |
+| v1.0 | 2026-04-25 | Closing-line workflow ratified as project-level covenant applicable to Gates 1–5. See §Definition of Closed and §Cross-cutting rules. | Architect |
