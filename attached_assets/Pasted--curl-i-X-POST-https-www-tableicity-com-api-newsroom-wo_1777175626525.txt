@@ -1,0 +1,59 @@
+> curl -i -X POST https://www.tableicity.com/api/newsroom/worker/heartbeat \
+  -H "Content-Type: application/json" -d '{}'
+HTTP/2 403 
+content-length: 21
+content-type: application/json
+date: Sun, 26 Apr 2026 03:52:58 GMT
+server: Google Frontend
+set-cookie: GAESA=Cp4BMDA4YzE1ZmYwOGZkZjBlZTA3ZWUwY2E4Yzk0ODVlYjk5MjBiMDlmMjgwYjc5NDBlZTA4YjYyYTY2N2UwYmQ0YTZmOGFhMTIyZDljYTQ5NGQ5YTM0OTY4ZWZlNjk4NGYyM2E5NzM3YjIzZmFlZTUxY2Y4ZTZkMTAzMjcwMWI5NDk2M2ZkODQ0OGU4ZjIwMDFkYmMyNDNmYmZlNjBlYzEQiJGtv9wz; expires=Tue, 26-May-2026 03:52:58 GMT; path=/
+strict-transport-security: max-age=63072000; includeSubDomains
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+x-cloud-trace-context: f6fa1dcbf4f09b81952d4cbd6f8ae822;o=1
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+{"error":"forbidden"}curl: (6) Could not resolve host: curl
+HTTP/2 403 
+content-length: 21
+content-type: application/json
+date: Sun, 26 Apr 2026 03:52:58 GMT
+server: Google Frontend
+set-cookie: GAESA=Cp4BMDA4YzE1ZmYwOGZkZjBlZTA3ZWUwY2E4Yzk0ODVlYjk5MjBiMDlmMjgwYjc5NDBlZTA4YjYyYTY2N2UwYmQ0YTZmOGFhMTIyZDljYTQ5NGQ5YTM0OTY4ZWZlNjk4NGYyM2E5NzM3YjIzZmFlZTUxY2Y4ZTZkMTAzMjcwMWI5NDk2M2ZkODQ0OGU4ZjIwMDFkYmMyNDNmYmZlNjBlYzEQ0pGtv9wz; expires=Tue, 26-May-2026 03:52:58 GMT; path=/
+strict-transport-security: max-age=63072000; includeSubDomains
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+x-cloud-trace-context: bb9122e79bcdecbe952d4cbd6f8ae383
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+~/workspace$ # Test 2 — bad header → expect 403d header → expect 403
+curl -i -X POST https://www.tableicity.com/api/newsroom/worker/heartbeat \
+  -H "Content-Type: application/json" \
+  -H "x-newsroom-worker-secret: deliberately-wrong-value" \
+  -d '{}'
+HTTP/2 403 
+content-length: 21
+content-type: application/json
+date: Sun, 26 Apr 2026 03:53:12 GMT
+server: Google Frontend
+set-cookie: GAESA=Cp4BMDA4YzE1ZmYwOGZkZjBlZTA3ZWUwY2E4Yzk0ODVlYjk5MjBiMDlmMjgwYjc5NDBlZTA4YjYyYTY2N2UwYmQ0YTZmOGFhMTIyZDljYTQ5NGQ5YTM0OTY4ZWZlNjk4NGYyM2E5NzM3YjIzZmFlZTUxY2Y4ZTZkMTAzMjcwMWI5NDk2M2ZkODQ0OGU4ZjIwMDFkYmMyNDNmYmZlNjBlYzEQsfmtv9wz; expires=Tue, 26-May-2026 03:53:12 GMT; path=/
+strict-transport-security: max-age=63072000; includeSubDomains
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+x-cloud-trace-context: a9677a93ced374130d916ead7d194534;o=1
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+{"error":"forcurl -i -X POST https://www.tableicity.com/api/newsroom/worker/heartbeat \om/worker/heartbeat \
+  -H "Content-Type: application/json" \
+  -H "x-newsroom-worker-secret: PASTE-REAL-VALUE-HERE" \
+  -d '{"jobId":"00000000-0000-0000-0000-000000000000"}'
+HTTP/2 403 
+content-length: 21
+content-type: application/json
+date: Sun, 26 Apr 2026 03:53:30 GMT
+server: Google Frontend
+set-cookie: GAESA=Cp4BMDA4YzE1ZmYwOGZkZjBlZTA3ZWUwY2E4Yzk0ODVlYjk5MjBiMDlmMjgwYjc5NDBlZTA4YjYyYTY2N2UwYmQ0YTZmOGFhMTIyZDljYTQ5NGQ5YTM0OTY4ZWZlNjk4NGYyM2E5NzM3YjIzZmFlZTUxY2Y4ZTZkMTAzMjcwMWI5NDk2M2ZkODQ0OGU4ZjIwMDFkYmMyNDNmYmZlNjBlYzEQtYWvv9wz; expires=Tue, 26-May-2026 03:53:30 GMT; path=/
+strict-transport-security: max-age=63072000; includeSubDomains
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+x-cloud-trace-context: 2d6f75857bac0e0371bfec7bd72336e9;o=1
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
