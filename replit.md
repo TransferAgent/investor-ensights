@@ -77,6 +77,7 @@ All under `app/api/`:
 - `admin/data-store/[id]/route.ts` — PATCH/DELETE data store file
 - `admin/data-store/[id]/download/route.ts` — GET download file
 - `admin/stats/route.ts` — GET dashboard stats
+- `admin/newsroom/run-fixture/route.ts` — POST in-app Gate 1 fixture worker (admin-session-gated; walks all 5 newsroom stages with mock content, dry_run=true; lands a v1 draft in the review queue)
 - `locations/route.ts` — GET public published cities
 - `locations/[slug]/route.ts` — GET public city detail
 - `seed/route.ts` — POST database seed
@@ -125,6 +126,7 @@ All under `app/api/`:
 - `lib/geocoding.ts` — OpenCage geocoding (auto-fills lat/lng from address)
 - `lib/seed.ts` — Database seeding (cities + templates + admin user)
 - `lib/knowledge/payloadContract.ts` — Zod schema (KnowledgeDraftPayloadV1) for draft ingestion contract
+- `lib/newsroom/fixtureWorker.ts` — In-app Gate 1 fixture worker (TypeScript, no external Python). Runs all 5 stages (researcher → data_analyst → copywriter → seo_qc → internal_linker) with mock content for plumbing verification. Validates v1 draft payload before review-queue insert. All rows dry_run=true.
 - `config/localVibePrompts.ts` — Versioned prompt template library (v1+) for Local Vibe generation
 - `lib/placeholder-replacer.ts` — Template placeholder substitution
 - `lib/queryClient.ts` — React Query client + apiRequest helper

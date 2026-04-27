@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { apiRequest, queryClient } from "@/lib/queryClient"
-import { Bot, PlayCircle, FileSearch, Users, PenLine, ShieldCheck, Link2, Activity, AlertTriangle, RotateCcw, Settings, DollarSign, Trash2 } from "lucide-react"
+import { Bot, PlayCircle, FileSearch, Users, PenLine, ShieldCheck, Link2, Activity, AlertTriangle, RotateCcw, Settings, DollarSign, Trash2, Sparkles } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
@@ -243,6 +243,44 @@ export default function NewsroomPage() {
     },
   })
 
+  const fixtureMutation = useMutation({
+    mutationFn: async () => {
+      const slug = citySlug || "worcester-ma"
+      const res = await apiRequest("POST", "/api/admin/newsroom/run-fixture", { citySlug: slug })
+      return res.json() as Promise<{
+        ok: boolean
+        jobId: string
+        reviewQueueId: string
+        stagesCompleted: string[]
+        draftSummary: { title: string; suggestedSlug: string; bodyChars: number; internalLinks: number; qcScore: number }
+        totalTokens: number
+        totalCostUsd: number
+        durationMs: number
+      }>
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/jobs"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/runs"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/review"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/cost-rollup"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/sweep-dryrun"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/knowledge"] })
+      toast({
+        title: "Gate 1 fixture complete",
+        description: `${data.stagesCompleted.length} stages, ${data.durationMs}ms · QC ${data.draftSummary.qcScore}/100 · ${data.draftSummary.bodyChars} chars · ${data.draftSummary.internalLinks} links. Open the Review Queue tab to inspect the draft.`,
+      })
+    },
+    onError: (err: Error) => {
+      const raw = err?.message || "Fixture run failed"
+      let msg = raw
+      const m = raw.match(/^\d+:\s*(.+)$/s)
+      if (m) {
+        try { const body = JSON.parse(m[1]); if (body?.error) msg = body.error } catch { msg = m[1] }
+      }
+      toast({ title: "Fixture run failed", description: msg, variant: "destructive" })
+    },
+  })
+
   const { toast } = useToast()
   const reviewMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "approved" | "rejected" }) => {
@@ -326,6 +364,16 @@ export default function NewsroomPage() {
           >
             <PlayCircle className="mr-2 h-4 w-4" />
             Enqueue pipeline
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={fixtureMutation.isPending}
+            onClick={() => fixtureMutation.mutate()}
+            data-testid="button-run-fixture"
+            title="Run all 5 stages end-to-end with mock content (dry-run only). Default city: worcester-ma. Result lands in the Review Queue tab in seconds."
+          >
+            <Sparkles className="mr-2 h-4 w-4" />
+            {fixtureMutation.isPending ? "Running fixture…" : "Run Gate 1 fixture"}
           </Button>
           <Button
             variant="outline"
