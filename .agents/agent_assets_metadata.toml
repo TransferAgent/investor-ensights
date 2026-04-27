@@ -24,3 +24,9 @@ id = "EcORiXSyGrMqFOe2JD6kp"
 uri = "file://John/EU_Handover.md"
 type = "text"
 title = "EU Remix Handover Document"
+
+[[outputs]]
+id = "iyXlzlvnmhWz6yXz9Bdyu"
+uri = "file://worcester-haylo-payload.json"
+type = "unspecified"
+title = "Worcester v3 Haylo Payload (haylo-payload/v1)"

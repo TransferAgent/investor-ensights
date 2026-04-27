@@ -18,6 +18,109 @@ import { fetchCitySources, type CitySourcesResult } from "@/lib/newsroom/sourceF
 
 const MODEL = "gpt-4o-mini";
 
+export const HAYLO_PAYLOAD_SCHEMA_VERSION = "haylo-payload/v1";
+
+export interface HayloPayloadGroundedFact {
+  key: string;
+  value: Record<string, unknown>;
+  sourceUrl: string | null;
+  verbatimQuote: string | null;
+  confidence: "high" | "medium" | "low";
+}
+
+export interface HayloPayload {
+  schemaVersion: typeof HAYLO_PAYLOAD_SCHEMA_VERSION;
+  generatedAt: string;
+  city: { slug: string; name: string; stateCode: string };
+  promptVersion: PromptVersion;
+  model: string;
+  sources: {
+    okCount: number;
+    failCount: number;
+    totalBytes: number;
+    urls: Array<{ url: string; ok: boolean; bytes: number; error: string | null }>;
+  } | null;
+  groundedFacts: HayloPayloadGroundedFact[];
+  droppedFactsCount: number;
+  localVibe: string | null;
+  ledeFactKey: string | null;
+  topAngles: string[];
+  draft: {
+    title: string;
+    headline: string;
+    subheadline: string | null;
+    metaDescription: string | null;
+    bodyHtml: string;
+    dateline: string | null;
+  };
+  qc: { score: number; notes: string; issues: string[] };
+  cost: { totalUsd: number; totalTokens: number };
+  warnings: string[];
+}
+
+export function buildHayloPayload(args: {
+  ctx: { citySlug: string; cityName: string; stateCode: string };
+  promptVersion: PromptVersion;
+  prior: Record<string, any>;
+  totalCostUsd: number;
+  totalTokens: number;
+}): HayloPayload {
+  const { ctx, promptVersion, prior } = args;
+  const r = prior.researcher ?? {};
+  const a = prior.data_analyst ?? {};
+  const c = prior.copywriter ?? {};
+  const q = prior.seo_qc ?? {};
+
+  const facts: HayloPayloadGroundedFact[] = Array.isArray(r.facts)
+    ? r.facts.map((f: any) => ({
+        key: String(f?.key ?? ""),
+        value: (f?.value ?? {}) as Record<string, unknown>,
+        sourceUrl: typeof f?.sourceUrl === "string" ? f.sourceUrl : null,
+        verbatimQuote: typeof f?.verbatimQuote === "string" ? f.verbatimQuote : null,
+        confidence:
+          f?.confidence === "high" || f?.confidence === "medium" || f?.confidence === "low"
+            ? f.confidence
+            : "medium",
+      }))
+    : [];
+
+  const warnings: string[] = [];
+  if (promptVersion !== "v3") warnings.push(`promptVersion=${promptVersion} is not source-grounded`);
+  if (facts.length === 0) warnings.push("zero grounded facts");
+  const ungrounded = facts.filter((f) => !f.sourceUrl).length;
+  if (ungrounded > 0) warnings.push(`${ungrounded} fact(s) lack sourceUrl`);
+  if (!a.localVibe) warnings.push("no localVibe synthesized");
+
+  return {
+    schemaVersion: HAYLO_PAYLOAD_SCHEMA_VERSION,
+    generatedAt: new Date().toISOString(),
+    city: { slug: ctx.citySlug, name: ctx.cityName, stateCode: ctx.stateCode },
+    promptVersion,
+    model: MODEL,
+    sources: r.sourcesSummary ?? null,
+    groundedFacts: facts,
+    droppedFactsCount: typeof r.droppedFactsCount === "number" ? r.droppedFactsCount : 0,
+    localVibe: typeof a.localVibe === "string" ? a.localVibe : null,
+    ledeFactKey: typeof a.ledeFactKey === "string" ? a.ledeFactKey : null,
+    topAngles: Array.isArray(a.topAngles) ? a.topAngles.filter((x: any) => typeof x === "string") : [],
+    draft: {
+      title: String(c.title ?? ""),
+      headline: String(c.headline ?? ""),
+      subheadline: typeof c.subheadline === "string" ? c.subheadline : null,
+      metaDescription: typeof c.metaDescription === "string" ? c.metaDescription : null,
+      bodyHtml: String(c.bodyHtml ?? ""),
+      dateline: typeof c.dateline === "string" ? c.dateline : null,
+    },
+    qc: {
+      score: typeof q.qcScore === "number" ? q.qcScore : 0,
+      notes: typeof q.qcNotes === "string" ? q.qcNotes : "",
+      issues: Array.isArray(q.issues) ? q.issues.filter((x: any) => typeof x === "string") : [],
+    },
+    cost: { totalUsd: args.totalCostUsd, totalTokens: args.totalTokens },
+    warnings,
+  };
+}
+
 const PRICING_PER_1M_USD: Record<string, { input: number; output: number }> = {
   "gpt-4o-mini": { input: 0.15, output: 0.6 },
   "gpt-4o": { input: 2.5, output: 10 },
@@ -274,6 +377,7 @@ export function makeOpenAIGenerator(
 
     const result = await runStage<{
       tableicityScore?: unknown;
+      localVibe?: unknown;
       rationale?: unknown;
       ledeFactKey?: unknown;
       topAngles?: unknown;
@@ -294,6 +398,7 @@ export function makeOpenAIGenerator(
         rationale: asString(result.parsed.rationale, 500, "No rationale provided."),
         ledeFactKey: asOptionalString(result.parsed.ledeFactKey, 100),
         topAngles: angles,
+        localVibe: asOptionalString(result.parsed.localVibe, 300),
       },
       tokensUsed: result.totalTokens,
       costUsd: result.costUsd,

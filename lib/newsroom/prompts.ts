@@ -433,6 +433,36 @@ const v2: PromptBundle = {
 
 const v3: PromptBundle = {
   ...v2,
+  data_analyst: {
+    system: [
+      "You are a fact-checker, lede-picker, and 'local vibe' synthesizer for Tableicity Newsroom (v3 source-grounded mode).",
+      "Every output field must be derivable from the researcher facts (which are themselves grounded in fetched sources).",
+      "Reject generic angles. Banned in `topAngles` and `localVibe`: 'vibrant', 'thriving', 'robust', 'emerging', 'growing', 'innovative', 'ecosystem', 'scene', 'landscape', 'bustling', 'dynamic'.",
+      "Return ONLY a JSON object.",
+    ].join(" "),
+    user: ({ ctx, prior }) => {
+      const facts = (prior as any).researcher?.facts ?? [];
+      return [
+        `City: ${ctx.cityName}, ${ctx.stateCode}.`,
+        `Researcher facts (each cites a sourceUrl): ${JSON.stringify(facts)}`,
+        "",
+        "Return JSON:",
+        `{`,
+        `  "tableicityScore": <0-100 integer>,`,
+        `  "rationale": "1-2 sentences — must reference at least one named entity from the facts",`,
+        `  "ledeFactKey": "the single fact key (from researcher) most worth leading with",`,
+        `  "topAngles": ["angle (≤12 words, must contain a number OR named entity from researcher facts)", ...],`,
+        `  "localVibe": "1 sentence (≤30 words) describing what makes ${ctx.cityName} distinctive for founders, using ONLY named entities/numbers from researcher facts. No banned words."`,
+        `}`,
+        "",
+        "Score rubric: 0-30 thin, 30-60 developing, 60-80 solid corridor, 80-100 exceptional.",
+        "Provide exactly 3 topAngles. Each must be specific enough to fit in a headline.",
+        "If researcher facts are too thin to support a localVibe, return localVibe='insufficient grounded facts' rather than fabricating.",
+      ].join("\n");
+    },
+    maxTokens: 800,
+    temperature: 0.2,
+  },
   researcher: {
     system: [
       "You are a strict data extractor for the Tableicity Newsroom (cap-table SaaS).",

@@ -1,0 +1,134 @@
+{
+  "schemaVersion": "haylo-payload/v1",
+  "generatedAt": "2026-04-27T20:27:54.505Z",
+  "city": {
+    "slug": "worcester-ma",
+    "name": "Worcester",
+    "stateCode": "MA"
+  },
+  "promptVersion": "v3",
+  "model": "gpt-4o-mini",
+  "sources": {
+    "okCount": 3,
+    "failCount": 0,
+    "totalBytes": 2073649,
+    "urls": [
+      {
+        "url": "https://en.wikipedia.org/wiki/Worcester,_Massachusetts",
+        "ok": true,
+        "bytes": 644422,
+        "error": null
+      },
+      {
+        "url": "https://www.wbjournal.com/",
+        "ok": true,
+        "bytes": 1366053,
+        "error": null
+      },
+      {
+        "url": "https://www.worcesterma.gov/economic-development",
+        "ok": true,
+        "bytes": 63174,
+        "error": null
+      }
+    ]
+  },
+  "groundedFacts": [
+    {
+      "key": "city_name",
+      "value": {
+        "name": "Worcester",
+        "state": "Massachusetts",
+        "country": "United States"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Worcester,_Massachusetts",
+      "verbatimQuote": "Worcester is a city in the U.S. state of Massachusetts.",
+      "confidence": "high"
+    },
+    {
+      "key": "population_2020",
+      "value": {
+        "population": 206518,
+        "rank": 113
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Worcester,_Massachusetts",
+      "verbatimQuote": "had 206,518 people at the 2020 census, also making it the second-most populous city in New England.",
+      "confidence": "high"
+    },
+    {
+      "key": "area",
+      "value": {
+        "total_area_sq_mi": 38.44,
+        "land_area_sq_mi": 37.36,
+        "water_area_sq_mi": 1.08
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Worcester,_Massachusetts",
+      "verbatimQuote": "• Area • City 38.44 sq mi (99.57 km2) • Land 37.36 sq mi (96.76 km2) • Water 1.08 sq mi (2.81 km2)",
+      "confidence": "high"
+    },
+    {
+      "key": "elevation",
+      "value": {
+        "elevation_ft": 479,
+        "elevation_m": 146
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Worcester,_Massachusetts",
+      "verbatimQuote": "Elevation 479 ft (146 m)",
+      "confidence": "high"
+    },
+    {
+      "key": "government_structure",
+      "value": {
+        "type": "Council–manager",
+        "mayor": "Joseph Petty"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Worcester,_Massachusetts",
+      "verbatimQuote": "• Type • Council–manager • Mayor Joseph Petty",
+      "confidence": "high"
+    },
+    {
+      "key": "gdp",
+      "value": {
+        "gdp_billion": 45.393131,
+        "year": 2018
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Worcester,_Massachusetts",
+      "verbatimQuote": "GDP $45.393131 billion (as of 2018, in 2012 US chained dollars)",
+      "confidence": "high"
+    }
+  ],
+  "droppedFactsCount": 0,
+  "localVibe": "Worcester's elevation of 479 feet contributes to its unique geographic character.",
+  "ledeFactKey": "population_2020",
+  "topAngles": [
+    "Worcester ranks as New England's second-most populous city with 206,518 residents",
+    "Worcester's GDP reached $45.39 billion in 2018",
+    "Mayor Joseph Petty leads Worcester's council-manager government structure"
+  ],
+  "draft": {
+    "title": "Worcester's Population Reaches 206,518 as New England's Second-Largest City",
+    "headline": "Worcester is New England's Second-Most Populous City with 206,518 Residents",
+    "subheadline": "The city has a GDP of $45.39 billion, reflecting its economic significance in the region.",
+    "metaDescription": "Worcester, MA, with a population of 206,518, is led by Mayor Joseph Petty and boasts a GDP of $45.39 billion as of 2018.",
+    "bodyHtml": "<p>Worcester, Massachusetts, is home to 206,518 residents, making it the second-most populous city in New England. This significant population underscores Worcester's role as a key urban center in the region.</p><p>Under the leadership of Mayor Joseph Petty, Worcester operates under a council-manager government structure. This system allows for an organized approach to managing the city's resources and services, contributing to its stability and growth.</p><h2>Worcester's GDP Stands at $45.39 Billion</h2><p>As of 2018, Worcester's GDP was reported at $45.39 billion, indicating a strong economic base. This figure highlights the city’s capacity for business and innovation, attracting various industries and supporting local entrepreneurship.</p><p>Worcester spans a total area of 38.44 square miles, with 37.36 square miles of land. The city's elevation reaches 479 feet, contributing to its unique geographical character within Massachusetts.</p><p>For founders navigating equity management, Tableicity offers tools for SAFE modeling and option-pool sizing to optimize your cap table.</p>",
+    "dateline": "WORCESTER, MA — Mon Apr 27 2026"
+  },
+  "qc": {
+    "score": 73,
+    "notes": "The draft contains several factual inaccuracies and lacks sufficient named entities in the body. Additionally, the title and meta description do not meet the required standards.",
+    "issues": [
+      "Title lacks specific number or named entity (beyond city): -15",
+      "Title contains a banned word: -15",
+      "First sentence of body > 25 words: -10",
+      "Fewer than 3 distinct named entities in body: -10",
+      "Body cites entities NOT present in researcher facts: -15",
+      "Missing meta description OR meta < 80 chars: -10",
+      "CTA paragraph absent or generic: -7"
+    ]
+  },
+  "cost": {
+    "totalUsd": 0.0019,
+    "totalTokens": 8494
+  },
+  "warnings": []
+}
