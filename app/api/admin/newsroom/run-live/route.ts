@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
-import { runFixturePipeline } from "@/lib/newsroom/pipelineWorker";
+import { runLivePipeline } from "@/lib/newsroom/pipelineWorker";
 import { z } from "zod";
 
 const bodySchema = z.object({
-  citySlug: z.string().min(1).max(120).optional().default("worcester-ma"),
+  citySlug: z.string().min(1).max(120),
+  dryRun: z.boolean().optional().default(false),
 });
+
+const COOLDOWN_MS = 30_000;
+const lastRunByUser = new Map<string, number>();
 
 export async function POST(req: Request) {
   const session = await verifySession();
@@ -14,7 +18,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  let body: { citySlug: string };
+  if (!process.env.OPENAI_API_KEY && !process.env.OpenAi_Key) {
+    return NextResponse.json(
+      { ok: false, error: "OpenAI API key is not configured (OPENAI_API_KEY or OpenAi_Key)." },
+      { status: 503 }
+    );
+  }
+
+  const lastRunAt = lastRunByUser.get(session.username) ?? 0;
+  const sinceLast = Date.now() - lastRunAt;
+  if (sinceLast < COOLDOWN_MS) {
+    const waitSec = Math.ceil((COOLDOWN_MS - sinceLast) / 1000);
+    return NextResponse.json(
+      { ok: false, error: `Cooldown active. Wait ${waitSec}s before another live run.` },
+      { status: 429 }
+    );
+  }
+  lastRunByUser.set(session.username, Date.now());
+
+  let body: { citySlug: string; dryRun: boolean };
   try {
     body = bodySchema.parse(await req.json().catch(() => ({})));
   } catch (err) {
@@ -25,30 +47,33 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await runFixturePipeline({
+    const result = await runLivePipeline({
       citySlug: body.citySlug,
       username: session.username,
+      dryRun: body.dryRun,
     });
 
     await logAuditEvent({
       username: session.username,
-      action: "newsroom_run_fixture",
+      action: "newsroom_run_live",
       entityType: "newsroom_pipeline_jobs",
       entityId: result.jobId,
       details: {
         citySlug: body.citySlug,
+        dryRun: body.dryRun,
         reviewQueueId: result.reviewQueueId,
         stagesCompleted: result.stagesCompleted,
         durationMs: result.durationMs,
         totalTokens: result.totalTokens,
         totalCostUsd: result.totalCostUsd,
+        modelLabel: result.modelLabel,
       },
     });
 
     return NextResponse.json({ ok: true, ...result }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[run-fixture] failed:", message, err);
+    console.error("[run-live] failed:", message, err);
     return NextResponse.json(
       { ok: false, error: message },
       { status: 409 }

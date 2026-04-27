@@ -1,3 +1,6 @@
 {
+  "/api/admin/login/route": "app/api/admin/login/route.js",
+  "/api/admin/newsroom/run-fixture/route": "app/api/admin/newsroom/run-fixture/route.js",
+  "/api/admin/newsroom/run-live/route": "app/api/admin/newsroom/run-live/route.js",
   "/page": "app/page.js"
 }

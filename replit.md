@@ -78,6 +78,7 @@ All under `app/api/`:
 - `admin/data-store/[id]/download/route.ts` — GET download file
 - `admin/stats/route.ts` — GET dashboard stats
 - `admin/newsroom/run-fixture/route.ts` — POST in-app Gate 1 fixture worker (admin-session-gated; walks all 5 newsroom stages with mock content, dry_run=true; lands a v1 draft in the review queue)
+- `admin/newsroom/run-live/route.ts` — POST live OpenAI Newsroom pipeline (admin-session-gated; walks all 5 stages with real gpt-4o-mini calls; ~$0.001/run; supports dryRun toggle; produces a real v1 draft in the review queue)
 - `locations/route.ts` — GET public published cities
 - `locations/[slug]/route.ts` — GET public city detail
 - `seed/route.ts` — POST database seed
@@ -126,7 +127,10 @@ All under `app/api/`:
 - `lib/geocoding.ts` — OpenCage geocoding (auto-fills lat/lng from address)
 - `lib/seed.ts` — Database seeding (cities + templates + admin user)
 - `lib/knowledge/payloadContract.ts` — Zod schema (KnowledgeDraftPayloadV1) for draft ingestion contract
-- `lib/newsroom/fixtureWorker.ts` — In-app Gate 1 fixture worker (TypeScript, no external Python). Runs all 5 stages (researcher → data_analyst → copywriter → seo_qc → internal_linker) with mock content for plumbing verification. Validates v1 draft payload before review-queue insert. All rows dry_run=true.
+- `lib/newsroom/pipelineWorker.ts` — Generator-agnostic pipeline runner. Walks all 5 newsroom stages (researcher → data_analyst → copywriter → seo_qc → internal_linker), records agent_runs/knowledge/review/internal-links rows, validates v1 draft via newsroomDraftPayloadV1Schema before review-queue insert. Exports `runFixturePipeline` (uses fixtureGenerator, dry_run=true) and `runLivePipeline` (uses openaiGenerator, dry_run configurable).
+- `lib/newsroom/pipelineGenerator.ts` — Strategy interface for the 5 newsroom stages + draft composer + slugify helper.
+- `lib/newsroom/fixtureGenerator.ts` — Mock-content implementation of PipelineGenerator (no LLM, free, deterministic). Used for plumbing verification.
+- `lib/newsroom/openaiGenerator.ts` — OpenAI gpt-4o-mini implementation of PipelineGenerator (json_object responses, hardened parsing/clamping, candidate-slug allowlist for internal_linker, real token+cost tracking via API usage). Reads OPENAI_API_KEY or OpenAi_Key env var.
 - `config/localVibePrompts.ts` — Versioned prompt template library (v1+) for Local Vibe generation
 - `lib/placeholder-replacer.ts` — Template placeholder substitution
 - `lib/queryClient.ts` — React Query client + apiRequest helper
@@ -166,4 +170,5 @@ All under `app/api/`:
 - `DATABASE_URL` — PostgreSQL connection string (required)
 - `SESSION_SECRET` — JWT signing secret
 - `OPENCAGE_API_KEY` — OpenCage geocoding API key (for auto-filling lat/lng)
+- `OPENAI_API_KEY` (or `OpenAi_Key`) — OpenAI API key for the live Newsroom pipeline (gpt-4o-mini)
 - `NEXT_PUBLIC_BASE_URL` — Base URL for canonical/OG tags (defaults to https://yourcompany.com, locked to https://www.tableicity.com)
