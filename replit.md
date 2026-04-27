@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a **City Landing Page Manager** — a full-stack web application for managing location-based landing pages across multiple US cities. It provides a public-facing website where visitors can browse city locations and view templated content, plus an admin dashboard for managing cities, content templates, and template-to-city assignments. The core idea is programmatic SEO: create many city-specific pages from reusable content templates with placeholder substitution (e.g., `{{city}}`, `{{state_name}}`).
+This project is a **City Landing Page Manager**, a full-stack web application designed for programmatic SEO. It allows the creation and management of location-based landing pages across various US cities using reusable content templates with dynamic placeholder substitution. The application features a public-facing website for browsing city locations and templated content, alongside an admin dashboard for comprehensive management of cities, content templates, and their assignments.
 
 ## User Preferences
 
@@ -10,165 +10,32 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Framework
-- **Next.js 16** with App Router (migrated from Express + React SPA)
-- **React 18** with TypeScript
-- **Tailwind CSS 3** with CSS variables for theming
-- **shadcn/ui** components (Radix UI primitives)
-- **TanStack React Query** for admin page data fetching
-- **Path Aliases**: `@/` maps to project root, `@shared/` maps to `shared/`
+The application is built with **Next.js 16** (App Router), **React 18** (TypeScript), **Tailwind CSS 3** for styling, and **shadcn/ui** for UI components. Data fetching on the admin side is handled by **TanStack React Query**.
 
-### Pages (App Router)
-- `app/page.tsx` — Public homepage (SSR), two-panel Tableicity marketing + login layout (or Page Builder if "home" page published)
-- `app/locations/page.tsx` — Locations grid page (SSR), hero banner + city grid with search/filter/geo-detection
-- `app/city-grid.tsx` — Client component for search/filter city grid with IP-based state detection
-- `app/locations/[slug]/page.tsx` — City landing page (SSR), two-panel layout clone: left=city-specific marketing content (H1/H2/body from templates, slideshow, contact info, landmarks, map), right=login panel with hover redirect to Cap Table App
-- `app/[slug]/page.tsx` — Custom page (SSR, Page Builder pages with generateMetadata + generateStaticParams)
-- `app/admin/login/page.tsx` — Admin login (Client Component)
-- `app/admin/page.tsx` — Admin dashboard with stats (Client Component)
-- `app/admin/cities/page.tsx` — City management CRUD + bulk ops (Client Component)
-- `app/admin/templates/page.tsx` — Template management CRUD (Client Component)
-- `app/admin/pages/page.tsx` — Page Builder list view (Client Component)
-- `app/admin/pages/[id]/edit/page.tsx` — Page Builder editor with slide management (Client Component)
-- `app/admin/knowledge/page.tsx` — Knowledge/Press Release management (Client Component) — 5 tabs: Articles (CRUD, bulk ops), Content Studio (template+city picker workflow), Templates (manage PR templates), Analytics, Coverage
-- `app/discovery/knowledge/[slug]/page.tsx` — Public press release page (SSR) with full SEO (title, description, canonical, robots, JSON-LD NewsArticle)
-- `app/sitemap.ts` — Dynamic sitemap (includes cities + custom pages + published knowledge articles)
-- `app/robots.ts` — Dynamic robots.txt
+**Key Features:**
 
-### Middleware
-- `middleware.ts` — 301 redirect non-www → www (`tableicity.com` → `www.tableicity.com`)
+*   **Public-facing Pages:**
+    *   Dynamic city landing pages (`/locations/[slug]`) generated from templates, featuring city-specific content, slideshows, contact info, and maps.
+    *   A locations grid (`/locations`) with search, filter, and geo-detection capabilities.
+    *   Custom pages (`/[slug]`) created via a Page Builder.
+    *   Public press release/knowledge articles (`/discovery/knowledge/[slug]`) with full SEO support (JSON-LD, OpenGraph, dynamic sitemaps, robots.txt).
+*   **Admin Dashboard:**
+    *   Login and user authentication using JWT and httpOnly cookies.
+    *   CRUD operations for cities, content templates, custom pages, and knowledge articles.
+    *   Bulk operations for cities (CSV import, publish/unpublish, template assignment).
+    *   A Page Builder for creating and managing custom pages with configurable content slides.
+    *   A "Knowledge" section for managing press releases, including content studio for generation, template management, analytics, and coverage tracking.
+    *   A Newsroom pipeline for AI-driven content generation, supporting both fixture-based testing and live OpenAI integration with versioned prompts and quality gates.
+    *   Data store for managing file uploads.
+*   **SEO Enhancements:** Server-Side Rendering (SSR), dynamic sitemap and robots.txt, canonical URLs, OpenGraph tags, and JSON-LD structured data are implemented across public pages.
+*   **Authentication & Security:** JWT-based authentication with `scrypt` password hashing, httpOnly cookies, rate limiting for login attempts, input sanitization against XSS, SQL injection protection via Drizzle ORM, and comprehensive admin audit logging.
+*   **Geocoding:** Integration with OpenCage API for automatic latitude/longitude population for cities.
 
-### API Routes (App Router)
-All under `app/api/`:
-- `admin/login/route.ts` — POST login with JWT
-- `admin/logout/route.ts` — POST logout
-- `admin/me/route.ts` — GET current user
-- `admin/cities/route.ts` — GET/POST cities
-- `admin/cities/[id]/route.ts` — PATCH/DELETE city
-- `admin/cities/bulk-csv/route.ts` — POST CSV bulk import
-- `admin/bulk-update/route.ts` — POST publish/unpublish/assign template
-- `admin/templates/route.ts` — GET/POST templates
-- `admin/templates/[id]/route.ts` — PATCH template
-- `admin/pages/route.ts` — GET/POST custom pages
-- `admin/pages/[id]/route.ts` — GET/PATCH/DELETE custom page
-- `admin/pages/[id]/slides/route.ts` — GET/POST slides for a page
-- `admin/pages/[id]/slides/[slideId]/route.ts` — PATCH/DELETE slide
-- `admin/pages/[id]/slides/reorder/route.ts` — POST reorder slides
-- `admin/knowledge/route.ts` — GET/POST knowledge articles
-- `admin/knowledge/[id]/route.ts` — GET/PATCH/DELETE knowledge article
-- `admin/knowledge/[id]/publish/route.ts` — POST publish article (creates version snapshot, validates OG image reachability + 1200px+ width, stores image dimensions)
-- `admin/knowledge/[id]/archive/route.ts` — POST archive article (creates version snapshot)
-- `admin/knowledge/[id]/unarchive/route.ts` — POST restore archived article to pending (creates version snapshot)
-- `admin/knowledge/[id]/versions/route.ts` — GET version history
-- `admin/knowledge-templates/route.ts` — GET/POST knowledge templates
-- `admin/knowledge-templates/[id]/route.ts` — GET/PATCH/DELETE knowledge template
-- `admin/campaigns/route.ts` — GET/POST campaigns (list all, create new)
-- `admin/campaigns/[id]/route.ts` — GET/PATCH/DELETE campaign (articles unlinked on delete, not deleted)
-- `admin/knowledge-templates/generate/route.ts` — POST generate articles from template (supports optional `citySlugs` array for targeted generation, `updateExisting` for upsert, `campaignName` for grouping; auto-creates campaign per generation run)
-- `admin/knowledge/metrics/route.ts` — GET publish cadence metrics (today, thisWeek, avgPerDay, pendingCount)
-- `admin/knowledge/analytics/route.ts` — GET analytics (publishedThisMonth, discoverEligible, avgFreshnessScore, pendingCount)
-- `admin/knowledge/coverage/route.ts` — GET city coverage tracker (matches articles to cities via city_slug field)
-- `admin/knowledge/generation-log/route.ts` — GET generation log entries with daily count
-- `knowledge/draft/route.ts` — POST structured draft ingestion (G5 contract v1: pending-only, validated, audited, rate-limited, content quality guards)
-- `admin/knowledge/bulk-apply-template/route.ts` — POST apply a knowledge template to selected articles in place (updates content, preserves slug/status/datePublished)
-- `knowledge/generate-local-vibe/route.ts` — POST generate Local Vibe draft for a city (G6/G7: versioned prompt template, generation logging)
-- `knowledge/bulk-generate/route.ts` — POST bulk generate Local Vibes (max 50 cities, concurrency 3, 30-day duplicate skip)
-- `admin/data-store/route.ts` — GET/POST data store files (upload via multipart form)
-- `admin/data-store/[id]/route.ts` — PATCH/DELETE data store file
-- `admin/data-store/[id]/download/route.ts` — GET download file
-- `admin/stats/route.ts` — GET dashboard stats
-- `admin/newsroom/run-fixture/route.ts` — POST in-app Gate 1 fixture worker (admin-session-gated; walks all 5 newsroom stages with mock content, dry_run=true; lands a v1 draft in the review queue)
-- `admin/newsroom/run-live/route.ts` — POST live OpenAI Newsroom pipeline (admin-session-gated; walks all 5 stages with real gpt-4o-mini calls; ~$0.001/run; supports dryRun toggle; produces a real v1 draft in the review queue)
-- `locations/route.ts` — GET public published cities
-- `locations/[slug]/route.ts` — GET public city detail
-- `seed/route.ts` — POST database seed
+**Data Storage:**
+The application uses **PostgreSQL** as its database, accessed via **Drizzle ORM** and `drizzle-zod` for schema validation. Key database tables include `city_locations`, `content_templates`, `city_content_assignments`, `admin_users`, `admin_audit_log`, `custom_pages`, `page_slides`, `knowledge_articles`, `knowledge_article_versions`, `knowledge_generation_log`, `knowledge_campaigns`, `data_store_files`, and `knowledge_templates`.
 
-### Authentication
-- JWT-based with `jose` library
-- Tokens stored in httpOnly cookies
-- Helpers: `lib/auth.ts` (createSession, verifySession, destroySession)
-- Default admin: username `admin`, password `admin123`
+## External Dependencies
 
-### Data Storage
-- **Database**: PostgreSQL via `DATABASE_URL`
-- **ORM**: Drizzle ORM with `drizzle-zod` for validation
-- **Schema**: `shared/schema.ts`
-
-### Database Tables
-1. **city_locations** — City data (name, state, slug, address, coordinates, landmarks, nearby cities, publish status)
-2. **content_templates** — Reusable content templates with placeholder patterns. `allowIndexing` (default true) — when a template is assigned to a city via `upsertAssignment`/`bulkAssignTemplate`, the city's `allowIndexing` is automatically synced from the template (safe-by-default if template is OFF).
-3. **city_content_assignments** — Join table linking cities to templates
-4. **admin_users** — Admin accounts with scrypt-hashed passwords
-5. **admin_audit_log** — Tracks all admin actions (login, create, update, delete) with username, action, entity type/id, and timestamp
-6. **custom_pages** — Page Builder pages with slug, title, SEO metadata, publish status
-7. **page_slides** — Individual content blocks (slides) for custom pages with JSON content, type, order, and styling options
-8. **knowledge_articles** — Press releases/articles with tri-state status (pending/published/archived), SEO fields, body HTML, author/publisher, JSON-LD support, optional campaignId FK
-9. **knowledge_article_versions** — Append-only immutable archive trail capturing full article snapshots on publish/archive actions
-10. **knowledge_generation_log** — Audit trail for every generation call (city_slug, directive, status, error_message, timestamp)
-11. **knowledge_campaigns** — Campaign grouping for press releases (name, slug, templateId FK, status, description, articleCount)
-12. **data_store_files** — File uploads (Word, PDF, TXT, HTML, Markdown) with base64 storage, tri-state status (pending/approved/rejected), notes, audit trail
-13. **knowledge_templates** — Reusable press release templates with placeholder patterns ({{city}}, {{state_name}}, etc.) for bulk article generation. `allowIndexing` (default true) — at generation time, articles created from a template inherit `robots` accordingly (`noindex, nofollow,...` when OFF). Per-article `robots` is owned by the article after creation; the template flag never overrides at render time.
-
-### Security Features
-- **Password hashing**: scrypt with random salt (Node.js built-in)
-- **JWT cookies**: httpOnly, secure (in production), sameSite: lax, 24h expiry
-- **Rate limiting**: Login attempts limited to 5 per 15-minute window per IP (`lib/rate-limit.ts`)
-- **Input sanitization**: XSS prevention via HTML entity encoding (`lib/sanitize.ts`)
-- **SQL injection protection**: Drizzle ORM uses parameterized queries
-- **Audit logging**: All admin mutations logged to admin_audit_log table (`lib/audit.ts`)
-
-### Key Files
-- `lib/storage.ts` — DatabaseStorage class implementing IStorage interface
-- `lib/db.ts` — Drizzle database connection
-- `lib/auth.ts` — JWT auth helpers
-- `lib/audit.ts` — Admin audit logging helper
-- `lib/rate-limit.ts` — In-memory rate limiting for login
-- `lib/sanitize.ts` — Input sanitization for XSS prevention
-- `lib/geocoding.ts` — OpenCage geocoding (auto-fills lat/lng from address)
-- `lib/seed.ts` — Database seeding (cities + templates + admin user)
-- `lib/knowledge/payloadContract.ts` — Zod schema (KnowledgeDraftPayloadV1) for draft ingestion contract
-- `lib/newsroom/pipelineWorker.ts` — Generator-agnostic pipeline runner. Walks all 5 newsroom stages (researcher → data_analyst → copywriter → seo_qc → internal_linker), records agent_runs/knowledge/review/internal-links rows, validates v1 draft via newsroomDraftPayloadV1Schema before review-queue insert. Exports `runFixturePipeline` (uses fixtureGenerator, dry_run=true) and `runLivePipeline` (uses openaiGenerator, dry_run configurable).
-- `lib/newsroom/pipelineGenerator.ts` — Strategy interface for the 5 newsroom stages + draft composer + slugify helper.
-- `lib/newsroom/fixtureGenerator.ts` — Mock-content implementation of PipelineGenerator (no LLM, free, deterministic). Used for plumbing verification.
-- `lib/newsroom/openaiGenerator.ts` — OpenAI gpt-4o-mini implementation of PipelineGenerator (json_object responses, hardened parsing/clamping, candidate-slug allowlist for internal_linker, real token+cost tracking via API usage). Reads OPENAI_API_KEY or OpenAi_Key env var.
-- `config/localVibePrompts.ts` — Versioned prompt template library (v1+) for Local Vibe generation
-- `lib/placeholder-replacer.ts` — Template placeholder substitution
-- `lib/queryClient.ts` — React Query client + apiRequest helper
-- `components/homepage/hero-home.tsx` — Two-panel homepage wrapper
-- `components/homepage/marketing-panel.tsx` — Homepage left panel (slideshow, features, security)
-- `components/homepage/city-marketing-panel.tsx` — City page left panel (H1/H2/body, slideshow, contact, landmarks, map)
-- `components/homepage/login-panel.tsx` — Right panel with glass login card + hover redirect to Cap Table App
-- `components/slides/slide-renderer.tsx` — Main slide renderer dispatcher
-- `components/slides/` — 7 slide type components (hero, features, pricing, text, image_text, cta, html)
-- `components/theme-provider.tsx` — next-themes wrapper
-- `components/query-provider.tsx` — React Query provider wrapper
-- `components/ui/` — shadcn/ui components
-
-### Build & Run
-- **Development**: `npm run dev` → launches Next.js dev server on port 5000
-- **Production**: `next build` (standalone output for AWS App Runner)
-- **Database**: `npm run db:push` syncs Drizzle schema
-
-### SEO Features
-- Server-side rendered public pages with generateMetadata
-- Canonical URLs on every page (via NEXT_PUBLIC_BASE_URL env var, locked to https://www.tableicity.com)
-- 301 redirect non-www → www via middleware.ts
-- OpenGraph tags on city pages and knowledge articles
-- JSON-LD NewsArticle structured data on knowledge articles (with image array, Organization author for brand, Organization publisher)
-- JSON-LD structured data on city pages
-- Robots "Beast" directive: `index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1`
-- Dynamic sitemap.xml and robots.txt
-- generateStaticParams for city pages
-
-### Geocoding
-- **OpenCage API** auto-fills latitude/longitude when saving cities without coordinates
-- Triggers on: city create (POST), city update (PATCH), and bulk CSV import
-- Falls back gracefully if API is unavailable — city still saves without coordinates
-- Free tier: 2,500 requests/day (sufficient for 150+ cities)
-
-## Environment Variables
-- `DATABASE_URL` — PostgreSQL connection string (required)
-- `SESSION_SECRET` — JWT signing secret
-- `OPENCAGE_API_KEY` — OpenCage geocoding API key (for auto-filling lat/lng)
-- `OPENAI_API_KEY` (or `OpenAi_Key`) — OpenAI API key for the live Newsroom pipeline (gpt-4o-mini)
-- `NEXT_PUBLIC_BASE_URL` — Base URL for canonical/OG tags (defaults to https://yourcompany.com, locked to https://www.tableicity.com)
+*   **PostgreSQL**: Primary database for all application data.
+*   **OpenCage API**: Used for geocoding services to auto-fill city latitude and longitude.
+*   **OpenAI API**: Utilized for the Newsroom pipeline for AI-driven content generation, specifically with the `gpt-4o-mini` model.

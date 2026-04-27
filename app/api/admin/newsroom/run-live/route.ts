@@ -2,11 +2,17 @@ import { NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { runLivePipeline } from "@/lib/newsroom/pipelineWorker";
+import { ACTIVE_PROMPT_VERSION, PROMPTS, type PromptVersion } from "@/lib/newsroom/prompts";
 import { z } from "zod";
+
+const promptVersionSchema = z.enum(
+  Object.keys(PROMPTS) as [PromptVersion, ...PromptVersion[]]
+);
 
 const bodySchema = z.object({
   citySlug: z.string().min(1).max(120),
   dryRun: z.boolean().optional().default(false),
+  promptVersion: promptVersionSchema.optional(),
 });
 
 const COOLDOWN_MS = 30_000;
@@ -36,7 +42,7 @@ export async function POST(req: Request) {
   }
   lastRunByUser.set(session.username, Date.now());
 
-  let body: { citySlug: string; dryRun: boolean };
+  let body: { citySlug: string; dryRun: boolean; promptVersion?: PromptVersion };
   try {
     body = bodySchema.parse(await req.json().catch(() => ({})));
   } catch (err) {
@@ -51,6 +57,7 @@ export async function POST(req: Request) {
       citySlug: body.citySlug,
       username: session.username,
       dryRun: body.dryRun,
+      promptVersion: body.promptVersion,
     });
 
     await logAuditEvent({
@@ -61,6 +68,8 @@ export async function POST(req: Request) {
       details: {
         citySlug: body.citySlug,
         dryRun: body.dryRun,
+        promptVersion: body.promptVersion ?? ACTIVE_PROMPT_VERSION,
+        promptVersionRequested: body.promptVersion ?? null,
         reviewQueueId: result.reviewQueueId,
         stagesCompleted: result.stagesCompleted,
         durationMs: result.durationMs,

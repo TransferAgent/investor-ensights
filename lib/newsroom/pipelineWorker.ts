@@ -30,7 +30,8 @@ import {
   type ResearcherOutput,
 } from "@/lib/newsroom/pipelineGenerator";
 import { fixtureGenerator } from "@/lib/newsroom/fixtureGenerator";
-import { openaiGenerator } from "@/lib/newsroom/openaiGenerator";
+import { makeOpenAIGenerator, openaiGenerator } from "@/lib/newsroom/openaiGenerator";
+import { ACTIVE_PROMPT_VERSION, PROMPTS, type PromptVersion } from "@/lib/newsroom/prompts";
 import { sanitizeNewsroomHtml, sanitizeNewsroomPlaintext } from "@/lib/newsroom/htmlSanitizer";
 
 const STAGE_ORDER: StageRole[] = [
@@ -375,12 +376,24 @@ export async function runLivePipeline(opts: {
   citySlug: string;
   username: string;
   dryRun?: boolean;
+  promptVersion?: PromptVersion;
 }): Promise<PipelineRunResult> {
+  const requestedVersion = opts.promptVersion ?? ACTIVE_PROMPT_VERSION;
+  if (!PROMPTS[requestedVersion]) {
+    throw new Error(
+      `Unknown prompt version "${requestedVersion}". Known: ${Object.keys(PROMPTS).join(", ")}`
+    );
+  }
+  const generator =
+    requestedVersion === ACTIVE_PROMPT_VERSION
+      ? openaiGenerator
+      : makeOpenAIGenerator(requestedVersion);
+
   return runPipeline({
     citySlug: opts.citySlug,
     username: opts.username,
-    generator: openaiGenerator,
+    generator,
     dryRun: opts.dryRun ?? false,
-    source: "in-app-live",
+    source: `in-app-live/prompts-${requestedVersion}`,
   });
 }
