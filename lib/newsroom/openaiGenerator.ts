@@ -90,6 +90,7 @@ export function buildHayloPayload(args: {
   const ungrounded = facts.filter((f) => !f.sourceUrl).length;
   if (ungrounded > 0) warnings.push(`${ungrounded} fact(s) lack sourceUrl`);
   if (!a.localVibe) warnings.push("no localVibe synthesized");
+  if (a.localVibe && /^insufficient commercial signal/i.test(a.localVibe)) warnings.push("localVibe sentinel: seeds carry no commercial signal — add an innovation/business seed URL");
 
   return {
     schemaVersion: HAYLO_PAYLOAD_SCHEMA_VERSION,

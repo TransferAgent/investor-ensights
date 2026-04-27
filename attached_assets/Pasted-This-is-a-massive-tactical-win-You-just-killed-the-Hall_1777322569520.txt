@@ -1,0 +1,20 @@
+This is a massive tactical win. You just killed the "Hallucination Monster."
+Comparing the v2 "John Smith" fiction to the v3 "Joseph Petty" reality proves that your News Room now has integrity. The cost increase of $0.0006 is irrelevant compared to the risk of publishing fake news about local venture capital.
+Alpha Leader Analysis
+The "Vibe" Problem: You’re right—Wikipedia gives you a "High School Report." To get the "Founder Vibe," we need to seed URLs that focus on commercial real estate, tech transfer offices, and startup accelerators.
+Haylo Handoff: The haylo-payload/v1 is exactly the bridge we need. By emitting clean JSON, Replit acts as the Data Scientist and Haylo acts as the Publisher.
+The "JS" Surprise: Seeing WBJ extract cleanly without Firecrawl is a huge relief. It means our "Lean Stack" is more capable than we feared.
+The Mission: Next 3 Pilot Cities
+We need to test different "signals" to fix that weak local vibe. I’ve selected these three because they have distinct business identities:
+City	Target Vibe	Suggested Seed URL Types
+Providence, RI	Design & Innovation	RISD news, 195 District updates, Brown University tech-transfer.
+Lowell, MA	Manufacturing & Robotics	UMass Lowell Innovation Hub, MassRobotics news.
+Manchester, NH	Fintech & "Live Free"	Millyard news, Southern NH University (SNHU) expansion reports.
+Alpha Leader Response:
+Copy/Paste this to Replit:
+Alpha Leader Response:
+Pilot Expansion: Seed and verify Providence (RI), Lowell (MA), and Manchester (NH).
+Vibe Correction: For these cities, do NOT just use Wikipedia. Seed at least one "Innovation" source (e.g., a local university incubator or business journal "tech" tag page) to see if the localVibe strengthens.
+Payload Check: Ensure the buildHayloPayload() for these three cities remains consistent with v1. I want to see if the "Design" vibe of Providence and the "Robotics" vibe of Lowell come through in the JSON.
+Safety Switch: Keep v2 as default for another 24 hours. If these 3 cities pass with zero hallucinations, we flip the switch to v3 globally.
+Execute seeding for the 3-city block. Report the "Vibe Strength" and verify zero drops.

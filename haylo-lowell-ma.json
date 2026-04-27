@@ -1,0 +1,128 @@
+{
+  "schemaVersion": "haylo-payload/v1",
+  "generatedAt": "2026-04-27T20:54:33.024Z",
+  "city": {
+    "slug": "lowell-ma",
+    "name": "Lowell",
+    "stateCode": "MA"
+  },
+  "promptVersion": "v3",
+  "model": "gpt-4o-mini",
+  "sources": {
+    "okCount": 3,
+    "failCount": 0,
+    "totalBytes": 863852,
+    "urls": [
+      {
+        "url": "https://www.massrobotics.org/about/",
+        "ok": true,
+        "bytes": 104690,
+        "error": null
+      },
+      {
+        "url": "https://en.wikipedia.org/wiki/Lowell,_Massachusetts",
+        "ok": true,
+        "bytes": 630071,
+        "error": null
+      },
+      {
+        "url": "https://www.lowellsun.com/business/",
+        "ok": true,
+        "bytes": 129091,
+        "error": null
+      }
+    ]
+  },
+  "groundedFacts": [
+    {
+      "key": "city_name",
+      "value": {
+        "name": "Lowell",
+        "state": "Massachusetts",
+        "country": "United States"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Lowell,_Massachusetts",
+      "verbatimQuote": "Lowell is a city in Massachusetts, United States.",
+      "confidence": "high"
+    },
+    {
+      "key": "population",
+      "value": {
+        "total": 115554,
+        "year": 2020
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Lowell,_Massachusetts",
+      "verbatimQuote": "population (2020) • Total 115,554",
+      "confidence": "high"
+    },
+    {
+      "key": "area",
+      "value": {
+        "total_sq_mi": 14.53,
+        "land_sq_mi": 13.61,
+        "water_sq_mi": 0.92
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Lowell,_Massachusetts",
+      "verbatimQuote": "Total 14.53 sq mi (37.63 km2) • Land 13.61 sq mi (35.25 km2) • Water 0.92 sq mi (2.38 km2)",
+      "confidence": "high"
+    },
+    {
+      "key": "government_structure",
+      "value": {
+        "type": "Manager-City council",
+        "mayor": "Erik Gitschier",
+        "city_manager": "Thomas Golden Jr."
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Lowell,_Massachusetts",
+      "verbatimQuote": "Government • Type Manager-City council • Mayor Erik Gitschier • City Manager Thomas Golden Jr.",
+      "confidence": "high"
+    },
+    {
+      "key": "establishment",
+      "value": {
+        "settled": 1652,
+        "incorporated": 1826,
+        "city_status": 1836
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Lowell,_Massachusetts",
+      "verbatimQuote": "Settled 1652, Incorporated 1826, A city 1836",
+      "confidence": "high"
+    }
+  ],
+  "droppedFactsCount": 0,
+  "localVibe": "insufficient commercial signal in sources — add an innovation/business seed URL.",
+  "ledeFactKey": "population",
+  "topAngles": [
+    "Lowell's population reached 115,554 in 2020",
+    "Mayor Erik Gitschier leads Lowell's city council",
+    "Lowell covers 14.53 square miles in Massachusetts"
+  ],
+  "draft": {
+    "title": "Lowell's Population Reached 115554 in 2020 Under Mayor Erik Gitschier",
+    "headline": "Lowell, Massachusetts Has a Population of 115,554",
+    "subheadline": "The city covers 14.53 square miles and has a structured government since its incorporation in 1826.",
+    "metaDescription": "Lowell, Massachusetts, with a population of 115,554, is led by Mayor Erik Gitschier and City Manager Thomas Golden Jr., showcasing a solid government structure.",
+    "bodyHtml": "<p>Lowell's population reached 115,554 in 2020, reflecting its historical significance since being settled in 1652. This city, located in Massachusetts, has a government structure led by Mayor Erik Gitschier and City Manager Thomas Golden Jr.</p><p>The city spans a total area of 14.53 square miles, with 13.61 square miles of land and 0.92 square miles of water. This geographical footprint supports a diverse community and a variety of local businesses.</p><h2>Leadership in Lowell's City Council</h2><p>Mayor Erik Gitschier oversees the city council, which plays a crucial role in managing local governance. The city council, along with City Manager Thomas Golden Jr., ensures that Lowell's civic needs are met effectively.</p><p>Incorporated in 1826, Lowell has a rich history that continues to shape its present. The city's structured government and growing population suggest a commitment to maintaining community standards and services.</p><p>For founders navigating equity management, Tableicity offers capabilities like SAFE modeling and option-pool sizing to streamline your financial planning.</p>",
+    "dateline": "LOWELL, MA — Mon Apr 27 2026"
+  },
+  "qc": {
+    "score": 70,
+    "notes": "The draft contains several factual inaccuracies and lacks a clear call to action. Additionally, the title and body structure do not meet the required standards for SEO and factual grounding.",
+    "issues": [
+      "Title lacks specific number or named entity (beyond city): -15",
+      "Title contains a banned word (growing): -15",
+      "First sentence of body > 25 words: -10",
+      "Fewer than 3 distinct named entities (companies/people/institutions/addresses) in body: -10",
+      "Body cites entities NOT present in researcher facts (Tableicity features): -15",
+      "Missing meta description OR meta < 80 chars: -10",
+      "CTA paragraph absent or generic (no specific Tableicity feature named): -7"
+    ]
+  },
+  "cost": {
+    "totalUsd": 0.0022,
+    "totalTokens": 10718
+  },
+  "warnings": [
+    "localVibe sentinel: seeds carry no commercial signal — add an innovation/business seed URL"
+  ]
+}

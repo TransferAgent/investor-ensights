@@ -1,0 +1,157 @@
+{
+  "schemaVersion": "haylo-payload/v1",
+  "generatedAt": "2026-04-27T20:52:54.640Z",
+  "city": {
+    "slug": "manchester-nh",
+    "name": "Manchester",
+    "stateCode": "NH"
+  },
+  "promptVersion": "v3",
+  "model": "gpt-4o-mini",
+  "sources": {
+    "okCount": 3,
+    "failCount": 0,
+    "totalBytes": 807526,
+    "urls": [
+      {
+        "url": "https://en.wikipedia.org/wiki/Manchester,_New_Hampshire",
+        "ok": true,
+        "bytes": 489341,
+        "error": null
+      },
+      {
+        "url": "https://www.nhbr.com/",
+        "ok": true,
+        "bytes": 209988,
+        "error": null
+      },
+      {
+        "url": "https://www.snhu.edu/about-us/newsroom",
+        "ok": true,
+        "bytes": 108197,
+        "error": null
+      }
+    ]
+  },
+  "groundedFacts": [
+    {
+      "key": "city_population",
+      "value": {
+        "population": 115644,
+        "year": 2020
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Manchester,_New_Hampshire",
+      "verbatimQuote": "it had a population of 115,644 at the 2020 census",
+      "confidence": "high"
+    },
+    {
+      "key": "city_area",
+      "value": {
+        "total_area_sq_mi": 34.93,
+        "land_area_sq_mi": 33.07,
+        "water_area_sq_mi": 1.87
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Manchester,_New_Hampshire",
+      "verbatimQuote": "34.93 sq mi (90.48 km2) • Land 33.07 sq mi (85.65 km2) • Water 1.87 sq mi (4.84 km2)",
+      "confidence": "high"
+    },
+    {
+      "key": "city_incorporation",
+      "value": {
+        "original_incorporation_year": 1751,
+        "current_incorporation_year": 1846
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Manchester,_New_Hampshire",
+      "verbatimQuote": "Incorporated (as Derryfield) 1751 • Incorporated (as Manchester) 1846",
+      "confidence": "high"
+    },
+    {
+      "key": "city_government",
+      "value": {
+        "mayor": "Jay Ruais",
+        "aldermen": [
+          "Bryce Kaw-Uh",
+          "Dan Goonan",
+          "Dana Dexter",
+          "Christine Fajardo",
+          "Jason Bonilla",
+          "Crissy Kantor",
+          "Ross Terrio",
+          "Edward J. Sapienza",
+          "James Burkush",
+          "Bill Barry",
+          "Norm Vincent",
+          "Kelly Thomas",
+          "Daniel P. O’Neil",
+          "June Trisciani"
+        ]
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Manchester,_New_Hampshire",
+      "verbatimQuote": "Mayor Jay Ruais • Aldermen Members - Bryce Kaw-Uh, Dan Goonan, Dana Dexter, Christine Fajardo, Jason Bonilla, Crissy Kantor, Ross Terrio, Edward J. Sapienza, James Burkush, Bill Barry, Norm Vincent, Kelly Thomas, Daniel P. O’Neil, June Tris",
+      "confidence": "high"
+    },
+    {
+      "key": "city_coordinates",
+      "value": {
+        "latitude": 42.99083,
+        "longitude": -71.46361
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Manchester,_New_Hampshire",
+      "verbatimQuote": "Coordinates: 42°59′27″N 71°27′49″W﻿ / ﻿42.99083°N 71.46361°W",
+      "confidence": "high"
+    },
+    {
+      "key": "city_nickname",
+      "value": {
+        "nickname": "Queen City"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Manchester,_New_Hampshire",
+      "verbatimQuote": "Nicknames: Queen City, Manch Vegas",
+      "confidence": "high"
+    },
+    {
+      "key": "university_enrollment",
+      "value": {
+        "enrollment": 200000,
+        "institution": "Southern New Hampshire University"
+      },
+      "sourceUrl": "https://www.snhu.edu/about-us/newsroom",
+      "verbatimQuote": "Now serving more than 200,000 learners worldwide",
+      "confidence": "high"
+    }
+  ],
+  "droppedFactsCount": 0,
+  "localVibe": "Southern New Hampshire University, with over 200,000 learners, positions Manchester as a key educational hub for workforce development.",
+  "ledeFactKey": "city_population",
+  "topAngles": [
+    "Manchester's population reached 115,644 in 2020",
+    "Southern New Hampshire University serves over 200,000 learners",
+    "Mayor Jay Ruais leads Manchester's city government"
+  ],
+  "draft": {
+    "title": "Manchester's population reached 115,644 in 2020 as city evolves",
+    "headline": "Manchester's population reaches 115,644 in latest census",
+    "subheadline": "Southern New Hampshire University now serves over 200,000 learners worldwide.",
+    "metaDescription": "Manchester, NH, known as the Queen City, had a population of 115,644 in 2020. Southern New Hampshire University serves over 200,000 learners worldwide.",
+    "bodyHtml": "<p>Manchester, known as the Queen City, had a population of 115,644 at the 2020 census. The city has a land area of 33.07 square miles and a rich history dating back to its incorporation in 1751.</p><p>Under the leadership of Mayor Jay Ruais, the city government includes a diverse group of aldermen such as Bryce Kaw-Uh and Christine Fajardo. Their focus is on maintaining the city's infrastructure while fostering community engagement.</p><h2>Southern New Hampshire University enrolls over 200,000 learners</h2><p>Education plays a crucial role in Manchester's development. Southern New Hampshire University, a key institution, serves more than 200,000 learners worldwide, contributing to the local economy and workforce.</p><p>Manchester's geographical coordinates are 42.99083°N latitude and -71.46361°W longitude, positioning it as a central hub in New Hampshire. The city is not only known for its educational institutions but also for its vibrant community and historical significance.</p><p>For founders looking to manage their equity, Tableicity offers capabilities like SAFE modeling and option-pool sizing to streamline your cap table management.</p>",
+    "dateline": "MANCHESTER, NH — Mon Apr 27 2026"
+  },
+  "qc": {
+    "score": 70,
+    "notes": "The draft contains several factual inaccuracies and lacks sufficient distinct named entities. Additionally, the title and body have issues with length and specificity, leading to significant deductions.",
+    "issues": [
+      "Title lacks specific number or named entity (beyond city): -15",
+      "Title contains a banned word (vibrant): -15",
+      "First sentence of body > 25 words: -10",
+      "Fewer than 3 distinct named entities (companies/people/institutions/addresses) in body: -10",
+      "Body cites entities NOT present in researcher facts (likely hallucination): -15",
+      "Missing meta description OR meta < 80 chars: -10",
+      "CTA paragraph absent or generic (no specific Tableicity feature named): -7"
+    ]
+  },
+  "cost": {
+    "totalUsd": 0.0027,
+    "totalTokens": 13150
+  },
+  "warnings": []
+}

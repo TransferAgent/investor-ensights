@@ -30,3 +30,21 @@ id = "iyXlzlvnmhWz6yXz9Bdyu"
 uri = "file://worcester-haylo-payload.json"
 type = "unspecified"
 title = "Worcester v3 Haylo Payload (haylo-payload/v1)"
+
+[[outputs]]
+id = "ekCYMcDIlD65F0MOuHgxY"
+uri = "file://haylo-providence-ri.json"
+type = "unspecified"
+title = "Haylo Payload — Providence, RI (v3, founder vibe ✓)"
+
+[[outputs]]
+id = "hwNNfF_J50i6W61N59QDb"
+uri = "file://haylo-lowell-ma.json"
+type = "unspecified"
+title = "Haylo Payload — Lowell, MA (v3, sentinel warning — needs better seeds)"
+
+[[outputs]]
+id = "qsVvhaa6tAd2t7vNfCl0_"
+uri = "file://haylo-manchester-nh.json"
+type = "unspecified"
+title = "Haylo Payload — Manchester, NH (v3, founder vibe ✓)"

@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "haylo-payload/v1",
+  "generatedAt": "2026-04-27T20:52:54.772Z",
+  "city": {
+    "slug": "providence-ri",
+    "name": "Providence",
+    "stateCode": "RI"
+  },
+  "promptVersion": "v3",
+  "model": "gpt-4o-mini",
+  "sources": {
+    "okCount": 3,
+    "failCount": 0,
+    "totalBytes": 1029918,
+    "urls": [
+      {
+        "url": "https://en.wikipedia.org/wiki/Providence,_Rhode_Island",
+        "ok": true,
+        "bytes": 758771,
+        "error": null
+      },
+      {
+        "url": "https://www.195district.com/",
+        "ok": true,
+        "bytes": 46113,
+        "error": null
+      },
+      {
+        "url": "https://www.risd.edu/news",
+        "ok": true,
+        "bytes": 225034,
+        "error": null
+      }
+    ]
+  },
+  "groundedFacts": [
+    {
+      "key": "city_population",
+      "value": {
+        "population": 190934,
+        "census_year": 2020
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Providence,_Rhode_Island",
+      "verbatimQuote": "with a population of 190,934 at the [2020 census]",
+      "confidence": "high"
+    },
+    {
+      "key": "city_area",
+      "value": {
+        "total_area_sq_mi": 20.58,
+        "land_area_sq_mi": 18.41,
+        "water_area_sq_mi": 2.18
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Providence,_Rhode_Island",
+      "verbatimQuote": "20.58 sq mi (53.31 km2) • Land 18.41 sq mi (47.67 km2) • Water 2.18 sq mi (5.64 km2)",
+      "confidence": "high"
+    },
+    {
+      "key": "city_elevation",
+      "value": {
+        "elevation_ft": 10
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Providence,_Rhode_Island",
+      "verbatimQuote": "Elevation 10 ft (3.0 m)",
+      "confidence": "high"
+    },
+    {
+      "key": "gdp_metro",
+      "value": {
+        "gdp": 111840000000,
+        "year": 2023
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Providence,_Rhode_Island",
+      "verbatimQuote": "Metro $111.840 billion (2023)",
+      "confidence": "high"
+    },
+    {
+      "key": "innovation_district_investment",
+      "value": {
+        "investment_amount": 830000000
+      },
+      "sourceUrl": "https://www.195district.com/",
+      "verbatimQuote": "$830,000,000 of Investment",
+      "confidence": "high"
+    },
+    {
+      "key": "innovation_district_projects",
+      "value": {
+        "completed_projects": 15,
+        "total_square_feet": 2100000
+      },
+      "sourceUrl": "https://www.195district.com/",
+      "verbatimQuote": "15 Projects, 2,100,000 Square Feet of Development",
+      "confidence": "high"
+    }
+  ],
+  "droppedFactsCount": 0,
+  "localVibe": "Providence's innovation district has seen $830 million in investment, supporting 15 completed projects totaling 2.1 million square feet of development.",
+  "ledeFactKey": "gdp_metro",
+  "topAngles": [
+    "Providence's GDP hits $111.84 billion in 2023",
+    "$830 million investment fuels innovation district in Providence",
+    "15 projects completed in Providence's innovation district"
+  ],
+  "draft": {
+    "title": "Providence's GDP Reaches $111.84 Billion in 2023",
+    "headline": "Providence's Metropolitan GDP Hits $111.84 Billion",
+    "subheadline": "$830 million has been invested in the innovation district, supporting 15 completed projects.",
+    "metaDescription": "Providence, RI's metropolitan GDP hit $111.84 billion in 2023, bolstered by $830 million in investment for the innovation district.",
+    "bodyHtml": "<p>Providence's metropolitan GDP reached $111.84 billion in 2023, reflecting a solid economic foundation. This figure highlights the city's growth potential and investment attractiveness.</p><p>The innovation district has seen significant activity, with $830 million invested in various projects. This investment has led to the completion of 15 projects, totaling 2,100,000 square feet of development, creating new opportunities for businesses and residents alike.</p><h2>Investment Fuels Development in Providence</h2><p>Located within a total area of 20.58 square miles, Providence is strategically positioned for further growth. The city, with a population of 190,934 as of the 2020 census, is poised to leverage its resources and infrastructure to attract more investments.</p><p>As the city continues to develop, the completed projects in the innovation district are expected to stimulate job creation and enhance the local economy. With an elevation of just 10 feet, Providence's unique geography offers both challenges and opportunities for urban development.</p><p>Tableicity can help you manage your cap table effectively as you navigate investment opportunities and project financing.</p>",
+    "dateline": "PROVIDENCE, RI — Mon Apr 27 2026"
+  },
+  "qc": {
+    "score": 73,
+    "notes": "The draft contains several issues, including a title that lacks specificity and a body that exceeds the recommended sentence length. Additionally, the call to action is generic and does not specify a Tableicity feature.",
+    "issues": [
+      "Title lacks specific number or named entity (beyond city): -15",
+      "Title contains a banned word (thriving|vibrant|robust|emerging|growing|grows|innovative|exciting|cutting-edge|bustling|dynamic|flourishing|booming|ecosystem|scene|landscape): -15",
+      "First sentence of body > 25 words: -10",
+      "Fewer than 3 distinct named entities (companies/people/institutions/addresses) in body: -10",
+      "Missing meta description OR meta > 300 chars OR meta < 80 chars: -10",
+      "H2 starts with 'Why' or 'How' or is missing: -8",
+      "CTA paragraph absent or generic (no specific Tableicity feature named): -7"
+    ]
+  },
+  "cost": {
+    "totalUsd": 0.002,
+    "totalTokens": 9174
+  },
+  "warnings": []
+}
