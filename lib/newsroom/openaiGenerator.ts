@@ -10,9 +10,11 @@ import {
   ACTIVE_PROMPT_VERSION,
   checkTitleQuality,
   PROMPTS,
+  requiresFetchedSources,
   type PromptVersion,
   type StagePrompt,
 } from "@/lib/newsroom/prompts";
+import { fetchCitySources, type CitySourcesResult } from "@/lib/newsroom/sourceFetcher";
 
 const MODEL = "gpt-4o-mini";
 
@@ -170,38 +172,97 @@ export function makeOpenAIGenerator(
   modelLabel: `${MODEL}/prompts-${versionTag}`,
 
   async researcher(ctx: StageContext): Promise<StageRunResult> {
+    let fetchResult: CitySourcesResult | null = null;
+    let extras: Record<string, unknown> | undefined;
+
+    if (requiresFetchedSources(versionTag)) {
+      fetchResult = await fetchCitySources(ctx.citySlug);
+      if (fetchResult.okCount === 0) {
+        throw new Error(
+          `Prompt version ${versionTag} requires fetched sources, but 0/${fetchResult.sources.length} sources fetched OK for ${ctx.citySlug}. ` +
+            `Add seed URLs at /admin/cities/${ctx.citySlug}/research-sources or use a non-grounded prompt version.`
+        );
+      }
+      extras = {
+        fetchedMarkdown: fetchResult.combinedMarkdown,
+        sourceUrls: fetchResult.sources.filter((s) => s.ok).map((s) => s.url),
+      };
+    }
+
     const result = await runStage<{
-      facts?: Array<{ key?: unknown; value?: unknown; sourceHint?: unknown; confidence?: unknown }>;
+      facts?: Array<{
+        key?: unknown;
+        value?: unknown;
+        sourceHint?: unknown;
+        sourceUrl?: unknown;
+        verbatimQuote?: unknown;
+        confidence?: unknown;
+      }>;
       summary?: unknown;
-    }>(bundle.researcher, { ctx, prior: {} });
+    }>(bundle.researcher, { ctx, prior: {}, extras });
+
+    const allowedSourceUrls = new Set<string>(
+      fetchResult ? fetchResult.sources.filter((s) => s.ok).map((s) => s.url) : []
+    );
 
     const facts = (result.parsed.facts ?? [])
       .filter((f) => f && typeof f.key === "string" && typeof f.value === "object" && f.value !== null)
       .slice(0, 8)
-      .map((f) => ({
-        key: asString(f.key, 100, "fact"),
-        value: f.value as Record<string, unknown>,
-        sourceHint: typeof f.sourceHint === "string" ? f.sourceHint : undefined,
-        confidence:
-          f.confidence === "high" || f.confidence === "medium" || f.confidence === "low"
-            ? f.confidence
-            : "medium",
-      }));
+      .map((f) => {
+        const claimedUrl = typeof f.sourceUrl === "string" ? f.sourceUrl : undefined;
+        const claimedHint = typeof f.sourceHint === "string" ? f.sourceHint : undefined;
+        const sourceUrl = claimedUrl ?? claimedHint;
+        const sourceUrlValid = fetchResult
+          ? sourceUrl != null && allowedSourceUrls.has(sourceUrl)
+          : true;
+        return {
+          key: asString(f.key, 100, "fact"),
+          value: f.value as Record<string, unknown>,
+          sourceUrl,
+          sourceUrlValid,
+          verbatimQuote: typeof f.verbatimQuote === "string" ? f.verbatimQuote.slice(0, 240) : undefined,
+          confidence:
+            f.confidence === "high" || f.confidence === "medium" || f.confidence === "low"
+              ? f.confidence
+              : "medium",
+        };
+      });
 
-    const knowledge = facts.map((f) => ({
+    let groundedFacts = facts;
+    if (fetchResult) {
+      groundedFacts = facts.filter((f) => f.sourceUrlValid);
+    }
+
+    const knowledge = groundedFacts.map((f) => ({
       key: f.key,
       value: f.value,
-      sourceUrl: f.sourceHint ?? null,
+      sourceUrl: f.sourceUrl ?? null,
       confidence:
         f.confidence === "high" ? 0.9 : f.confidence === "medium" ? 0.6 : 0.3,
     }));
+
+    const sourcesSummary = fetchResult
+      ? {
+          okCount: fetchResult.okCount,
+          failCount: fetchResult.failCount,
+          totalBytes: fetchResult.totalBytes,
+          urls: fetchResult.sources.map((s) => ({
+            url: s.url,
+            ok: s.ok,
+            bytes: s.bytes,
+            error: s.error,
+          })),
+        }
+      : null;
 
     return {
       output: {
         model: MODEL,
         promptVersion: versionTag,
-        facts,
+        facts: groundedFacts,
+        droppedFactsCount: facts.length - groundedFacts.length,
         summary: asString(result.parsed.summary, 1000, ""),
+        sourcesSummary,
       },
       tokensUsed: result.totalTokens,
       costUsd: result.costUsd,

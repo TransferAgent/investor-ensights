@@ -684,3 +684,36 @@ export const NEWSROOM_PIPELINE_STAGES = [
   "published",
 ] as const;
 export type NewsroomPipelineStage = typeof NEWSROOM_PIPELINE_STAGES[number];
+
+export const cityResearchSources = pgTable(
+  "city_research_sources",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cityId: uuid("city_id")
+      .notNull()
+      .references(() => cityLocations.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    label: varchar("label", { length: 200 }),
+    enabled: boolean("enabled").default(true).notNull(),
+    lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
+    lastFetchOk: boolean("last_fetch_ok"),
+    lastFetchBytes: integer("last_fetch_bytes"),
+    lastFetchError: text("last_fetch_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("city_research_sources_city_idx").on(table.cityId),
+    uniqueIndex("city_research_sources_city_url_unq").on(table.cityId, table.url),
+  ]
+);
+
+export const insertCityResearchSourceSchema = createInsertSchema(cityResearchSources).omit({
+  id: true,
+  createdAt: true,
+  lastFetchedAt: true,
+  lastFetchOk: true,
+  lastFetchBytes: true,
+  lastFetchError: true,
+});
+export type InsertCityResearchSource = z.infer<typeof insertCityResearchSourceSchema>;
+export type CityResearchSource = typeof cityResearchSources.$inferSelect;
