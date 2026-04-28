@@ -110,7 +110,10 @@ export async function runPairAgentPipeline(input: RunPairAgentInput): Promise<Pa
     source: `pair-agent/${input.hayloArticle.slug}`,
     skipReviewQueue: true,
     hayloSeed: {
-      title: input.hayloArticle.title,
+      // Use composer's cleaned title (handles truncated-sentence Haylo titles),
+      // not the raw DB title — otherwise the Copywriter sees garbage and tends
+      // to echo it back as the final headline.
+      title: composed.title,
       bodyHtml: input.hayloArticle.bodyHtml,
       topicSlug: input.hayloArticle.topicSlug ?? null,
     },

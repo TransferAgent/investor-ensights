@@ -18,6 +18,28 @@ export function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Pull a title-like phrase out of body prose. Prefers the first complete
+ * sentence; if no sentence boundary exists within ~120 chars, falls back to
+ * the longest word-boundary substring under 80 chars (never mid-word). Adds
+ * an ellipsis when truncation actually happened so downstream consumers can
+ * tell it isn't a clean editorial title.
+ */
+export function deriveTitleFromProse(prose: string, maxLen = 80): string {
+  const text = prose.trim();
+  if (text.length === 0) return "";
+  if (text.length <= maxLen) return text;
+  const sentenceEnd = text.search(/[.!?]\s/);
+  if (sentenceEnd > 10 && sentenceEnd < 120) {
+    const sentence = text.slice(0, sentenceEnd + 1).trim();
+    if (sentence.length <= maxLen + 40) return sentence;
+  }
+  const window = text.slice(0, maxLen);
+  const lastSpace = window.lastIndexOf(" ");
+  const cut = lastSpace > 30 ? lastSpace : maxLen;
+  return text.slice(0, cut).trim() + "…";
+}
+
 export interface ParsedHayloFile {
   title: string;
   topicSlug: string;
@@ -39,7 +61,7 @@ export function parseHayloFile(filename: string, contents: string): ParsedHayloF
   }
   if (!title) {
     const p = contents.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
-    if (p) title = stripHtml(p[1]).slice(0, 80);
+    if (p) title = deriveTitleFromProse(stripHtml(p[1]));
   }
   if (!title) title = baseName;
 

@@ -1,7 +1,55 @@
 import { stitchHayloHtml, type StitchResult } from "./hayloStitcher";
+import { normalizeHayloBody } from "./hayloBodyNormalizer";
 import type { HayloPayload } from "./openaiGenerator";
 
 export const LOCAL_VIBE_MARKER = "<!-- newsroom:local-vibe -->";
+
+function titleFromTopic(topicSlug: string | null | undefined): string {
+  if (!topicSlug) return "Press Release";
+  return topicSlug
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+// Common short English words that, when a title ends with one, strongly suggest
+// the title was sliced mid-sentence rather than ending on an editorial choice.
+// (Real headlines almost never end with "the", "a", "of", "to", "and", etc.)
+const TRAILING_FRAGMENT_WORDS = new Set([
+  "a", "an", "the", "and", "or", "but", "yet", "so", "for", "nor",
+  "of", "to", "in", "on", "at", "by", "with", "from", "as", "is", "are",
+  "was", "were", "be", "been", "it", "its", "this", "that", "these", "those",
+  "oft", // common slice point of "often"
+]);
+
+/**
+ * Detect Haylo titles that were truncated mid-sentence by an upstream slicer
+ * (e.g. the legacy ingest "first <p> sliced at 80 chars" path). Conservative
+ * by design — we only flag titles where the truncation signal is strong, so
+ * legitimate headline-style titles like "Securing Series A Funding" pass
+ * through untouched.
+ */
+function looksLikeTruncatedSentence(s: string): boolean {
+  const trimmed = s.trim();
+  if (trimmed.length < 40) return false;
+  // Explicit ellipsis marker (added by deriveTitleFromProse on truncation)
+  if (/[\u2026]$|\.\.\.$/.test(trimmed)) return true;
+  const last = trimmed.slice(-1);
+  // Has terminal punctuation → assume editorial intent → keep
+  if (/[.!?:)\]"'\u2014\u2013]/.test(last)) return false;
+  // No punctuation: only flag if it ALSO ends in a stop-word fragment
+  const lastWord = trimmed.split(/\s+/).pop()?.toLowerCase().replace(/[^a-z]/g, "") ?? "";
+  return TRAILING_FRAGMENT_WORDS.has(lastWord);
+}
+
+function buildCleanTitle(hayloTitle: string, topicSlug: string | undefined, cityName: string, stateCode: string): string {
+  const trimmed = hayloTitle.trim();
+  const base = looksLikeTruncatedSentence(trimmed) ? titleFromTopic(topicSlug) : trimmed;
+  const suffix = ` in ${cityName}, ${stateCode}`;
+  if (base.toLowerCase().includes(cityName.toLowerCase())) return base;
+  return `${base}${suffix}`;
+}
 
 export interface ComposeInput {
   hayloTitle: string;
@@ -68,13 +116,18 @@ function buildDateline(cityName: string, stateCode: string, dateIso: string): st
 export function composePressRelease(input: ComposeInput): ComposeResult {
   const warnings: string[] = [];
   const dateIso = input.publishDateIso ?? new Date().toISOString();
-  const title = `${input.hayloTitle.trim()} in ${input.cityName}, ${input.stateCode}`;
+  const title = buildCleanTitle(input.hayloTitle, input.topicSlug, input.cityName, input.stateCode);
+  if (looksLikeTruncatedSentence(input.hayloTitle)) {
+    warnings.push(
+      `Haylo title appeared truncated mid-sentence ("${input.hayloTitle.slice(0, 60)}…") — fell back to topic-derived title "${title}". Consider re-ingesting this Haylo article with a proper <h1>.`,
+    );
+  }
   const dateline = buildDateline(input.cityName, input.stateCode, dateIso);
 
   const isSentinelVibe = input.localVibe ? /^insufficient commercial signal/i.test(input.localVibe) : true;
   let vibeInjected = false;
   let vibeStrategy: ComposeResult["vibeStrategy"] = "skipped";
-  let bodyHtml = input.hayloBodyHtml;
+  let bodyHtml = normalizeHayloBody(input.hayloBodyHtml);
 
   if (!input.localVibe) {
     warnings.push("no local vibe provided — body left without local injection");
@@ -82,7 +135,10 @@ export function composePressRelease(input: ComposeInput): ComposeResult {
     warnings.push("local vibe is sentinel ('insufficient commercial signal') — refusing to inject; expand seed URLs for this city");
   } else {
     const vibeBlock = buildVibeBlock(input.cityName, input.localVibe, input.vibeSourceUrl);
-    const result = injectVibe(input.hayloBodyHtml, vibeBlock);
+    // Inject into the already-normalized body so vibe injection doesn't
+    // silently drop the normalization (no <strong> stripping, no leading
+    // dateline strip) for cities that DO supply a vibe.
+    const result = injectVibe(bodyHtml, vibeBlock);
     bodyHtml = result.html;
     vibeStrategy = result.strategy;
     vibeInjected = true;
@@ -98,12 +154,11 @@ export function composePressRelease(input: ComposeInput): ComposeResult {
     warnings.push(`Haylo body mentions other cities (${unique.join(", ")}) — verify intentional before publishing to ${input.cityName}`);
   }
 
+  // The page template (and admin preview helper) render `article.headline` and
+  // `article.dateline` from their dedicated columns, so the body MUST NOT
+  // include its own <header><h1>/<dateline> block — doing so causes duplicate
+  // titles + datelines on every published article. Body = body only.
   const wrapperTemplate = `<article class="newsroom-press-release" data-city-slug="{{city_slug}}" data-topic="{{topic}}">
-  <header class="pr-header">
-    <h1>{{title}}</h1>
-    <p class="pr-byline">By Tableicity · {{publish_date}}</p>
-    <p class="pr-dateline">{{dateline}}</p>
-  </header>
   <div class="pr-body">{{haylo_body}}</div>
   <footer class="pr-footer">
     <h2>About Tableicity</h2>
