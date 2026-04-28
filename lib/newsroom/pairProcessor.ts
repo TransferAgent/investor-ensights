@@ -5,8 +5,8 @@ import { normalizeHayloBody } from "./hayloBodyNormalizer";
 import type { HayloArticle, CityLocation } from "@shared/schema";
 import type { NewsroomDraftPayloadV1 } from "./draftPayload";
 
-const META_DESCRIPTION_TARGET_CHARS = 122;
-const META_DESCRIPTION_HARD_MAX = 295;
+const META_DESCRIPTION_TARGET_CHARS = 300;
+const META_DESCRIPTION_HARD_MAX = 300;
 
 export interface PairInput {
   hayloArticle: Pick<HayloArticle, "id" | "slug" | "title" | "topicSlug" | "bodyHtml">;
