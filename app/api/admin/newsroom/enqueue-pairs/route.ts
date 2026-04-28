@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { knowledgeArticles, knowledgeGenerationLog, newsroomReviewQueue, hayloArticles } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { storage } from "@/lib/storage";
 import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { processPair } from "@/lib/newsroom/pairProcessor";
+import { newsroomDraftPayloadV1Schema } from "@/lib/newsroom/draftPayload";
 
 const MAX_CITIES_PER_REQUEST = 25;
 
@@ -84,6 +85,17 @@ export async function POST(req: NextRequest) {
       const verdict = pair.audit.verdict;
       const draft = pair.draftPayload;
 
+      const draftValidation = newsroomDraftPayloadV1Schema.safeParse(draft);
+      if (!draftValidation.success) {
+        errored++;
+        results.push({
+          citySlug: city.slug,
+          outcome: "error",
+          reason: `draftPayload failed V1 schema validation: ${JSON.stringify(draftValidation.error.flatten()).slice(0, 300)}`,
+        });
+        continue;
+      }
+
       if (verdict === "pass") {
         const existing = await db
           .select({ id: knowledgeArticles.id })
@@ -100,37 +112,65 @@ export async function POST(req: NextRequest) {
           skipped++;
           continue;
         }
-        const [article] = await db
-          .insert(knowledgeArticles)
-          .values({
-            slug: draft.suggestedSlug,
-            citySlug: city.slug,
-            hayloArticleId: haylo.id,
-            status: "pending",
-            title: draft.title,
-            metaDescription: draft.metaDescription ?? null,
-            canonicalUrl: `${BASE_URL}/discovery/knowledge/${draft.suggestedSlug}`,
-            headline: draft.headline,
-            subheadline: draft.subheadline ?? null,
-            dateline: draft.dateline ?? null,
-            bodyHtml: draft.bodyHtml,
-            authorName: draft.authorName ?? "Tableicity",
-            publisherName: draft.publisherName ?? "Tableicity",
-          })
-          .returning();
-        await db
-          .update(hayloArticles)
-          .set({ placementCount: sql`${hayloArticles.placementCount} + 1`, updatedAt: new Date() })
-          .where(eq(hayloArticles.id, haylo.id));
+        const article = await db.transaction(async (tx) => {
+          const [a] = await tx
+            .insert(knowledgeArticles)
+            .values({
+              slug: draft.suggestedSlug,
+              citySlug: city.slug,
+              hayloArticleId: haylo.id,
+              status: "pending",
+              title: draft.title,
+              metaDescription: draft.metaDescription ?? null,
+              canonicalUrl: `${BASE_URL}/discovery/knowledge/${draft.suggestedSlug}`,
+              headline: draft.headline,
+              subheadline: draft.subheadline ?? null,
+              dateline: draft.dateline ?? null,
+              bodyHtml: draft.bodyHtml,
+              authorName: draft.authorName ?? "Tableicity",
+              publisherName: draft.publisherName ?? "Tableicity",
+            })
+            .returning();
+          const bumpResult = await tx
+            .update(hayloArticles)
+            .set({ placementCount: sql`${hayloArticles.placementCount} + 1`, updatedAt: new Date() })
+            .where(eq(hayloArticles.id, haylo.id))
+            .returning({ id: hayloArticles.id });
+          if (bumpResult.length === 0) {
+            throw new Error(`Haylo article ${haylo.id} disappeared mid-transaction; rolling back insert.`);
+          }
+          return a;
+        });
         placementBumps++;
         passed++;
         results.push({ citySlug: city.slug, outcome: "pass", verdict, flowScore: pair.audit.flowScore, articleId: article.id });
       } else if (verdict === "warn") {
+        const dupe = await db
+          .select({ id: newsroomReviewQueue.id })
+          .from(newsroomReviewQueue)
+          .where(
+            and(
+              eq(newsroomReviewQueue.citySlug, city.slug),
+              eq(newsroomReviewQueue.status, "pending"),
+              sql`${newsroomReviewQueue.draftPayload}->>'hayloArticleId' = ${haylo.id}`,
+            ),
+          )
+          .limit(1);
+        if (dupe.length > 0) {
+          results.push({
+            citySlug: city.slug,
+            outcome: "skipped",
+            verdict,
+            reason: `pending review row already exists for this Haylo+city pair (id=${dupe[0].id}).`,
+          });
+          skipped++;
+          continue;
+        }
         const [reviewRow] = await db
           .insert(newsroomReviewQueue)
           .values({
             citySlug: city.slug,
-            draftPayload: draft as any,
+            draftPayload: draftValidation.data as any,
             qcScore: pair.audit.flowScore,
             qcNotes: pair.audit.summary,
             status: "pending",
