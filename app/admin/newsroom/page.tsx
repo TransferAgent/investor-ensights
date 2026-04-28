@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { apiRequest, queryClient } from "@/lib/queryClient"
-import { Bot, PlayCircle, FileSearch, Users, PenLine, ShieldCheck, Link2, Activity, AlertTriangle, RotateCcw, Settings, DollarSign, Trash2, Sparkles, Zap } from "lucide-react"
+import { Bot, PlayCircle, FileSearch, Users, PenLine, ShieldCheck, Link2, Activity, AlertTriangle, RotateCcw, Settings, DollarSign, Trash2, Sparkles, Zap, Eye } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
@@ -120,9 +120,52 @@ interface InternalLink {
   accepted: boolean
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;")
+}
+
+function buildPreviewHtml(draft: any): string {
+  const title = escapeHtml(String(draft.title ?? ""))
+  const headline = escapeHtml(String(draft.headline ?? ""))
+  const subheadline = draft.subheadline ? `<p style="color:#475569;font-size:18px;margin:4px 0 16px 0;">${escapeHtml(String(draft.subheadline))}</p>` : ""
+  const dateline = draft.dateline ? `<p style="color:#64748b;font-size:13px;margin:0 0 12px 0;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml(String(draft.dateline))}</p>` : ""
+  const meta = draft.metaDescription ? `<p style="color:#64748b;font-size:13px;font-style:italic;margin:0 0 24px 0;border-left:3px solid #cbd5e1;padding-left:12px;">${escapeHtml(String(draft.metaDescription))}</p>` : ""
+  const body = String(draft.bodyHtml ?? "")
+  const boilerplate = draft.boilerplateHtml ? `<hr style="margin:32px 0 16px 0;border:none;border-top:1px solid #e2e8f0;" /><div style="color:#64748b;font-size:14px;">${String(draft.boilerplateHtml)}</div>` : ""
+  const author = draft.authorName ? `<p style="color:#64748b;font-size:13px;margin:24px 0 0 0;">— ${escapeHtml(String(draft.authorName))}${draft.publisherName ? `, ${escapeHtml(String(draft.publisherName))}` : ""}</p>` : ""
+
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><title>${title}</title>
+<style>
+  html,body{margin:0;padding:0;background:#fff;color:#0f172a;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;padding:32px 40px;max-width:760px;margin:0 auto;}
+  h1{font-size:30px;line-height:1.25;margin:0 0 8px 0;font-weight:800;letter-spacing:-0.01em;}
+  h2{font-size:22px;line-height:1.3;margin:24px 0 8px 0;font-weight:700;}
+  h3{font-size:18px;line-height:1.35;margin:20px 0 6px 0;font-weight:600;}
+  p{margin:0 0 14px 0;}
+  a{color:#2563eb;text-decoration:underline;}
+  strong,b{font-weight:600;}
+  ul,ol{margin:0 0 14px 0;padding-left:24px;}
+  li{margin-bottom:4px;}
+  blockquote{margin:0 0 14px 0;padding:8px 16px;border-left:4px solid #cbd5e1;color:#475569;font-style:italic;}
+  img{max-width:100%;height:auto;}
+</style></head>
+<body>
+  <h1>${title}</h1>
+  ${subheadline}
+  ${dateline}
+  ${meta}
+  ${headline && headline !== title ? `<h2>${headline}</h2>` : ""}
+  ${body}
+  ${boilerplate}
+  ${author}
+</body></html>`
+}
+
 function ReviewCard({ item, onAction, pending }: { item: ReviewItem; onAction: (status: "approved" | "rejected") => void; pending: boolean }) {
   const draft = (item.draftPayload || {}) as any
   const isV1 = draft?.version === "v1"
+  const [previewOpen, setPreviewOpen] = useState(false)
   const { data: links } = useQuery<InternalLink[]>({
     queryKey: ["/api/admin/newsroom/internal-links", { reviewQueueId: item.id }],
     queryFn: async () => {
@@ -132,6 +175,9 @@ function ReviewCard({ item, onAction, pending }: { item: ReviewItem; onAction: (
       return res.json()
     },
   })
+
+  const previewHtml = isV1 ? buildPreviewHtml(draft) : ""
+
   return (
     <Card className="p-4" data-testid={`card-review-${item.id}`}>
       <div className="mb-2 flex items-center justify-between">
@@ -141,10 +187,36 @@ function ReviewCard({ item, onAction, pending }: { item: ReviewItem; onAction: (
           {isV1 ? <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">v1 schema ✓</Badge> : <Badge variant="destructive">non-v1 — cannot publish</Badge>}
         </div>
         <div className="flex gap-2">
+          {isV1 && (
+            <Button size="sm" variant="outline" onClick={() => setPreviewOpen(true)} data-testid={`button-preview-${item.id}`}>
+              <Eye className="h-4 w-4 mr-1" /> Preview
+            </Button>
+          )}
           <Button size="sm" variant="outline" disabled={pending} onClick={() => onAction("rejected")} data-testid={`button-reject-${item.id}`}>Reject</Button>
           <Button size="sm" disabled={pending} onClick={() => onAction("approved")} data-testid={`button-approve-${item.id}`}>Approve & Publish</Button>
         </div>
       </div>
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle data-testid={`text-preview-title-${item.id}`}>Preview: {draft.title}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden border rounded">
+            <iframe
+              sandbox=""
+              srcDoc={previewHtml}
+              className="w-full h-[70vh] bg-white"
+              title="Press release preview"
+              data-testid={`iframe-preview-${item.id}`}
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setPreviewOpen(false)} data-testid={`button-preview-close-${item.id}`}>Close</Button>
+            <Button variant="outline" disabled={pending} onClick={() => { setPreviewOpen(false); onAction("rejected") }} data-testid={`button-preview-reject-${item.id}`}>Reject</Button>
+            <Button disabled={pending} onClick={() => { setPreviewOpen(false); onAction("approved") }} data-testid={`button-preview-approve-${item.id}`}>Approve &amp; Publish</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {isV1 && (
         <div className="mb-2 space-y-1 text-sm">
           <div><span className="text-muted-foreground">Title:</span> <span className="font-medium" data-testid={`text-draft-title-${item.id}`}>{draft.title}</span></div>

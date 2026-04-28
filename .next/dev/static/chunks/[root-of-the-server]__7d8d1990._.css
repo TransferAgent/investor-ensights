@@ -1882,6 +1882,10 @@ body {
   height: 60vh;
 }
 
+.h-\[70vh\] {
+  height: 70vh;
+}
+
 .h-\[85px\] {
   height: 85px;
 }
@@ -5460,6 +5464,10 @@ input[type="search"]::-webkit-search-cancel-button {
 
   .sm\:justify-end {
     justify-content: flex-end;
+  }
+
+  .sm\:gap-2 {
+    gap: .5rem;
   }
 
   .sm\:gap-2\.5 {
