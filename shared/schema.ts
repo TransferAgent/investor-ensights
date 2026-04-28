@@ -292,6 +292,7 @@ export const knowledgeArticles = pgTable(
     slug: text("slug").notNull().unique(),
     citySlug: text("city_slug"),
     campaignId: uuid("campaign_id"),
+    hayloArticleId: uuid("haylo_article_id"),
     status: text("status").notNull().default("pending"),
     title: text("title").notNull(),
     metaDescription: text("meta_description"),
@@ -320,6 +321,7 @@ export const knowledgeArticles = pgTable(
     index("knowledge_articles_slug_idx").on(table.slug),
     index("knowledge_articles_status_idx").on(table.status),
     index("knowledge_articles_city_slug_idx").on(table.citySlug),
+    index("knowledge_articles_haylo_idx").on(table.hayloArticleId),
   ]
 );
 

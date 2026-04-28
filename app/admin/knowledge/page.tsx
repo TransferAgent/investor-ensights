@@ -216,6 +216,9 @@ export default function KnowledgeAdmin() {
   const [studioAutoPublish, setStudioAutoPublish] = useState(true)
   const [studioUpdateExisting, setStudioUpdateExisting] = useState(false)
   const [studioResult, setStudioResult] = useState<any>(null)
+  const [studioSource, setStudioSource] = useState<"haylo" | "template">("haylo")
+  const [studioHayloId, setStudioHayloId] = useState("")
+  const [studioDryRun, setStudioDryRun] = useState(true)
   const [studioPreviewCity, setStudioPreviewCity] = useState<string>("")
   const [studioCampaignName, setStudioCampaignName] = useState("")
   const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({ uncategorized: true })
@@ -384,7 +387,7 @@ export default function KnowledgeAdmin() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/coverage"] })
       queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] })
-      setStudioResult(data)
+      setStudioResult({ ...data, _kind: "template" })
       const parts = []
       if (data.generated > 0) parts.push(`${data.generated} created`)
       if (data.updated > 0) parts.push(`${data.updated} updated`)
@@ -394,6 +397,44 @@ export default function KnowledgeAdmin() {
     },
     onError: (err: any) => {
       toast({ title: "Apply failed", description: err.message, variant: "destructive" })
+    },
+  })
+
+  const { data: hayloArticlesList, isLoading: hayloListLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/haylo-articles", { status: "ready" }],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/haylo-articles?status=ready", { credentials: "include" })
+      if (!res.ok) return []
+      return res.json()
+    },
+  })
+
+  const studioPairMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/newsroom/enqueue-pairs", {
+        hayloArticleId: studioHayloId,
+        citySlugs: studioSelectedCities,
+        dryRun: studioDryRun,
+      })
+      return res.json()
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/newsroom/review"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/haylo-articles"] })
+      setStudioResult({ ...data, _kind: "haylo" })
+      const s = data.summary || {}
+      const parts = []
+      if (s.passed > 0) parts.push(`${s.passed} passed → Articles`)
+      if (s.warned > 0) parts.push(`${s.warned} need review → Newsroom`)
+      if (s.failed > 0) parts.push(`${s.failed} blocked`)
+      if (s.skipped > 0) parts.push(`${s.skipped} skipped`)
+      if (s.errored > 0) parts.push(`${s.errored} errored`)
+      toast({ title: data.dryRun ? "Pair completed (dry run)" : "Pair completed", description: parts.join(" · ") || "no rows" })
+    },
+    onError: (err: any) => {
+      toast({ title: "Pair failed", description: err.message, variant: "destructive" })
     },
   })
 
@@ -1490,31 +1531,94 @@ export default function KnowledgeAdmin() {
         <div className="space-y-6">
           <div>
             <p className="text-sm text-muted-foreground mb-4">
-              Pick a template, select cities, preview, and apply. Works for new articles and updating existing ones.
+              Pick a source (Haylo Article or legacy Template), select cities, and submit. Haylo pairs run through Newsroom Glue + Audit; passes land in Articles, warnings go to Newsroom Review Queue.
             </p>
           </div>
 
+          <Card className="p-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Source</Label>
+                <div className="inline-flex rounded-md border bg-muted p-0.5 ml-3">
+                  <button
+                    type="button"
+                    onClick={() => { setStudioSource("haylo"); setStudioResult(null) }}
+                    className={`px-3 py-1.5 text-sm rounded-sm transition ${studioSource === "haylo" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                    data-testid="button-source-haylo"
+                  >
+                    Haylo Article
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setStudioSource("template"); setStudioResult(null) }}
+                    className={`px-3 py-1.5 text-sm rounded-sm transition ${studioSource === "template" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                    data-testid="button-source-template"
+                  >
+                    Template (legacy)
+                  </button>
+                </div>
+              </div>
+              {studioSource === "haylo" && (
+                <label className="flex items-center gap-2 text-sm cursor-pointer" data-testid="label-studio-dryrun">
+                  <Checkbox checked={studioDryRun} onCheckedChange={(v) => setStudioDryRun(!!v)} data-testid="checkbox-studio-dryrun" />
+                  Dry Run (mock auditor — no LLM credits)
+                </label>
+              )}
+            </div>
+          </Card>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
-              <Card className="p-4">
-                <h3 className="font-semibold mb-3" data-testid="text-studio-step1">Step 1: Select Template</h3>
-                {templatesLoading ? (
-                  <Skeleton className="h-10 w-full" />
-                ) : knowledgeTemplates && knowledgeTemplates.length > 0 ? (
-                  <Select value={studioTemplateId} onValueChange={(v) => { setStudioTemplateId(v); setStudioResult(null) }}>
-                    <SelectTrigger data-testid="select-studio-template">
-                      <SelectValue placeholder="Choose a press release template..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {knowledgeTemplates.filter(t => t.isActive).map(t => (
-                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No templates found. Create one in the Templates tab first.</p>
-                )}
-              </Card>
+              {studioSource === "haylo" ? (
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-3" data-testid="text-studio-step1">Step 1: Select Haylo Article</h3>
+                  {hayloListLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : hayloArticlesList && hayloArticlesList.length > 0 ? (
+                    <>
+                      <Select value={studioHayloId} onValueChange={(v) => { setStudioHayloId(v); setStudioResult(null) }}>
+                        <SelectTrigger data-testid="select-studio-haylo">
+                          <SelectValue placeholder="Choose a Haylo essay..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {hayloArticlesList.map((h: any) => (
+                            <SelectItem key={h.id} value={h.id}>
+                              {h.title.slice(0, 80)}{h.title.length > 80 ? "…" : ""} · {h.topicSlug} · placed {h.placementCount}×
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Showing {hayloArticlesList.length} ready essays from the Haylo Library. Manage essays under <code>/admin/haylo</code>.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No ready Haylo essays. Add one in the <a href="/admin/haylo" className="underline">Haylo Library</a> first.
+                    </p>
+                  )}
+                </Card>
+              ) : (
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-3" data-testid="text-studio-step1">Step 1: Select Template</h3>
+                  {templatesLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : knowledgeTemplates && knowledgeTemplates.length > 0 ? (
+                    <Select value={studioTemplateId} onValueChange={(v) => { setStudioTemplateId(v); setStudioResult(null) }}>
+                      <SelectTrigger data-testid="select-studio-template">
+                        <SelectValue placeholder="Choose a press release template..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {knowledgeTemplates.filter(t => t.isActive).map(t => (
+                          <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No templates found. Create one in the Templates tab first.</p>
+                  )}
+                </Card>
+              )}
 
               <Card className="p-4">
                 <h3 className="font-semibold mb-3" data-testid="text-studio-step2">Step 2: Select Cities</h3>
@@ -1590,64 +1694,90 @@ export default function KnowledgeAdmin() {
               </Card>
 
               <Card className="p-4">
-                <h3 className="font-semibold mb-3" data-testid="text-studio-step3">Step 3: Options & Apply</h3>
+                <h3 className="font-semibold mb-3" data-testid="text-studio-step3">Step 3: Options & Submit</h3>
                 <div className="space-y-3">
-                  <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <Checkbox
-                        checked={studioAutoPublish}
-                        onCheckedChange={(v) => setStudioAutoPublish(!!v)}
-                        data-testid="checkbox-studio-auto-publish"
-                      />
-                      Auto-publish (skip pending)
-                    </label>
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <Checkbox
-                        checked={studioUpdateExisting}
-                        onCheckedChange={(v) => setStudioUpdateExisting(!!v)}
-                        data-testid="checkbox-studio-update-existing"
-                      />
-                      Update existing articles
-                    </label>
-                  </div>
-                  <div>
-                    <Label htmlFor="studio-campaign-name">Campaign Name (optional)</Label>
-                    <Input
-                      id="studio-campaign-name"
-                      value={studioCampaignName}
-                      onChange={(e) => setStudioCampaignName(e.target.value)}
-                      placeholder="e.g. PR Hash-256 Wave 2"
-                      data-testid="input-studio-campaign-name"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Articles will be grouped under this campaign</p>
-                  </div>
-                  {!studioUpdateExisting && studioSelectedCities.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      Cities that already have articles will be skipped. Enable "Update existing" to overwrite them.
-                    </p>
+                  {studioSource === "template" && (
+                    <>
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={studioAutoPublish}
+                            onCheckedChange={(v) => setStudioAutoPublish(!!v)}
+                            data-testid="checkbox-studio-auto-publish"
+                          />
+                          Auto-publish (skip pending)
+                        </label>
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={studioUpdateExisting}
+                            onCheckedChange={(v) => setStudioUpdateExisting(!!v)}
+                            data-testid="checkbox-studio-update-existing"
+                          />
+                          Update existing articles
+                        </label>
+                      </div>
+                      <div>
+                        <Label htmlFor="studio-campaign-name">Campaign Name (optional)</Label>
+                        <Input
+                          id="studio-campaign-name"
+                          value={studioCampaignName}
+                          onChange={(e) => setStudioCampaignName(e.target.value)}
+                          placeholder="e.g. PR Hash-256 Wave 2"
+                          data-testid="input-studio-campaign-name"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Articles will be grouped under this campaign</p>
+                      </div>
+                      {!studioUpdateExisting && studioSelectedCities.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Cities that already have articles will be skipped. Enable "Update existing" to overwrite them.
+                        </p>
+                      )}
+                    </>
+                  )}
+                  {studioSource === "haylo" && (
+                    <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1">
+                      <div className="font-semibold text-foreground">How pairs route:</div>
+                      <div>• <span className="font-medium text-green-600">PASS</span> → published as <code>pending</code> in Knowledge → Articles (publish from there)</div>
+                      <div>• <span className="font-medium text-yellow-600">WARN</span> → Newsroom → Review Queue for human approval</div>
+                      <div>• <span className="font-medium text-red-600">FAIL</span> → blocked; logged in generation log</div>
+                      <div>Max {25} cities per submit. Larger batches: split into runs.</div>
+                    </div>
                   )}
                   <Button
                     onClick={() => {
-                      if (studioSelectedCities.length > 0 && studioTemplateId) {
-                        const msg = studioUpdateExisting
-                          ? `Apply template to ${studioSelectedCities.length} cities? Existing articles will be updated.`
-                          : `Apply template to ${studioSelectedCities.length} cities?`
-                        if (confirm(msg)) {
-                          studioApplyMutation.mutate()
+                      if (studioSource === "haylo") {
+                        if (studioSelectedCities.length > 0 && studioHayloId) {
+                          const msg = `Glue ${studioSelectedCities.length} press release${studioSelectedCities.length === 1 ? "" : "s"} from this Haylo article${studioDryRun ? " (DRY RUN — mock auditor)" : ""}?`
+                          if (confirm(msg)) studioPairMutation.mutate()
+                        }
+                      } else {
+                        if (studioSelectedCities.length > 0 && studioTemplateId) {
+                          const msg = studioUpdateExisting
+                            ? `Apply template to ${studioSelectedCities.length} cities? Existing articles will be updated.`
+                            : `Apply template to ${studioSelectedCities.length} cities?`
+                          if (confirm(msg)) studioApplyMutation.mutate()
                         }
                       }
                     }}
-                    disabled={!studioTemplateId || studioSelectedCities.length === 0 || studioApplyMutation.isPending}
+                    disabled={
+                      studioSelectedCities.length === 0 ||
+                      (studioSource === "haylo"
+                        ? !studioHayloId || studioPairMutation.isPending || studioSelectedCities.length > 25
+                        : !studioTemplateId || studioApplyMutation.isPending)
+                    }
                     className="w-full"
                     data-testid="button-studio-apply"
                   >
-                    {studioApplyMutation.isPending ? (
+                    {studioSource === "haylo" ? (
+                      studioPairMutation.isPending ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gluing {studioSelectedCities.length} pair{studioSelectedCities.length === 1 ? "" : "s"}...</>
+                      ) : (
+                        <><Send className="mr-2 h-4 w-4" /> Glue & Audit {studioSelectedCities.length} {studioSelectedCities.length === 1 ? "City" : "Cities"}{studioDryRun ? " (Dry Run)" : ""}</>
+                      )
+                    ) : studioApplyMutation.isPending ? (
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Applying to {studioSelectedCities.length} cities...</>
                     ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Apply Template to {studioSelectedCities.length} {studioSelectedCities.length === 1 ? "City" : "Cities"}
-                      </>
+                      <><Send className="mr-2 h-4 w-4" /> Apply Template to {studioSelectedCities.length} {studioSelectedCities.length === 1 ? "City" : "Cities"}</>
                     )}
                   </Button>
                 </div>

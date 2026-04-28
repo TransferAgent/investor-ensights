@@ -27,6 +27,19 @@ export const newsroomDraftPayloadV1Schema = z.object({
   authorName: z.string().max(100).optional(),
   publisherName: z.string().max(100).optional(),
   internalLinks: z.array(internalLinkSuggestionSchema).max(20).optional(),
+  hayloArticleId: z.string().uuid().optional(),
+  auditVerdict: z.enum(["pass", "warn", "fail"]).optional(),
+  auditFlowScore: z.number().int().min(0).max(100).optional(),
+  auditSummary: z.string().optional(),
+  auditIssues: z
+    .array(
+      z.object({
+        severity: z.enum(["low", "medium", "high"]),
+        category: z.string(),
+        message: z.string(),
+      })
+    )
+    .optional(),
 });
 
 export type NewsroomDraftPayloadV1 = z.infer<typeof newsroomDraftPayloadV1Schema>;

@@ -4,8 +4,9 @@ import {
   newsroomReviewQueue,
   knowledgeArticles,
   newsroomInternalLinkSuggestions,
+  hayloArticles,
 } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { z } from "zod";
@@ -111,6 +112,7 @@ export async function PATCH(
       .values({
         slug: draft.suggestedSlug,
         citySlug: draft.citySlug,
+        hayloArticleId: draft.hayloArticleId ?? null,
         status: "pending",
         title: draft.title,
         metaDescription: draft.metaDescription ?? null,
@@ -128,6 +130,13 @@ export async function PATCH(
         dateModified: now,
       })
       .returning();
+
+    if (draft.hayloArticleId) {
+      await tx
+        .update(hayloArticles)
+        .set({ placementCount: sql`${hayloArticles.placementCount} + 1`, updatedAt: now })
+        .where(eq(hayloArticles.id, draft.hayloArticleId));
+    }
 
     const [updatedReview] = await tx
       .update(newsroomReviewQueue)

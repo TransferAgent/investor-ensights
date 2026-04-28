@@ -587,6 +587,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/admin/newsroom/enqueue-pairs/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/newsroom/enqueue-pairs">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/newsroom/enqueue-pairs/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/admin/newsroom/internal-links/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/newsroom/internal-links">> = Specific

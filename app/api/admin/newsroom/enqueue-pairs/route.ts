@@ -1,0 +1,191 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { db } from "@/lib/db";
+import { knowledgeArticles, knowledgeGenerationLog, newsroomReviewQueue, hayloArticles } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
+import { storage } from "@/lib/storage";
+import { verifySession } from "@/lib/auth";
+import { logAuditEvent } from "@/lib/audit";
+import { processPair } from "@/lib/newsroom/pairProcessor";
+
+const MAX_CITIES_PER_REQUEST = 25;
+
+const bodySchema = z.object({
+  hayloArticleId: z.string().uuid(),
+  citySlugs: z.array(z.string().min(1)).min(1).max(MAX_CITIES_PER_REQUEST),
+  dryRun: z.boolean().optional().default(true),
+});
+
+interface PerCityResult {
+  citySlug: string;
+  outcome: "pass" | "warn" | "fail" | "error" | "skipped";
+  verdict?: "pass" | "warn" | "fail";
+  flowScore?: number;
+  articleId?: string;
+  reviewQueueId?: string;
+  reason?: string;
+}
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://www.tableicity.com";
+
+export async function POST(req: NextRequest) {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  let body;
+  try {
+    body = bodySchema.parse(await req.json());
+  } catch (e: any) {
+    return NextResponse.json({ error: "Invalid request", details: e?.errors ?? String(e) }, { status: 400 });
+  }
+
+  const { hayloArticleId, citySlugs, dryRun } = body;
+
+  const haylo = await storage.getHayloArticleById(hayloArticleId);
+  if (!haylo) return NextResponse.json({ error: "Haylo article not found" }, { status: 404 });
+  if (haylo.status !== "ready") {
+    return NextResponse.json({ error: `Haylo article status is "${haylo.status}" — only "ready" articles can be paired.` }, { status: 409 });
+  }
+
+  if (!dryRun && !process.env.OPENAI_API_KEY) {
+    return NextResponse.json(
+      { error: "OPENAI_API_KEY is not set. Enable Dry Run, or add the secret in the environment to use the live auditor." },
+      { status: 412 }
+    );
+  }
+
+  const allCities = await storage.getCities(true);
+  const slugSet = new Set(citySlugs);
+  const cities = allCities.filter((c) => slugSet.has(c.slug));
+  const missingSlugs = citySlugs.filter((s) => !cities.some((c) => c.slug === s));
+
+  const results: PerCityResult[] = [];
+  let passed = 0;
+  let warned = 0;
+  let failed = 0;
+  let errored = 0;
+  let skipped = 0;
+  let placementBumps = 0;
+
+  for (const slug of missingSlugs) {
+    results.push({ citySlug: slug, outcome: "skipped", reason: "city not found or unpublished" });
+    skipped++;
+  }
+
+  for (const city of cities) {
+    try {
+      const pair = await processPair({
+        hayloArticle: { id: haylo.id, slug: haylo.slug, title: haylo.title, topicSlug: haylo.topicSlug, bodyHtml: haylo.bodyHtml },
+        city: { slug: city.slug, cityName: city.cityName, stateCode: city.stateCode, stateName: city.stateName },
+        localVibe: null,
+        dryRun,
+      });
+
+      const verdict = pair.audit.verdict;
+      const draft = pair.draftPayload;
+
+      if (verdict === "pass") {
+        const existing = await db
+          .select({ id: knowledgeArticles.id })
+          .from(knowledgeArticles)
+          .where(eq(knowledgeArticles.slug, draft.suggestedSlug))
+          .limit(1);
+        if (existing.length > 0) {
+          results.push({
+            citySlug: city.slug,
+            outcome: "skipped",
+            verdict,
+            reason: `slug "${draft.suggestedSlug}" already exists — re-run with a different Haylo article or rename existing.`,
+          });
+          skipped++;
+          continue;
+        }
+        const [article] = await db
+          .insert(knowledgeArticles)
+          .values({
+            slug: draft.suggestedSlug,
+            citySlug: city.slug,
+            hayloArticleId: haylo.id,
+            status: "pending",
+            title: draft.title,
+            metaDescription: draft.metaDescription ?? null,
+            canonicalUrl: `${BASE_URL}/discovery/knowledge/${draft.suggestedSlug}`,
+            headline: draft.headline,
+            subheadline: draft.subheadline ?? null,
+            dateline: draft.dateline ?? null,
+            bodyHtml: draft.bodyHtml,
+            authorName: draft.authorName ?? "Tableicity",
+            publisherName: draft.publisherName ?? "Tableicity",
+          })
+          .returning();
+        await db
+          .update(hayloArticles)
+          .set({ placementCount: sql`${hayloArticles.placementCount} + 1`, updatedAt: new Date() })
+          .where(eq(hayloArticles.id, haylo.id));
+        placementBumps++;
+        passed++;
+        results.push({ citySlug: city.slug, outcome: "pass", verdict, flowScore: pair.audit.flowScore, articleId: article.id });
+      } else if (verdict === "warn") {
+        const [reviewRow] = await db
+          .insert(newsroomReviewQueue)
+          .values({
+            citySlug: city.slug,
+            draftPayload: draft as any,
+            qcScore: pair.audit.flowScore,
+            qcNotes: pair.audit.summary,
+            status: "pending",
+          })
+          .returning();
+        warned++;
+        results.push({ citySlug: city.slug, outcome: "warn", verdict, flowScore: pair.audit.flowScore, reviewQueueId: reviewRow.id });
+      } else {
+        await db.insert(knowledgeGenerationLog).values({
+          citySlug: city.slug,
+          directive: `pair:${haylo.slug}`,
+          status: "failed",
+          errorMessage: `Audit FAIL (${pair.audit.flowScore}/100): ${pair.audit.summary}`,
+        });
+        failed++;
+        results.push({ citySlug: city.slug, outcome: "fail", verdict, flowScore: pair.audit.flowScore, reason: pair.audit.summary });
+      }
+    } catch (e: any) {
+      errored++;
+      const msg = e?.message ?? String(e);
+      try {
+        await db.insert(knowledgeGenerationLog).values({
+          citySlug: city.slug,
+          directive: `pair:${haylo.slug}`,
+          status: "error",
+          errorMessage: msg.slice(0, 500),
+        });
+      } catch {}
+      results.push({ citySlug: city.slug, outcome: "error", reason: msg });
+    }
+  }
+
+  await logAuditEvent({
+    username: session.username,
+    action: "newsroom.enqueue_pairs",
+    entityType: "haylo_article",
+    entityId: haylo.id,
+    details: {
+      hayloSlug: haylo.slug,
+      cities: cities.length,
+      passed,
+      warned,
+      failed,
+      errored,
+      skipped,
+      placementBumps,
+      dryRun,
+    },
+  });
+
+  return NextResponse.json({
+    hayloArticleId: haylo.id,
+    hayloTitle: haylo.title,
+    dryRun,
+    summary: { processed: cities.length, passed, warned, failed, errored, skipped, placementBumps },
+    results,
+  });
+}
