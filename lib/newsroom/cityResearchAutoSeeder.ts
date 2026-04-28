@@ -4,9 +4,10 @@ import { db } from "@/lib/db";
 import { cityLocations, cityResearchSources } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 
-const PROBE_TIMEOUT_MS = 6_000;
+const PROBE_TIMEOUT_MS = 5_000;
 const MIN_CONTENT_BYTES = 800;
 const MAX_PROBE_BYTES = 200_000;
+const TOTAL_SEEDING_BUDGET_MS = 12_000;
 const USER_AGENT =
   "Mozilla/5.0 (compatible; TableicityNewsroomBot/1.0; +https://www.tableicity.com)";
 
@@ -284,15 +285,41 @@ export async function ensureCitySources(citySlug: string): Promise<AutoSeedResul
 
   const added: AutoSeedResult["added"] = [];
   const failed: AutoSeedResult["failed"] = [];
-  const familiesUsed = new Set<string>();
 
-  for (const candidate of candidates) {
-    if (familiesUsed.has(candidate.family)) continue;
-    const result = await probeUrl(candidate.url);
+  // Probe every candidate in parallel under a single overall budget. Without
+  // this, a city with 0 seeds can spend ~PROBE_TIMEOUT_MS × candidates.length
+  // seconds just probing — which blows past the platform proxy timeout before
+  // the 5-agent pipeline even starts.
+  const probeAll = Promise.all(
+    candidates.map(async (c) => ({ candidate: c, result: await probeUrl(c.url) })),
+  );
+  let probed: Array<{ candidate: UrlCandidate; result: ProbeResult }>;
+  try {
+    probed = await withTimeout(probeAll, TOTAL_SEEDING_BUDGET_MS, `seed budget for ${citySlug}`);
+  } catch (err) {
+    // Budget exceeded — skip seeding for this run and let the pipeline proceed
+    // with whatever sources already exist (likely zero on first run).
+    console.warn(
+      `[cityResearchAutoSeeder] ${citySlug} probing exceeded ${TOTAL_SEEDING_BUDGET_MS}ms budget; skipping seed insert this run:`,
+      err instanceof Error ? err.message : err,
+    );
+    return {
+      citySlug,
+      alreadyHadEnabled: 0,
+      added,
+      failed: candidates.map((c) => ({ url: c.url, error: "seed budget exceeded" })),
+      totalEnabledAfter: 0,
+    };
+  }
+
+  // Walk in original candidate order and take the first OK probe per family.
+  const familiesUsed = new Set<string>();
+  for (const { candidate, result } of probed) {
     if (!result.ok) {
       failed.push({ url: candidate.url, error: result.error ?? "unknown" });
       continue;
     }
+    if (familiesUsed.has(candidate.family)) continue;
     try {
       await db
         .insert(cityResearchSources)
