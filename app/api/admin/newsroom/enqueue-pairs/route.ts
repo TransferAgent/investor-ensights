@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
               canonicalUrl: `${BASE_URL}/discovery/knowledge/${draft.suggestedSlug}`,
               headline: draft.headline,
               subheadline: draft.subheadline ?? null,
-              dateline: draft.dateline ?? null,
+              dateline: null,
               bodyHtml: draft.bodyHtml,
               authorName: draft.authorName ?? "Tableicity",
               publisherName: draft.publisherName ?? "Tableicity",

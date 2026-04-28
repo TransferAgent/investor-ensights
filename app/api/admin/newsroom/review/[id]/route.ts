@@ -118,7 +118,7 @@ export async function PATCH(
         metaDescription: draft.metaDescription ?? null,
         headline: draft.headline,
         subheadline: draft.subheadline ?? null,
-        dateline: draft.dateline ?? null,
+        dateline: null,
         bodyHtml: draft.bodyHtml,
         boilerplateHtml: draft.boilerplateHtml ?? null,
         ogImageUrl: draft.ogImageUrl ?? null,

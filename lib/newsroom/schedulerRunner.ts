@@ -203,7 +203,7 @@ export async function runSchedulerTick(input: TickInput): Promise<TickResult> {
             metaDescription: draft.metaDescription ?? null,
             headline: draft.headline,
             subheadline: draft.subheadline ?? null,
-            dateline: draft.dateline ?? null,
+            dateline: null,
             bodyHtml: draft.bodyHtml,
             boilerplateHtml: draft.boilerplateHtml ?? null,
             status: "pending",
