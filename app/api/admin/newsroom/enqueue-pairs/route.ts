@@ -10,6 +10,9 @@ import { processPair } from "@/lib/newsroom/pairProcessor";
 import { runPairAgentPipeline } from "@/lib/newsroom/pairAgentOrchestrator";
 import { newsroomDraftPayloadV1Schema } from "@/lib/newsroom/draftPayload";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
+
 const MAX_CITIES_PER_REQUEST = 25;
 
 const bodySchema = z.object({
