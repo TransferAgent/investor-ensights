@@ -43,6 +43,107 @@ const STAGE_ORDER: StageRole[] = [
   "internal_linker",
 ];
 
+const STAGE_GROUPS: StageRole[][] = [
+  ["researcher"],
+  ["data_analyst"],
+  ["copywriter"],
+  ["seo_qc", "internal_linker"],
+];
+
+interface StageBookkeepingResult {
+  role: StageRole;
+  output: unknown;
+  tokensUsed: number;
+  costUsd: number;
+}
+
+async function runStageWithBookkeeping(args: {
+  role: StageRole;
+  agent: NewsroomAgent;
+  ctx: StageContext;
+  prior: PriorOutputs;
+  jobId: string;
+  citySlug: string;
+  cityName: string;
+  stateCode: string;
+  dryRun: boolean;
+  generator: PipelineGenerator;
+  completedRoles: StageRole[];
+  candidatesForLinker?: CandidateCity[];
+}): Promise<StageBookkeepingResult> {
+  const {
+    role, agent, ctx, prior, jobId, citySlug, cityName, stateCode,
+    dryRun, generator, completedRoles, candidatesForLinker,
+  } = args;
+
+  const startedAt = new Date();
+  const stageInput: Record<string, unknown> = {
+    citySlug,
+    cityName,
+    stateCode,
+    stage: role,
+    priorStages: [...completedRoles],
+  };
+
+  let stageResult: StageRunResult;
+  if (role === "researcher") {
+    stageResult = await generator.researcher(ctx);
+  } else if (role === "data_analyst") {
+    stageInput.researcherFacts = prior.researcher?.facts ?? [];
+    stageResult = await generator.data_analyst(ctx, prior);
+  } else if (role === "copywriter") {
+    stageInput.researcherFacts = prior.researcher?.facts ?? [];
+    stageInput.analystAngles = prior.data_analyst?.topAngles ?? [];
+    stageResult = await generator.copywriter(ctx, prior);
+  } else if (role === "seo_qc") {
+    stageInput.draft = {
+      title: prior.copywriter?.title,
+      headline: prior.copywriter?.headline,
+      bodyChars: (prior.copywriter?.bodyHtml ?? "").length,
+    };
+    stageResult = await generator.seo_qc(ctx, prior);
+  } else {
+    const cands = candidatesForLinker ?? [];
+    stageInput.candidateCount = cands.length;
+    stageResult = await generator.internal_linker(ctx, prior, cands);
+  }
+
+  const finishedAt = new Date();
+  await db.insert(newsroomAgentRuns).values({
+    agentId: agent.id,
+    jobId,
+    citySlug,
+    status: "completed",
+    dryRun,
+    input: stageInput,
+    output: stageResult.output,
+    tokensUsed: stageResult.tokensUsed,
+    costUsd: String(stageResult.costUsd),
+    startedAt,
+    finishedAt,
+  });
+
+  if (stageResult.knowledge && stageResult.knowledge.length > 0) {
+    await db.insert(newsroomAgentKnowledge).values(
+      stageResult.knowledge.map((k) => ({
+        agentId: agent.id,
+        citySlug,
+        key: k.key,
+        value: k.value,
+        sourceUrl: k.sourceUrl ?? null,
+        confidence: k.confidence != null ? String(k.confidence) : null,
+      }))
+    );
+  }
+
+  return {
+    role,
+    output: stageResult.output,
+    tokensUsed: stageResult.tokensUsed,
+    costUsd: stageResult.costUsd,
+  };
+}
+
 function titleCaseFromSlug(slug: string): string {
   const parts = slug.split("-");
   if (parts.length === 0) return slug;
@@ -183,104 +284,69 @@ export async function runPipeline(opts: RunPipelineOpts): Promise<PipelineRunRes
   let totalCostUsd = 0;
 
   try {
-    for (let i = 0; i < STAGE_ORDER.length; i++) {
-      const role = STAGE_ORDER[i];
-      const agent = agentByRole.get(role)!;
-      const nextStage = STAGE_ORDER[i + 1] ?? "review";
-
-      const startedAt = new Date();
-      let stageResult: StageRunResult;
-      let stageInput: Record<string, unknown> = {
-        citySlug,
-        cityName,
-        stateCode,
-        stage: role,
-        priorStages: completedRoles,
-      };
-
-      if (role === "researcher") {
-        stageResult = await generator.researcher(ctx);
-      } else if (role === "data_analyst") {
-        stageInput.researcherFacts = prior.researcher?.facts ?? [];
-        stageResult = await generator.data_analyst(ctx, prior);
-      } else if (role === "copywriter") {
-        stageInput.researcherFacts = prior.researcher?.facts ?? [];
-        stageInput.analystAngles = prior.data_analyst?.topAngles ?? [];
-        stageResult = await generator.copywriter(ctx, prior);
-      } else if (role === "seo_qc") {
-        stageInput.draft = {
-          title: prior.copywriter?.title,
-          headline: prior.copywriter?.headline,
-          bodyChars: (prior.copywriter?.bodyHtml ?? "").length,
-        };
-        stageResult = await generator.seo_qc(ctx, prior);
-      } else {
-        const candidatesForLinker = await fetchCandidateCities(citySlug);
-        stageInput.candidateCount = candidatesForLinker.length;
-        stageResult = await generator.internal_linker(ctx, prior, candidatesForLinker);
+    for (const group of STAGE_GROUPS) {
+      let candidatesForLinker: CandidateCity[] | undefined;
+      if (group.includes("internal_linker")) {
+        candidatesForLinker = await fetchCandidateCities(citySlug);
       }
 
-      switch (role) {
-        case "researcher":
-          prior.researcher = stageResult.output as unknown as ResearcherOutput;
-          break;
-        case "data_analyst":
-          prior.data_analyst = stageResult.output as unknown as AnalystOutput;
-          break;
-        case "copywriter": {
-          const cw = stageResult.output as unknown as CopywriterOutput;
-          if (hayloSeed) {
-            const lede = (cw.bodyHtml ?? "").trim();
-            const normalizedSeed = normalizeHayloBody(hayloSeed.bodyHtml);
-            const stitched = lede
-              ? `${lede}\n${normalizedSeed}`
-              : normalizedSeed;
-            prior.copywriter = { ...cw, bodyHtml: stitched };
-          } else {
-            prior.copywriter = cw;
-          }
-          break;
-        }
-        case "seo_qc":
-          prior.seo_qc = stageResult.output as unknown as QcOutput;
-          break;
-        case "internal_linker":
-          prior.internal_linker = stageResult.output as unknown as LinkerOutput;
-          break;
-      }
-
-      const finishedAt = new Date();
-      await db.insert(newsroomAgentRuns).values({
-        agentId: agent.id,
-        jobId: job.id,
-        citySlug,
-        status: "completed",
-        dryRun,
-        input: stageInput,
-        output: stageResult.output,
-        tokensUsed: stageResult.tokensUsed,
-        costUsd: String(stageResult.costUsd),
-        startedAt,
-        finishedAt,
-      });
-
-      totalTokens += stageResult.tokensUsed;
-      totalCostUsd += stageResult.costUsd;
-
-      if (stageResult.knowledge && stageResult.knowledge.length > 0) {
-        await db.insert(newsroomAgentKnowledge).values(
-          stageResult.knowledge.map((k) => ({
-            agentId: agent.id,
+      const groupResults = await Promise.all(
+        group.map((role) =>
+          runStageWithBookkeeping({
+            role,
+            agent: agentByRole.get(role)!,
+            ctx,
+            prior,
+            jobId: job.id,
             citySlug,
-            key: k.key,
-            value: k.value,
-            sourceUrl: k.sourceUrl ?? null,
-            confidence: k.confidence != null ? String(k.confidence) : null,
-          }))
-        );
+            cityName,
+            stateCode,
+            dryRun,
+            generator,
+            completedRoles,
+            candidatesForLinker:
+              role === "internal_linker" ? candidatesForLinker : undefined,
+          })
+        )
+      );
+
+      for (const r of groupResults) {
+        switch (r.role) {
+          case "researcher":
+            prior.researcher = r.output as unknown as ResearcherOutput;
+            break;
+          case "data_analyst":
+            prior.data_analyst = r.output as unknown as AnalystOutput;
+            break;
+          case "copywriter": {
+            const cw = r.output as unknown as CopywriterOutput;
+            if (hayloSeed) {
+              const lede = (cw.bodyHtml ?? "").trim();
+              const normalizedSeed = normalizeHayloBody(hayloSeed.bodyHtml);
+              const stitched = lede
+                ? `${lede}\n${normalizedSeed}`
+                : normalizedSeed;
+              prior.copywriter = { ...cw, bodyHtml: stitched };
+            } else {
+              prior.copywriter = cw;
+            }
+            break;
+          }
+          case "seo_qc":
+            prior.seo_qc = r.output as unknown as QcOutput;
+            break;
+          case "internal_linker":
+            prior.internal_linker = r.output as unknown as LinkerOutput;
+            break;
+        }
+        totalTokens += r.tokensUsed;
+        totalCostUsd += r.costUsd;
+        completedRoles.push(r.role);
       }
 
-      completedRoles.push(role);
+      const lastRoleInGroup = group[group.length - 1];
+      const lastIdx = STAGE_ORDER.indexOf(lastRoleInGroup);
+      const nextStage = STAGE_ORDER[lastIdx + 1] ?? "review";
 
       await db
         .update(newsroomPipelineJobs)

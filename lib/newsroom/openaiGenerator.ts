@@ -16,7 +16,7 @@ import {
 } from "@/lib/newsroom/prompts";
 import { fetchCitySources, type CitySourcesResult } from "@/lib/newsroom/sourceFetcher";
 
-const MODEL = "gpt-4o-mini";
+const MODEL = "gpt-4.1-nano";
 
 export const HAYLO_PAYLOAD_SCHEMA_VERSION = "haylo-payload/v1";
 
@@ -123,6 +123,8 @@ export function buildHayloPayload(args: {
 }
 
 const PRICING_PER_1M_USD: Record<string, { input: number; output: number }> = {
+  "gpt-4.1-nano": { input: 0.1, output: 0.4 },
+  "gpt-4.1-mini": { input: 0.4, output: 1.6 },
   "gpt-4o-mini": { input: 0.15, output: 0.6 },
   "gpt-4o": { input: 2.5, output: 10 },
 };
