@@ -5395,6 +5395,11 @@ input[type="search"]::-webkit-search-cancel-button {
   color: #dbeafecc;
 }
 
+.dark\:border-amber-700:is(.dark *) {
+  --tw-border-opacity: 1;
+  border-color: rgb(180 83 9 / var(--tw-border-opacity, 1));
+}
+
 .dark\:border-blue-900:is(.dark *) {
   --tw-border-opacity: 1;
   border-color: rgb(30 58 138 / var(--tw-border-opacity, 1));
@@ -5403,6 +5408,10 @@ input[type="search"]::-webkit-search-cancel-button {
 .dark\:border-destructive:is(.dark *) {
   --tw-border-opacity: 1;
   border-color: hsl(var(--destructive) / var(--tw-border-opacity, 1));
+}
+
+.dark\:bg-amber-950\/30:is(.dark *) {
+  background-color: #451a034d;
 }
 
 .dark\:bg-slate-900:is(.dark *) {

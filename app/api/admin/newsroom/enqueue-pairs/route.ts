@@ -44,8 +44,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request", details: e?.errors ?? String(e) }, { status: 400 });
   }
 
-  const { hayloArticleId, citySlugs } = body;
-  const dryRun = false;
+  const { hayloArticleId, citySlugs, dryRun } = body;
 
   const haylo = await storage.getHayloArticleById(hayloArticleId);
   if (!haylo) return NextResponse.json({ error: "Haylo article not found" }, { status: 404 });

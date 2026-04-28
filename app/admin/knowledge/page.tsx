@@ -221,6 +221,7 @@ export default function KnowledgeAdmin() {
   const [studioUpdateExisting, setStudioUpdateExisting] = useState(false)
   const [studioResult, setStudioResult] = useState<any>(null)
   const [studioSource, setStudioSource] = useState<"haylo" | "template">("haylo")
+  const [studioDryRun, setStudioDryRun] = useState(false)
   const [studioHayloId, setStudioHayloId] = useState("")
   const [studioPreviewCity, setStudioPreviewCity] = useState<string>("")
   const [studioCampaignName, setStudioCampaignName] = useState("")
@@ -417,7 +418,7 @@ export default function KnowledgeAdmin() {
       const res = await apiRequest("POST", "/api/admin/newsroom/enqueue-pairs", {
         hayloArticleId: studioHayloId,
         citySlugs: studioSelectedCities,
-        dryRun: false,
+        dryRun: studioDryRun,
       })
       return res.json()
     },
@@ -434,7 +435,7 @@ export default function KnowledgeAdmin() {
       if (s.failed > 0) parts.push(`${s.failed} blocked`)
       if (s.skipped > 0) parts.push(`${s.skipped} skipped`)
       if (s.errored > 0) parts.push(`${s.errored} errored`)
-      toast({ title: "Pair completed", description: parts.join(" · ") || "no rows" })
+      toast({ title: data.dryRun ? "Pair completed (Dry Run)" : "Pair completed", description: parts.join(" · ") || "no rows" })
     },
     onError: (err: any) => {
       toast({ title: "Pair failed", description: err.message, variant: "destructive" })
@@ -1564,6 +1565,13 @@ export default function KnowledgeAdmin() {
                   </button>
                 </div>
               </div>
+              {studioSource === "haylo" && (
+                <label className="flex items-center gap-2 text-sm cursor-pointer rounded-md border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30 px-3 py-2" data-testid="label-studio-dryrun">
+                  <Checkbox checked={studioDryRun} onCheckedChange={(v) => setStudioDryRun(!!v)} data-testid="checkbox-studio-dryrun" />
+                  <span className="font-medium">Dry Run</span>
+                  <span className="text-xs text-muted-foreground">(mock auditor — no LLM credits, output goes to Review Queue only)</span>
+                </label>
+              )}
             </div>
           </Card>
 
@@ -1747,7 +1755,9 @@ export default function KnowledgeAdmin() {
                     onClick={() => {
                       if (studioSource === "haylo") {
                         if (studioSelectedCities.length > 0 && studioHayloId) {
-                          const msg = `Glue ${studioSelectedCities.length} press release${studioSelectedCities.length === 1 ? "" : "s"} from this Haylo article? Live 5-agent pipeline · ~30s each · ~$0.0024 each.`
+                          const msg = studioDryRun
+                            ? `Glue ${studioSelectedCities.length} press release${studioSelectedCities.length === 1 ? "" : "s"} from this Haylo article? DRY RUN — mock auditor, no LLM cost, output goes to Review Queue.`
+                            : `Glue ${studioSelectedCities.length} press release${studioSelectedCities.length === 1 ? "" : "s"} from this Haylo article? Live 5-agent pipeline · ~30s each · ~$0.0024 each.`
                           if (confirm(msg)) studioPairMutation.mutate()
                         }
                       } else {
@@ -1772,7 +1782,7 @@ export default function KnowledgeAdmin() {
                       studioPairMutation.isPending ? (
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gluing {studioSelectedCities.length} pair{studioSelectedCities.length === 1 ? "" : "s"}...</>
                       ) : (
-                        <><Send className="mr-2 h-4 w-4" /> Glue & Audit {studioSelectedCities.length} {studioSelectedCities.length === 1 ? "City" : "Cities"}</>
+                        <><Send className="mr-2 h-4 w-4" /> Glue & Audit {studioSelectedCities.length} {studioSelectedCities.length === 1 ? "City" : "Cities"}{studioDryRun ? " (Dry Run)" : ""}</>
                       )
                     ) : studioApplyMutation.isPending ? (
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Applying to {studioSelectedCities.length} cities...</>
