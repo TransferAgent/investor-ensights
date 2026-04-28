@@ -222,7 +222,6 @@ export default function KnowledgeAdmin() {
   const [studioResult, setStudioResult] = useState<any>(null)
   const [studioSource, setStudioSource] = useState<"haylo" | "template">("haylo")
   const [studioHayloId, setStudioHayloId] = useState("")
-  const [studioDryRun, setStudioDryRun] = useState(true)
   const [studioPreviewCity, setStudioPreviewCity] = useState<string>("")
   const [studioCampaignName, setStudioCampaignName] = useState("")
   const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({ uncategorized: true })
@@ -418,7 +417,7 @@ export default function KnowledgeAdmin() {
       const res = await apiRequest("POST", "/api/admin/newsroom/enqueue-pairs", {
         hayloArticleId: studioHayloId,
         citySlugs: studioSelectedCities,
-        dryRun: studioDryRun,
+        dryRun: false,
       })
       return res.json()
     },
@@ -435,7 +434,7 @@ export default function KnowledgeAdmin() {
       if (s.failed > 0) parts.push(`${s.failed} blocked`)
       if (s.skipped > 0) parts.push(`${s.skipped} skipped`)
       if (s.errored > 0) parts.push(`${s.errored} errored`)
-      toast({ title: data.dryRun ? "Pair completed (dry run)" : "Pair completed", description: parts.join(" · ") || "no rows" })
+      toast({ title: "Pair completed", description: parts.join(" · ") || "no rows" })
     },
     onError: (err: any) => {
       toast({ title: "Pair failed", description: err.message, variant: "destructive" })
@@ -1565,12 +1564,6 @@ export default function KnowledgeAdmin() {
                   </button>
                 </div>
               </div>
-              {studioSource === "haylo" && (
-                <label className="flex items-center gap-2 text-sm cursor-pointer" data-testid="label-studio-dryrun">
-                  <Checkbox checked={studioDryRun} onCheckedChange={(v) => setStudioDryRun(!!v)} data-testid="checkbox-studio-dryrun" />
-                  Dry Run (mock auditor — no LLM credits)
-                </label>
-              )}
             </div>
           </Card>
 
@@ -1754,7 +1747,7 @@ export default function KnowledgeAdmin() {
                     onClick={() => {
                       if (studioSource === "haylo") {
                         if (studioSelectedCities.length > 0 && studioHayloId) {
-                          const msg = `Glue ${studioSelectedCities.length} press release${studioSelectedCities.length === 1 ? "" : "s"} from this Haylo article${studioDryRun ? " (DRY RUN — mock auditor)" : ""}?`
+                          const msg = `Glue ${studioSelectedCities.length} press release${studioSelectedCities.length === 1 ? "" : "s"} from this Haylo article? Live 5-agent pipeline · ~30s each · ~$0.0024 each.`
                           if (confirm(msg)) studioPairMutation.mutate()
                         }
                       } else {
@@ -1779,7 +1772,7 @@ export default function KnowledgeAdmin() {
                       studioPairMutation.isPending ? (
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gluing {studioSelectedCities.length} pair{studioSelectedCities.length === 1 ? "" : "s"}...</>
                       ) : (
-                        <><Send className="mr-2 h-4 w-4" /> Glue & Audit {studioSelectedCities.length} {studioSelectedCities.length === 1 ? "City" : "Cities"}{studioDryRun ? " (Dry Run)" : ""}</>
+                        <><Send className="mr-2 h-4 w-4" /> Glue & Audit {studioSelectedCities.length} {studioSelectedCities.length === 1 ? "City" : "Cities"}</>
                       )
                     ) : studioApplyMutation.isPending ? (
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Applying to {studioSelectedCities.length} cities...</>

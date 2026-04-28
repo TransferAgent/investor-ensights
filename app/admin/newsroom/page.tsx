@@ -244,7 +244,6 @@ function ReviewCard({ item, onAction, pending }: { item: ReviewItem; onAction: (
 
 export default function NewsroomPage() {
   const [citySlug, setCitySlug] = useState("")
-  const [dryRun, setDryRun] = useState(true)
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null)
   const [jobFilter, setJobFilter] = useState<"all" | "live" | "dry">("all")
@@ -305,7 +304,7 @@ export default function NewsroomPage() {
     mutationFn: async () => {
       return apiRequest("POST", "/api/admin/newsroom/jobs", {
         citySlug,
-        dryRun,
+        dryRun: false,
         payload: {},
       })
     },
@@ -459,15 +458,6 @@ export default function NewsroomPage() {
               data-testid="input-city-slug"
             />
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={dryRun}
-              onChange={(e) => setDryRun(e.target.checked)}
-              data-testid="checkbox-dry-run"
-            />
-            Dry run (no LLM credits burned)
-          </label>
           <Button
             disabled={!citySlug || enqueueMutation.isPending}
             onClick={() => enqueueMutation.mutate()}
@@ -477,27 +467,16 @@ export default function NewsroomPage() {
             Enqueue pipeline
           </Button>
           <Button
-            variant="secondary"
-            disabled={fixtureMutation.isPending}
-            onClick={() => fixtureMutation.mutate()}
-            data-testid="button-run-fixture"
-            title="Run all 5 stages end-to-end with mock content (dry-run only). Default city: worcester-ma. Result lands in the Review Queue tab in seconds."
-          >
-            <Sparkles className="mr-2 h-4 w-4" />
-            {fixtureMutation.isPending ? "Running fixture…" : "Run Gate 1 fixture"}
-          </Button>
-          <Button
             variant="default"
             disabled={!citySlug || liveMutation.isPending}
             onClick={() => {
               const slug = citySlug
               if (!slug) return
-              const mode = dryRun ? "dry-run (LLM still spends ~$0.01)" : "LIVE (LLM spends ~$0.01, draft can be approved & published)"
-              if (!confirm(`Run live OpenAI pipeline for "${slug}" — ${mode}?\n\nModel: gpt-4o-mini · 5 stages · ~10–20 seconds · ~$0.005–$0.02 per run.`)) return
-              liveMutation.mutate({ citySlug: slug, dryRun })
+              if (!confirm(`Run live OpenAI pipeline for "${slug}"?\n\nModel: gpt-4.1-nano · 5 stages · ~15–35 seconds · ~$0.0024 per run.`)) return
+              liveMutation.mutate({ citySlug: slug, dryRun: false })
             }}
             data-testid="button-run-live"
-            title="Run all 5 stages with real OpenAI (gpt-4o-mini). Costs ~$0.005–$0.02 per run. Toggle 'Dry run' above to mark the resulting draft as dry-run (sweep-eligible)."
+            title="Run all 5 stages with real OpenAI (gpt-4.1-nano). ~$0.0024 per run."
           >
             <Zap className="mr-2 h-4 w-4" />
             {liveMutation.isPending ? "Running live…" : "Run Live (OpenAI)"}

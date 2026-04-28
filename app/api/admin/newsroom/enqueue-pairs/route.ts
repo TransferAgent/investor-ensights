@@ -18,7 +18,7 @@ const MAX_CITIES_PER_REQUEST = 25;
 const bodySchema = z.object({
   hayloArticleId: z.string().uuid(),
   citySlugs: z.array(z.string().min(1)).min(1).max(MAX_CITIES_PER_REQUEST),
-  dryRun: z.boolean().optional().default(true),
+  dryRun: z.boolean().optional().default(false),
 });
 
 interface PerCityResult {
@@ -44,7 +44,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request", details: e?.errors ?? String(e) }, { status: 400 });
   }
 
-  const { hayloArticleId, citySlugs, dryRun } = body;
+  const { hayloArticleId, citySlugs } = body;
+  const dryRun = false;
 
   const haylo = await storage.getHayloArticleById(hayloArticleId);
   if (!haylo) return NextResponse.json({ error: "Haylo article not found" }, { status: 404 });
@@ -52,9 +53,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Haylo article status is "${haylo.status}" — only "ready" articles can be paired.` }, { status: 409 });
   }
 
-  if (!dryRun && !(process.env.OPENAI_API_KEY || process.env.OpenAi_Key)) {
+  if (!(process.env.OPENAI_API_KEY || process.env.OpenAi_Key)) {
     return NextResponse.json(
-      { error: "OPENAI_API_KEY (or OpenAi_Key) is not set. Enable Dry Run, or add the secret in the environment to use the live multi-agent pipeline." },
+      { error: "OPENAI_API_KEY (or OpenAi_Key) is not set. Add the secret in the environment to use the live multi-agent pipeline." },
       { status: 412 }
     );
   }
