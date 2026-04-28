@@ -69,6 +69,98 @@ interface NoindexPreview {
   missingFromDatabase: { cities: string[]; articles: string[] }
 }
 
+interface IndexPreview {
+  preview: boolean
+  totals: {
+    protectedCitiesConfigured: number
+    protectedArticlesConfigured: number
+    protectedCitiesInDb: number
+    protectedArticlesInDb: number
+  }
+  willFlipToIndex: { cities: number; articles: number }
+  missingFromDatabase: { cities: string[]; articles: string[] }
+}
+
+function IndexBaselineCard() {
+  const { toast } = useToast()
+  const [busy, setBusy] = useState(false)
+  const { data: preview, isLoading, refetch } = useQuery<IndexPreview>({
+    queryKey: ["/api/admin/seo/apply-index-baseline"],
+  })
+
+  const handleApply = async () => {
+    if (!preview) return
+    const total = preview.willFlipToIndex.cities + preview.willFlipToIndex.articles
+    if (total === 0) {
+      toast({ title: "Nothing to do", description: "All protected URLs are already indexable." })
+      return
+    }
+    if (
+      !confirm(
+        `Flip ${preview.willFlipToIndex.cities} cities and ${preview.willFlipToIndex.articles} articles back to INDEX. Only the ${preview.totals.protectedCitiesConfigured + preview.totals.protectedArticlesConfigured} protected URLs are touched. Continue?`
+      )
+    )
+      return
+    setBusy(true)
+    try {
+      const res = await apiRequest("POST", "/api/admin/seo/apply-index-baseline", {})
+      const data = await res.json()
+      toast({
+        title: "Index baseline applied",
+        description: `Flipped ${data.flipped.cities} cities and ${data.flipped.articles} articles back to index.`,
+      })
+      await refetch()
+    } catch (e: any) {
+      toast({ title: "Failed", description: e?.message || "Unknown error", variant: "destructive" })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card className="mb-8 p-5 border-emerald-500/40">
+      <div className="flex items-start gap-4 flex-wrap">
+        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-emerald-500/15 text-emerald-600">
+          <ShieldAlert className="h-5 w-5" />
+        </div>
+        <div className="flex-1 min-w-[260px]">
+          <h3 className="font-semibold">SEO Index Baseline (restore Google-ranked URLs)</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Flips every URL on the protected list back to <code>index</code>. Use after a noindex sweep accidentally caught a now-ranking page,
+            or when Google has expanded the ranking set. Idempotent — safe to re-run.
+          </p>
+          {isLoading || !preview ? (
+            <Skeleton className="mt-3 h-5 w-72" />
+          ) : (
+            <div className="mt-3 text-sm space-y-1">
+              <p data-testid="text-index-pending">
+                <strong>{preview.willFlipToIndex.cities}</strong> cities and{" "}
+                <strong>{preview.willFlipToIndex.articles}</strong> articles will flip to index.
+              </p>
+              <p className="text-muted-foreground text-xs">
+                Protected list: {preview.totals.protectedCitiesConfigured} cities + {preview.totals.protectedArticlesConfigured} articles. In DB: {preview.totals.protectedCitiesInDb} cities, {preview.totals.protectedArticlesInDb} articles.
+              </p>
+              {(preview.missingFromDatabase.cities.length > 0 || preview.missingFromDatabase.articles.length > 0) && (
+                <p className="text-amber-600 text-xs" data-testid="text-index-missing">
+                  Note: {preview.missingFromDatabase.cities.length + preview.missingFromDatabase.articles.length} protected slug(s) are not in this DB and will be ignored.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+        <Button
+          onClick={handleApply}
+          disabled={busy || isLoading || !preview || preview.willFlipToIndex.cities + preview.willFlipToIndex.articles === 0}
+          data-testid="button-apply-index-baseline"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+        >
+          {busy ? "Applying..." : "Apply Index Baseline"}
+        </Button>
+      </div>
+    </Card>
+  )
+}
+
 function NoindexBaselineCard() {
   const { toast } = useToast()
   const [busy, setBusy] = useState(false)
@@ -156,6 +248,7 @@ export default function AdminDashboard() {
   return (
     <div>
       <NoindexBaselineCard />
+      <IndexBaselineCard />
       <div className="mb-8">
         <h1 className="text-2xl font-bold" data-testid="text-admin-title">
           Admin Dashboard
