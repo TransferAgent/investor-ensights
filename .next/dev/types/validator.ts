@@ -83,6 +83,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/admin/haylo/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/admin/haylo">> = Specific
+  const handler = {} as typeof import("../../../app/admin/haylo/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/admin/knowledge/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/admin/knowledge">> = Specific
@@ -285,6 +294,33 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/data-store">> = Specific
   const handler = {} as typeof import("../../../app/api/admin/data-store/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/admin/haylo-articles/[id]/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/haylo-articles/[id]">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/haylo-articles/[id]/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/admin/haylo-articles/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/haylo-articles">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/haylo-articles/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/admin/haylo-articles/scan-inbox/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/haylo-articles/scan-inbox">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/haylo-articles/scan-inbox/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

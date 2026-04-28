@@ -442,6 +442,42 @@ export const insertKnowledgeCampaignSchema = createInsertSchema(knowledgeCampaig
 export type KnowledgeCampaign = typeof knowledgeCampaigns.$inferSelect;
 export type InsertKnowledgeCampaign = z.infer<typeof insertKnowledgeCampaignSchema>;
 
+export const hayloArticles = pgTable(
+  "haylo_articles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull().unique(),
+    title: text("title").notNull(),
+    topicSlug: text("topic_slug").notNull(),
+    bodyHtml: text("body_html").notNull(),
+    summary: text("summary"),
+    status: text("status").notNull().default("ready"),
+    source: text("source").notNull().default("paste"),
+    sourceFilename: text("source_filename"),
+    contentHash: text("content_hash").notNull(),
+    placementCount: integer("placement_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("haylo_articles_slug_idx").on(table.slug),
+    index("haylo_articles_status_idx").on(table.status),
+    index("haylo_articles_topic_idx").on(table.topicSlug),
+    uniqueIndex("haylo_articles_content_hash_idx").on(table.contentHash),
+  ]
+);
+
+export const insertHayloArticleSchema = createInsertSchema(hayloArticles).omit({
+  id: true,
+  contentHash: true,
+  placementCount: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type HayloArticle = typeof hayloArticles.$inferSelect;
+export type InsertHayloArticle = z.infer<typeof insertHayloArticleSchema>;
+
 export const insertKnowledgeArticleSchema = createInsertSchema(knowledgeArticles).omit({
   id: true,
   createdAt: true,

@@ -31,6 +31,7 @@ import {
   Facebook,
   Mail,
   Bot,
+  BookOpen,
 } from "lucide-react"
 
 const navItems = [
@@ -38,6 +39,7 @@ const navItems = [
   { title: "Cities", url: "/admin/cities", icon: MapPin },
   { title: "Templates", url: "/admin/templates", icon: FileText },
   { title: "Pages", url: "/admin/pages", icon: Layers },
+  { title: "Haylo Library", url: "/admin/haylo", icon: BookOpen },
   { title: "Knowledge", url: "/admin/knowledge", icon: Newspaper },
   { title: "Newsroom", url: "/admin/newsroom", icon: Bot },
   { title: "Data Store", url: "/admin/data-store", icon: Database },

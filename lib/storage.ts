@@ -11,6 +11,7 @@ import {
   knowledgeTemplates,
   knowledgeCampaigns,
   dataStoreFiles,
+  hayloArticles,
   type CityLocation,
   type InsertCityLocation,
   type ContentTemplate,
@@ -35,6 +36,8 @@ import {
   type InsertKnowledgeCampaign,
   type DataStoreFile,
   type InsertDataStoreFile,
+  type HayloArticle,
+  type InsertHayloArticle,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray, sql, desc, asc, gt, lt } from "drizzle-orm";
@@ -114,6 +117,15 @@ export interface IStorage {
   createCampaign(data: InsertKnowledgeCampaign): Promise<KnowledgeCampaign>;
   updateCampaign(id: string, data: Partial<InsertKnowledgeCampaign>): Promise<KnowledgeCampaign | undefined>;
   deleteCampaign(id: string): Promise<void>;
+
+  listHayloArticles(filters?: { status?: string; topicSlug?: string }): Promise<HayloArticle[]>;
+  getHayloArticleById(id: string): Promise<HayloArticle | undefined>;
+  getHayloArticleBySlug(slug: string): Promise<HayloArticle | undefined>;
+  getHayloArticleByContentHash(hash: string): Promise<HayloArticle | undefined>;
+  createHayloArticle(article: InsertHayloArticle, contentHash: string): Promise<HayloArticle>;
+  updateHayloArticle(id: string, data: Partial<InsertHayloArticle>): Promise<HayloArticle | undefined>;
+  deleteHayloArticle(id: string): Promise<void>;
+  listHayloArticleTopics(): Promise<string[]>;
 
   getDataStoreFiles(status?: string, category?: string): Promise<DataStoreFile[]>;
   getDataStoreFileById(id: string): Promise<DataStoreFile | undefined>;
@@ -716,6 +728,49 @@ export class DatabaseStorage implements IStorage {
   async deleteCampaign(id: string): Promise<void> {
     await db.delete(knowledgeArticles).where(eq(knowledgeArticles.campaignId, id));
     await db.delete(knowledgeCampaigns).where(eq(knowledgeCampaigns.id, id));
+  }
+
+  async listHayloArticles(filters?: { status?: string; topicSlug?: string }): Promise<HayloArticle[]> {
+    const where = [] as any[];
+    if (filters?.status) where.push(eq(hayloArticles.status, filters.status));
+    if (filters?.topicSlug) where.push(eq(hayloArticles.topicSlug, filters.topicSlug));
+    const q = db.select().from(hayloArticles).orderBy(desc(hayloArticles.updatedAt));
+    if (where.length === 0) return q;
+    return q.where(where.length === 1 ? where[0] : and(...where));
+  }
+
+  async getHayloArticleById(id: string): Promise<HayloArticle | undefined> {
+    const [row] = await db.select().from(hayloArticles).where(eq(hayloArticles.id, id)).limit(1);
+    return row;
+  }
+
+  async getHayloArticleBySlug(slug: string): Promise<HayloArticle | undefined> {
+    const [row] = await db.select().from(hayloArticles).where(eq(hayloArticles.slug, slug)).limit(1);
+    return row;
+  }
+
+  async getHayloArticleByContentHash(hash: string): Promise<HayloArticle | undefined> {
+    const [row] = await db.select().from(hayloArticles).where(eq(hayloArticles.contentHash, hash)).limit(1);
+    return row;
+  }
+
+  async createHayloArticle(article: InsertHayloArticle, contentHash: string): Promise<HayloArticle> {
+    const [created] = await db.insert(hayloArticles).values({ ...article, contentHash }).returning();
+    return created;
+  }
+
+  async updateHayloArticle(id: string, data: Partial<InsertHayloArticle>): Promise<HayloArticle | undefined> {
+    const [updated] = await db.update(hayloArticles).set({ ...data, updatedAt: new Date() }).where(eq(hayloArticles.id, id)).returning();
+    return updated;
+  }
+
+  async deleteHayloArticle(id: string): Promise<void> {
+    await db.delete(hayloArticles).where(eq(hayloArticles.id, id));
+  }
+
+  async listHayloArticleTopics(): Promise<string[]> {
+    const rows = await db.selectDistinct({ topicSlug: hayloArticles.topicSlug }).from(hayloArticles).orderBy(asc(hayloArticles.topicSlug));
+    return rows.map((r) => r.topicSlug);
   }
 }
 
