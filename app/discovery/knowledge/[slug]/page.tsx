@@ -35,7 +35,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (article.status === "pending") {
     return {
       title: `[PREVIEW] ${article.title}`,
+      description: article.metaDescription || undefined,
+      alternates: { canonical: `${BASE_URL}/discovery/knowledge/${article.slug}` },
       robots: { index: false, follow: false },
+      openGraph: {
+        title: article.headline,
+        description: article.metaDescription || undefined,
+        url: `${BASE_URL}/discovery/knowledge/${article.slug}`,
+        type: "article",
+        modifiedTime: article.dateModified.toISOString(),
+        ...(article.ogImageUrl ? { images: [{ url: article.ogImageUrl }] } : {}),
+      },
     };
   }
 
