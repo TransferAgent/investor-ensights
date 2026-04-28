@@ -221,7 +221,7 @@ export default function KnowledgeAdmin() {
   const [studioUpdateExisting, setStudioUpdateExisting] = useState(false)
   const [studioResult, setStudioResult] = useState<any>(null)
   const [studioSource, setStudioSource] = useState<"haylo" | "template">("haylo")
-  const [studioDryRun, setStudioDryRun] = useState(false)
+  const [studioDryRun, setStudioDryRun] = useState(true)
   const [studioHayloId, setStudioHayloId] = useState("")
   const [studioPreviewCity, setStudioPreviewCity] = useState<string>("")
   const [studioCampaignName, setStudioCampaignName] = useState("")
