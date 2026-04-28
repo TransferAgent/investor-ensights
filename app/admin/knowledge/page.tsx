@@ -58,8 +58,12 @@ import {
   FolderOpen,
   Folder,
   ShieldOff,
+  Zap,
+  Pause,
+  Play,
 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { SchedulerCard } from "./scheduler-card"
 
 interface CityRecord {
   id: string
@@ -1531,9 +1535,12 @@ export default function KnowledgeAdmin() {
         <div className="space-y-6">
           <div>
             <p className="text-sm text-muted-foreground mb-4">
-              Pick a source (Haylo Article or legacy Template), select cities, and submit. Haylo pairs run through Newsroom Glue + Audit; passes land in Articles, warnings go to Newsroom Review Queue.
+              Pick a source (Haylo Article or legacy Template), select cities, and submit. Haylo pairs run through the full 5-agent Newsroom pipeline; passes land in Articles, warnings go to Newsroom Review Queue.
             </p>
           </div>
+
+          <SchedulerCard />
+
 
           <Card className="p-4">
             <div className="flex items-center justify-between flex-wrap gap-3">

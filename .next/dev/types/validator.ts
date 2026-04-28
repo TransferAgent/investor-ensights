@@ -677,6 +677,33 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/admin/newsroom/scheduler/config/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/newsroom/scheduler/config">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/newsroom/scheduler/config/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/admin/newsroom/scheduler/runs/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/newsroom/scheduler/runs">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/newsroom/scheduler/runs/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/admin/newsroom/scheduler/tick-now/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/newsroom/scheduler/tick-now">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/newsroom/scheduler/tick-now/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/admin/newsroom/sweep-dryrun/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/newsroom/sweep-dryrun">> = Specific
@@ -771,6 +798,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/templates">> = Specific
   const handler = {} as typeof import("../../../app/api/admin/templates/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/cron/newsroom-scheduler/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/cron/newsroom-scheduler">> = Specific
+  const handler = {} as typeof import("../../../app/api/cron/newsroom-scheduler/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

@@ -755,3 +755,62 @@ export const insertCityResearchSourceSchema = createInsertSchema(cityResearchSou
 });
 export type InsertCityResearchSource = z.infer<typeof insertCityResearchSourceSchema>;
 export type CityResearchSource = typeof cityResearchSources.$inferSelect;
+
+export const newsroomSchedulerConfig = pgTable("newsroom_scheduler_config", {
+  id: text("id").primaryKey().default("singleton"),
+  enabled: boolean("enabled").notNull().default(false),
+  pairingsPerDay: integer("pairings_per_day").notNull().default(5),
+  dailyBudgetUsd: numeric("daily_budget_usd", { precision: 8, scale: 4 }).notNull().default("1.0000"),
+  pickerStrategy: text("picker_strategy").notNull().default("balanced"),
+  pausedReason: text("paused_reason"),
+  lastTickAt: timestamp("last_tick_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const newsroomSchedulerRuns = pgTable(
+  "newsroom_scheduler_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tickAt: timestamp("tick_at", { withTimezone: true }).defaultNow().notNull(),
+    triggeredBy: text("triggered_by").notNull(),
+    outcome: text("outcome").notNull(),
+    hayloArticleId: uuid("haylo_article_id"),
+    citySlug: text("city_slug"),
+    verdict: text("verdict"),
+    flowScore: integer("flow_score"),
+    knowledgeArticleId: uuid("knowledge_article_id"),
+    reviewQueueId: uuid("review_queue_id"),
+    costUsd: numeric("cost_usd", { precision: 10, scale: 6 }),
+    totalTokens: integer("total_tokens"),
+    durationMs: integer("duration_ms"),
+    notes: text("notes"),
+  },
+  (table) => [index("newsroom_scheduler_runs_tick_idx").on(table.tickAt)]
+);
+
+export const insertNewsroomSchedulerConfigSchema = createInsertSchema(newsroomSchedulerConfig).omit({
+  updatedAt: true,
+  lastTickAt: true,
+});
+export type InsertNewsroomSchedulerConfig = z.infer<typeof insertNewsroomSchedulerConfigSchema>;
+export type NewsroomSchedulerConfig = typeof newsroomSchedulerConfig.$inferSelect;
+
+export const insertNewsroomSchedulerRunSchema = createInsertSchema(newsroomSchedulerRuns).omit({
+  id: true,
+  tickAt: true,
+});
+export type InsertNewsroomSchedulerRun = z.infer<typeof insertNewsroomSchedulerRunSchema>;
+export type NewsroomSchedulerRun = typeof newsroomSchedulerRuns.$inferSelect;
+
+export const SCHEDULER_OUTCOMES = [
+  "paired_pass",
+  "paired_warn",
+  "paired_fail",
+  "skipped_no_eligible",
+  "skipped_disabled",
+  "skipped_quota",
+  "skipped_budget",
+  "skipped_locked",
+  "error",
+] as const;
+export type SchedulerOutcome = typeof SCHEDULER_OUTCOMES[number];
