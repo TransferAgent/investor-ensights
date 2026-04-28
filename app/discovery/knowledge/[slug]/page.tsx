@@ -146,7 +146,20 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight" data-testid="text-headline" dangerouslySetInnerHTML={{ __html: article.headline.replace(/<\/?h[1-6][^>]*>/gi, "") }} />
 
         {article.subheadline && (
-          <h2 className="text-lg font-normal text-blue-200/70 mb-10 pb-6 border-b border-white/10" data-testid="text-subheadline" dangerouslySetInnerHTML={{ __html: article.subheadline.replace(/<\/?h[1-6][^>]*>/gi, "") }} />
+          <h2 className="text-lg font-normal text-blue-200/70 mb-4" data-testid="text-subheadline" dangerouslySetInnerHTML={{ __html: article.subheadline.replace(/<\/?h[1-6][^>]*>/gi, "") }} />
+        )}
+
+        {article.metaDescription && (
+          <p
+            className="text-sm italic text-blue-200/60 border-l-[3px] border-blue-300/40 pl-3 mb-10 pb-6 border-b border-white/10"
+            data-testid="text-meta-description"
+          >
+            {article.metaDescription}
+          </p>
+        )}
+
+        {!article.metaDescription && article.subheadline && (
+          <div className="mb-10 pb-6 border-b border-white/10" />
         )}
 
         <div
