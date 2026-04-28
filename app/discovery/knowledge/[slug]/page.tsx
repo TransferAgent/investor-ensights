@@ -146,29 +146,8 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight" data-testid="text-headline" dangerouslySetInnerHTML={{ __html: article.headline.replace(/<\/?h[1-6][^>]*>/gi, "") }} />
 
         {article.subheadline && (
-          <h2 className="text-lg font-normal text-blue-200/70 mb-8" data-testid="text-subheadline" dangerouslySetInnerHTML={{ __html: article.subheadline.replace(/<\/?h[1-6][^>]*>/gi, "") }} />
+          <h2 className="text-lg font-normal text-blue-200/70 mb-10 pb-6 border-b border-white/10" data-testid="text-subheadline" dangerouslySetInnerHTML={{ __html: article.subheadline.replace(/<\/?h[1-6][^>]*>/gi, "") }} />
         )}
-
-        <div className="flex flex-wrap items-center gap-4 mb-8 text-sm text-blue-200/50 border-b border-white/10 pb-6">
-          <span data-testid="text-author">By {article.authorName}</span>
-          {article.datePublished && (
-            <span data-testid="text-date">
-              {new Date(article.datePublished).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </span>
-          )}
-          <a
-            href="mailto:info@tableicity.com"
-            className="inline-flex items-center gap-1.5 text-blue-300/70 hover:text-blue-200 transition-colors"
-            data-testid="link-email-contact"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            info@tableicity.com
-          </a>
-        </div>
 
         <div
           className="prose prose-invert prose-blue max-w-none
