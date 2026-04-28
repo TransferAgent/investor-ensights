@@ -7,6 +7,7 @@ import { storage } from "@/lib/storage";
 import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { processPair } from "@/lib/newsroom/pairProcessor";
+import { runPairAgentPipeline } from "@/lib/newsroom/pairAgentOrchestrator";
 import { newsroomDraftPayloadV1Schema } from "@/lib/newsroom/draftPayload";
 
 const MAX_CITIES_PER_REQUEST = 25;
@@ -48,9 +49,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Haylo article status is "${haylo.status}" — only "ready" articles can be paired.` }, { status: 409 });
   }
 
-  if (!dryRun && !process.env.OPENAI_API_KEY) {
+  if (!dryRun && !(process.env.OPENAI_API_KEY || process.env.OpenAi_Key)) {
     return NextResponse.json(
-      { error: "OPENAI_API_KEY is not set. Enable Dry Run, or add the secret in the environment to use the live auditor." },
+      { error: "OPENAI_API_KEY (or OpenAi_Key) is not set. Enable Dry Run, or add the secret in the environment to use the live multi-agent pipeline." },
       { status: 412 }
     );
   }
@@ -75,12 +76,15 @@ export async function POST(req: NextRequest) {
 
   for (const city of cities) {
     try {
-      const pair = await processPair({
+      const pairInput = {
         hayloArticle: { id: haylo.id, slug: haylo.slug, title: haylo.title, topicSlug: haylo.topicSlug, bodyHtml: haylo.bodyHtml },
         city: { slug: city.slug, cityName: city.cityName, stateCode: city.stateCode, stateName: city.stateName },
         localVibe: null,
         dryRun,
-      });
+      };
+      const pair = dryRun
+        ? await processPair(pairInput)
+        : await runPairAgentPipeline({ ...pairInput, username: session.username });
 
       const verdict = pair.audit.verdict;
       const draft = pair.draftPayload;

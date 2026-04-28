@@ -410,11 +410,18 @@ export function makeOpenAIGenerator(
 
     const today = new Date();
     const dateString = today.toDateString();
+    const hayloSeed = ctx.hayloSeed
+      ? {
+          title: ctx.hayloSeed.title,
+          bodyHtml: ctx.hayloSeed.bodyHtml,
+          topicSlug: ctx.hayloSeed.topicSlug ?? null,
+        }
+      : null;
 
     const firstResult = await runStage<CopywriterRaw>(bundle.copywriter, {
       ctx,
       prior,
-      extras: { dateString },
+      extras: { dateString, hayloSeed },
     });
     const firstShape = shapeCopywriterOutput(firstResult.parsed, ctx, dateString);
 
@@ -437,6 +444,7 @@ export function makeOpenAIGenerator(
           dateString,
           previousTitle: firstShape.title,
           failureReasons: titleGate.reasons.join("; "),
+          hayloSeed,
         },
       });
       const retryShape = shapeCopywriterOutput(retryResult.parsed, ctx, dateString);

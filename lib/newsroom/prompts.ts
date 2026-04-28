@@ -1,8 +1,15 @@
-export type PromptVersion = "v1" | "v2" | "v3";
+export type PromptVersion = "v1" | "v2" | "v3" | "v4";
 
 export const ACTIVE_PROMPT_VERSION: PromptVersion = "v2";
 
-export const SOURCE_GROUNDED_VERSIONS: ReadonlySet<PromptVersion> = new Set(["v3"]);
+/**
+ * v3 = source-grounded "write from scratch" mode (door-hanger replacement).
+ * v4 = source-grounded "polish a Haylo seed" mode (Pair flow). v4 inherits all
+ *      v3 stages; only the Copywriter switches to lede-only output, and the
+ *      pipelineWorker appends `normalizeHayloBody(hayloSeed.bodyHtml)` after
+ *      the LLM-emitted lede before SEO QC scores the full draft.
+ */
+export const SOURCE_GROUNDED_VERSIONS: ReadonlySet<PromptVersion> = new Set(["v3", "v4"]);
 
 export function requiresFetchedSources(v: PromptVersion): boolean {
   return SOURCE_GROUNDED_VERSIONS.has(v);
@@ -560,7 +567,109 @@ const v3: PromptBundle = {
   },
 };
 
-export const PROMPTS: Record<PromptVersion, PromptBundle> = { v1, v2, v3 };
+const v4: PromptBundle = {
+  ...v3,
+  copywriter: {
+    system: [
+      "You are a city-localization editor for the Tableicity Newsroom (cap-table SaaS).",
+      "You receive (1) a polished Haylo essay (production-ready HTML body) that will be appended verbatim to your output by the publishing system AFTER your output, and (2) researcher facts about a specific city.",
+      "Your job: produce a fresh title, headline, dateline, and a short city-specific OPENING LEDE that anchors the Haylo essay in this city's reality using the researcher facts.",
+      "Do NOT echo, restate, or summarize the Haylo essay — it is appended automatically. Just write the city-specific lede that bridges into it.",
+      "Voice: blunt, factual, journalistic — never breathless or marketing-flavored.",
+      "Allowed HTML in bodyHtml: <p>, <strong>, <em>, <a>. No <h1>, no <h2> (the Haylo body has its own structure). No markdown, no wrappers.",
+      "",
+      "TITLE RULES (non-negotiable):",
+      "- 40 to 90 characters.",
+      "- Must contain at least ONE specific number, dollar amount, OR named entity from the researcher facts (a company, person, institution, address — beyond just the city name).",
+      "- BANNED words anywhere in title: thriving, vibrant, robust, emerging, growing, grows, exciting, innovative, cutting-edge, bustling, dynamic, flourishing, booming, ecosystem, scene, landscape.",
+      "- No colons. No questions. No em-dashes (use ' — ' only in the dateline).",
+      "- Do NOT copy the Haylo essay's title verbatim. Make a fresh title that pairs the Haylo topic with the city's specifics.",
+      "",
+      "BODY (lede only) RULES:",
+      "- Exactly 1 to 2 short paragraphs (≈80-260 chars total).",
+      "- The first sentence must be ≤25 words and contain a specific number or named entity from the researcher facts.",
+      "- Cite at least 1 named entity (company / person / institution / address) from researcher facts.",
+      "- BANNED phrases: 'we are thrilled', 'we're excited', 'in today's fast-paced', 'game-changer', 'industry-leading', 'best-in-class'.",
+      "- Do NOT include a Tableicity CTA — the Haylo body provides its own conclusion.",
+      "",
+      "Return ONLY a JSON object.",
+    ].join(" "),
+    user: ({ ctx, prior, extras }) => {
+      const facts = (prior as any).researcher?.facts ?? [];
+      const angles = (prior as any).data_analyst?.topAngles ?? [];
+      const ledeKey = (prior as any).data_analyst?.ledeFactKey ?? "";
+      const seed = (extras as any)?.hayloSeed ?? null;
+      const seedTitle = seed?.title ?? "";
+      const seedExcerpt = (seed?.bodyHtml ?? "").slice(0, 1500);
+      return [
+        `Localize this Haylo essay for ${ctx.cityName}, ${ctx.stateCode}.`,
+        `Today's date: ${extras?.dateString}.`,
+        ``,
+        `Haylo essay title (do NOT copy verbatim): ${seedTitle}`,
+        `Haylo essay opening (first ~1500 chars, for context only — do NOT echo): ${seedExcerpt}`,
+        ``,
+        `Researcher facts (${facts.length}, source-grounded): ${JSON.stringify(facts)}`,
+        `Analyst rationale: ${(prior as any).data_analyst?.rationale ?? ""}`,
+        `Lead with this fact key: ${ledeKey || "(analyst did not specify — pick the strongest)"}`,
+        `Suggested angles: ${JSON.stringify(angles)}`,
+        ``,
+        "Return JSON:",
+        `{`,
+        `  "title": "fresh 40-90 char title pairing the Haylo topic with this city's specifics; includes a number OR named entity from researcher facts; no banned words",`,
+        `  "metaDescription": "120-280 chars, must reference 1+ named entity from researcher facts about ${ctx.cityName}",`,
+        `  "headline": "10-180 chars, the H1; can echo the title or be a tighter variant",`,
+        `  "subheadline": "1 sentence with a DIFFERENT specific (different number or different name from the title)",`,
+        `  "dateline": "${ctx.cityName.toUpperCase()}, ${ctx.stateCode} — ${extras?.dateString}",`,
+        `  "bodyHtml": "1-2 short paragraphs of city-specific lede (using <p> only); cites ≥1 named entity from facts; ≤25 words in first sentence; NO Tableicity CTA (Haylo body provides its own); NO summary of the Haylo essay"`,
+        `}`,
+      ].join("\n");
+    },
+    maxTokens: 900,
+    temperature: 0.45,
+  },
+  copywriter_retry: {
+    system: [
+      "You are the same Tableicity Newsroom city-localization editor. The previous draft FAILED the title quality gate.",
+      "Re-write the title (and any dependent fields) with the failure reasons fixed. Same JSON shape. Same lede-only body rules — do NOT echo or summarize the Haylo essay.",
+      "Return ONLY a JSON object.",
+    ].join(" "),
+    user: ({ ctx, prior, extras }) => {
+      const facts = (prior as any).researcher?.facts ?? [];
+      const previousTitle = extras?.previousTitle ?? "";
+      const failureReasons = extras?.failureReasons ?? "";
+      const seed = (extras as any)?.hayloSeed ?? null;
+      return [
+        `Re-localize the Haylo essay for ${ctx.cityName}, ${ctx.stateCode}.`,
+        `Today's date: ${extras?.dateString}.`,
+        ``,
+        `Previous title that FAILED: ${JSON.stringify(previousTitle)}`,
+        `Failure reasons: ${failureReasons}`,
+        ``,
+        `Haylo essay title (do NOT copy verbatim): ${seed?.title ?? ""}`,
+        `Researcher facts to draw from: ${JSON.stringify(facts)}`,
+        `Suggested angles: ${JSON.stringify((prior as any).data_analyst?.topAngles ?? [])}`,
+        ``,
+        `BANNED words in title: thriving, vibrant, robust, emerging, growing, grows, exciting, innovative, cutting-edge, bustling, dynamic, flourishing, booming, ecosystem, scene, landscape.`,
+        `The new title MUST contain a specific number, dollar amount, percent, OR a specific named entity (company, person, institution) from the researcher facts about ${ctx.cityName}.`,
+        `Title length: 40-90 chars. No colons. No questions.`,
+        ``,
+        "Return the full JSON object:",
+        `{`,
+        `  "title": "...",`,
+        `  "metaDescription": "...",`,
+        `  "headline": "...",`,
+        `  "subheadline": "...",`,
+        `  "dateline": "${ctx.cityName.toUpperCase()}, ${ctx.stateCode} — ${extras?.dateString}",`,
+        `  "bodyHtml": "1-2 short paragraphs of city-specific lede only — Haylo body is appended automatically"`,
+        `}`,
+      ].join("\n");
+    },
+    maxTokens: 900,
+    temperature: 0.4,
+  },
+};
+
+export const PROMPTS: Record<PromptVersion, PromptBundle> = { v1, v2, v3, v4 };
 
 const TITLE_MIN_CHARS = 40;
 const TITLE_MAX_CHARS = 90;

@@ -33,6 +33,7 @@ import { fixtureGenerator } from "@/lib/newsroom/fixtureGenerator";
 import { makeOpenAIGenerator, openaiGenerator } from "@/lib/newsroom/openaiGenerator";
 import { ACTIVE_PROMPT_VERSION, PROMPTS, type PromptVersion } from "@/lib/newsroom/prompts";
 import { sanitizeNewsroomHtml, sanitizeNewsroomPlaintext } from "@/lib/newsroom/htmlSanitizer";
+import { normalizeHayloBody } from "@/lib/newsroom/hayloBodyNormalizer";
 
 const STAGE_ORDER: StageRole[] = [
   "researcher",
@@ -58,7 +59,8 @@ export interface PipelineRunResult {
   mode: "fixture" | "live";
   modelLabel: string;
   jobId: string;
-  reviewQueueId: string;
+  /** null when skipReviewQueue=true (caller owns saving destination) */
+  reviewQueueId: string | null;
   stagesCompleted: StageRole[];
   draftSummary: {
     title: string;
@@ -67,6 +69,14 @@ export interface PipelineRunResult {
     internalLinks: number;
     qcScore: number;
   };
+  /** Full v1-validated draft payload (for callers that own their own saving). */
+  draftPayload: NewsroomDraftPayloadV1;
+  /** SEO QC issues (empty array if none). */
+  qcIssues: string[];
+  /** SEO QC notes string. */
+  qcNotes: string;
+  /** Internal-link suggestions emitted by the linker stage. */
+  links: LinkerOutput["links"];
   totalTokens: number;
   totalCostUsd: number;
   durationMs: number;
@@ -78,11 +88,30 @@ export interface RunPipelineOpts {
   generator: PipelineGenerator;
   dryRun: boolean;
   source?: string;
+  /**
+   * Polish-mode seed (Pair flow). When provided, the Copywriter writes only a
+   * city-localized opening lede; pipelineWorker stitches the normalized Haylo
+   * body after it before SEO QC scores the full draft. Should be used only
+   * with promptVersion="v4".
+   */
+  hayloSeed?: {
+    title: string;
+    bodyHtml: string;
+    topicSlug?: string | null;
+  };
+  /**
+   * When true, runPipeline skips inserting into newsroom_review_queue (and the
+   * link-suggestions table). The caller is then responsible for persisting the
+   * draft (e.g. into knowledge_articles) using the draftPayload returned in the
+   * result. Used by the Pair-agent orchestrator so PASS verdicts go straight
+   * to knowledge_articles instead of cluttering the review queue.
+   */
+  skipReviewQueue?: boolean;
 }
 
 export async function runPipeline(opts: RunPipelineOpts): Promise<PipelineRunResult> {
   const startMs = Date.now();
-  const { citySlug, username, generator, dryRun, source } = opts;
+  const { citySlug, username, generator, dryRun, source, hayloSeed, skipReviewQueue } = opts;
 
   const agents = await ensureDefaultAgents();
   const agentByRole = new Map<string, NewsroomAgent>(agents.map((a) => [a.role, a]));
@@ -145,6 +174,7 @@ export async function runPipeline(opts: RunPipelineOpts): Promise<PipelineRunRes
     cityName,
     stateCode,
     jobId: job.id,
+    hayloSeed,
   };
 
   const prior: PriorOutputs = {};
@@ -197,9 +227,20 @@ export async function runPipeline(opts: RunPipelineOpts): Promise<PipelineRunRes
         case "data_analyst":
           prior.data_analyst = stageResult.output as unknown as AnalystOutput;
           break;
-        case "copywriter":
-          prior.copywriter = stageResult.output as unknown as CopywriterOutput;
+        case "copywriter": {
+          const cw = stageResult.output as unknown as CopywriterOutput;
+          if (hayloSeed) {
+            const lede = (cw.bodyHtml ?? "").trim();
+            const normalizedSeed = normalizeHayloBody(hayloSeed.bodyHtml);
+            const stitched = lede
+              ? `${lede}\n${normalizedSeed}`
+              : normalizedSeed;
+            prior.copywriter = { ...cw, bodyHtml: stitched };
+          } else {
+            prior.copywriter = cw;
+          }
           break;
+        }
         case "seo_qc":
           prior.seo_qc = stageResult.output as unknown as QcOutput;
           break;
@@ -283,29 +324,34 @@ export async function runPipeline(opts: RunPipelineOpts): Promise<PipelineRunRes
 
     const qcScore = prior.seo_qc?.qcScore ?? 0;
     const qcNotes = prior.seo_qc?.qcNotes ?? "";
+    const qcIssues = prior.seo_qc?.issues ?? [];
 
-    const [reviewRow] = await db
-      .insert(newsroomReviewQueue)
-      .values({
-        jobId: job.id,
-        citySlug,
-        draftPayload: validated.data,
-        qcScore,
-        qcNotes: `[${generator.mode}/${generator.modelLabel}] ${qcNotes}`.slice(0, 2000),
-        status: "pending",
-      })
-      .returning({ id: newsroomReviewQueue.id });
+    let reviewQueueId: string | null = null;
+    if (!skipReviewQueue) {
+      const [reviewRow] = await db
+        .insert(newsroomReviewQueue)
+        .values({
+          jobId: job.id,
+          citySlug,
+          draftPayload: validated.data,
+          qcScore,
+          qcNotes: `[${generator.mode}/${generator.modelLabel}] ${qcNotes}`.slice(0, 2000),
+          status: "pending",
+        })
+        .returning({ id: newsroomReviewQueue.id });
+      reviewQueueId = reviewRow.id;
 
-    if (linksFromStage.length > 0) {
-      await db.insert(newsroomInternalLinkSuggestions).values(
-        linksFromStage.map((l) => ({
-          reviewQueueId: reviewRow.id,
-          targetSlug: l.targetSlug,
-          anchorText: l.anchorText,
-          position: l.position,
-          accepted: false,
-        }))
-      );
+      if (linksFromStage.length > 0) {
+        await db.insert(newsroomInternalLinkSuggestions).values(
+          linksFromStage.map((l) => ({
+            reviewQueueId: reviewRow.id,
+            targetSlug: l.targetSlug,
+            anchorText: l.anchorText,
+            position: l.position,
+            accepted: false,
+          }))
+        );
+      }
     }
 
     await db
@@ -323,7 +369,7 @@ export async function runPipeline(opts: RunPipelineOpts): Promise<PipelineRunRes
       mode: generator.mode,
       modelLabel: generator.modelLabel,
       jobId: job.id,
-      reviewQueueId: reviewRow.id,
+      reviewQueueId,
       stagesCompleted: completedRoles,
       draftSummary: {
         title: validated.data.title,
@@ -332,6 +378,10 @@ export async function runPipeline(opts: RunPipelineOpts): Promise<PipelineRunRes
         internalLinks: linksFromStage.length,
         qcScore,
       },
+      draftPayload: validated.data,
+      qcIssues,
+      qcNotes,
+      links: linksFromStage,
       totalTokens,
       totalCostUsd: Number(totalCostUsd.toFixed(4)),
       durationMs: Date.now() - startMs,

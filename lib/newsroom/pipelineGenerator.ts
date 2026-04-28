@@ -12,6 +12,18 @@ export interface StageContext {
   cityName: string;
   stateCode: string;
   jobId: string;
+  /**
+   * Optional Haylo seed for polish-mode runs (Pair flow). When present, the
+   * Copywriter agent shifts from "write from scratch" to "produce a city-
+   * localized opening lede + headline/title; preserve the Haylo body".
+   * pipelineWorker stitches `normalizeHayloBody(hayloSeed.bodyHtml)` after the
+   * copywriter's lede before SEO QC sees the draft.
+   */
+  hayloSeed?: {
+    title: string;
+    bodyHtml: string;
+    topicSlug?: string | null;
+  };
 }
 
 export interface ResearcherOutput {
