@@ -1,8 +1,12 @@
 import { createHash } from "node:crypto";
 import { composePressRelease, type ComposeInput, type ComposeResult } from "./pressReleaseComposer";
 import { auditPressRelease, type AuditorInput, type AuditorResult, type AuditVerdict, type AuditorIssue } from "./auditor";
+import { normalizeHayloBody } from "./hayloBodyNormalizer";
 import type { HayloArticle, CityLocation } from "@shared/schema";
 import type { NewsroomDraftPayloadV1 } from "./draftPayload";
+
+const META_DESCRIPTION_TARGET_CHARS = 122;
+const META_DESCRIPTION_HARD_MAX = 295;
 
 export interface PairInput {
   hayloArticle: Pick<HayloArticle, "id" | "slug" | "title" | "topicSlug" | "bodyHtml">;
@@ -26,10 +30,73 @@ export function buildSuggestedSlug(citySlug: string, hayloSlug: string): string 
   return base.slice(0, 110);
 }
 
-export function buildMetaDescription(cityName: string, stateCode: string, hayloTitle: string): string {
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/(p|h[1-6]|li|div)>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function splitSentences(text: string): string[] {
+  const matches = text.match(/[^.!?]+[.!?]+/g);
+  if (!matches || matches.length === 0) return text ? [text] : [];
+  return matches.map((s) => s.trim()).filter(Boolean);
+}
+
+function hardTruncateToPeriod(sentence: string, maxChars: number): string {
+  if (sentence.length <= maxChars) return sentence;
+  const slice = sentence.slice(0, maxChars - 1);
+  const lastSpace = slice.lastIndexOf(" ");
+  const cut = lastSpace > 40 ? slice.slice(0, lastSpace) : slice;
+  return cut.replace(/[\s,;:—\-–]+$/, "") + ".";
+}
+
+function buildMetaDescriptionFromBody(bodyHtml: string, maxChars: number): string | null {
+  const normalized = normalizeHayloBody(bodyHtml);
+  const text = htmlToPlainText(normalized);
+  if (!text) return null;
+
+  const sentences = splitSentences(text);
+  if (sentences.length === 0) return null;
+
+  let acc = "";
+  for (const s of sentences) {
+    const tentative = acc ? `${acc} ${s}` : s;
+    if (tentative.length > maxChars) {
+      if (!acc) {
+        return hardTruncateToPeriod(s, maxChars);
+      }
+      return acc;
+    }
+    acc = tentative;
+  }
+  return acc || null;
+}
+
+export function buildMetaDescription(
+  cityName: string,
+  stateCode: string,
+  hayloTitle: string,
+  hayloBodyHtml?: string,
+): string {
+  if (hayloBodyHtml) {
+    const fromBody = buildMetaDescriptionFromBody(hayloBodyHtml, META_DESCRIPTION_TARGET_CHARS);
+    if (fromBody) return fromBody.slice(0, META_DESCRIPTION_HARD_MAX);
+  }
   const sentence = `${hayloTitle} — Tableicity insights for founders in ${cityName}, ${stateCode}.`;
-  if (sentence.length >= 40) return sentence.slice(0, 295);
-  return `${sentence} Cap table, equity, and 409A guidance for the ${cityName} startup community.`.slice(0, 295);
+  if (sentence.length >= 40) return sentence.slice(0, META_DESCRIPTION_HARD_MAX);
+  return `${sentence} Cap table, equity, and 409A guidance for the ${cityName} startup community.`.slice(
+    0,
+    META_DESCRIPTION_HARD_MAX,
+  );
 }
 
 function mockAudit(input: { citySlug: string; hayloArticleId: string; localVibeWasInjected: boolean; warnings: string[] }): AuditorResult {
@@ -111,7 +178,12 @@ export async function processPair(input: PairInput): Promise<PairResult> {
   }
 
   const suggestedSlug = buildSuggestedSlug(input.city.slug, input.hayloArticle.slug);
-  const metaDescription = buildMetaDescription(input.city.cityName, input.city.stateCode, input.hayloArticle.title);
+  const metaDescription = buildMetaDescription(
+    input.city.cityName,
+    input.city.stateCode,
+    input.hayloArticle.title,
+    input.hayloArticle.bodyHtml,
+  );
 
   const draftPayload: NewsroomDraftPayloadV1 = {
     version: "v1",

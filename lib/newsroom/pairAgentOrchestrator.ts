@@ -138,7 +138,12 @@ export async function runPairAgentPipeline(input: RunPairAgentInput): Promise<Pa
   const metaDescription =
     agentDraft.metaDescription && agentDraft.metaDescription.length >= 40
       ? agentDraft.metaDescription
-      : buildMetaDescription(input.city.cityName, input.city.stateCode, input.hayloArticle.title);
+      : buildMetaDescription(
+          input.city.cityName,
+          input.city.stateCode,
+          input.hayloArticle.title,
+          input.hayloArticle.bodyHtml,
+        );
 
   const draftPayload: NewsroomDraftPayloadV1 = {
     ...agentDraft,
