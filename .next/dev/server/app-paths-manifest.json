@@ -1,3 +1,4 @@
 {
+  "/api/cron/newsroom-scheduler/route": "app/api/cron/newsroom-scheduler/route.js",
   "/page": "app/page.js"
 }
