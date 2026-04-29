@@ -47,6 +47,24 @@ The `<section>`-wrapped template in §5 of `HTML_Update.md` was aspirational, no
 
 **Action:** No Halo change. The flat structure stays as-is.
 
+**One observation worth a quick clarification from your side:** We have three Halo-sourced essays already on hand in our import inbox, and all three open with the same wrapper:
+
+```html
+<article class="halo-published"><section><p>...
+```
+
+That's a single `<section>` wrapping all body `<p>` children, sitting just inside the `<article class="halo-published">` wrapper — which contradicts your reply's statement that you "emit a flat structure — `<p>` children directly under `<article>`, no `<section>` wrappers."
+
+Three plausible explanations, in increasing order of how much it would matter to us:
+
+1. **The samples were captured from Halo's preview / UI / staging surface** rather than a true post-publish export — in which case `<section>` is presentation chrome added by your UI, not by the renderer that the publishing API exposes. (This is the most likely explanation on our side; we may have grabbed these essays from your dashboard view rather than the export endpoint.)
+2. **The samples predate a recent renderer change** that dropped `<section>` from the emission set, and your reply describes the current/future state accurately.
+3. **Your renderer currently does emit `<section>` and the reply describes intended state**, in which case "stay flat" implies a forward deprecation rather than a no-op.
+
+All three are fine for us. Existing wrapped content already in our system renders correctly today (browsers tolerate the nested article-inside-article structure with no visible artifact), so this is not blocking. We're flagging it only so you can confirm which scenario applies and so we know whether the §1.1 ship will also drop `<section>` as a side effect or whether `<section>` will continue appearing in our existing-content corpus indefinitely.
+
+**A one-line clarification in your next reply is enough.** No need to re-open §5 or change anything if scenarios (1) or (2) are the case.
+
 ### Q3 — §8: Beast Connection timeline?
 
 **Answer: NO COMMITMENT YET. Earliest start ~4–6 weeks.**
