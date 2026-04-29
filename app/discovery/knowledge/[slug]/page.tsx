@@ -80,9 +80,91 @@ function removeDuplicateLeadParagraph(html: string, subheadline?: string | null)
   );
 }
 
+function splitSentencesPreservingTags(html: string): string[] {
+  const sentences: string[] = [];
+  let current = "";
+  let inTag = false;
+  let i = 0;
+  while (i < html.length) {
+    const ch = html[i];
+    current += ch;
+    if (ch === "<") {
+      inTag = true;
+    } else if (ch === ">") {
+      inTag = false;
+    } else if (!inTag && (ch === "." || ch === "!" || ch === "?")) {
+      let j = i + 1;
+      while (j < html.length && html[j] === "<") {
+        const end = html.indexOf(">", j);
+        if (end === -1) break;
+        const tag = html.slice(j, end + 1);
+        if (!/^<\//.test(tag)) break;
+        current += tag;
+        j = end + 1;
+      }
+      if (j >= html.length || /\s/.test(html[j])) {
+        sentences.push(current.trim());
+        current = "";
+        while (j < html.length && /\s/.test(html[j])) j++;
+        i = j;
+        continue;
+      }
+    }
+    i++;
+  }
+  if (current.trim()) sentences.push(current.trim());
+  return sentences.filter((s) => s.length > 0);
+}
+
+function chunkSentences(sentences: string[]): string[][] {
+  const chunks: string[][] = [];
+  let i = 0;
+  const n = sentences.length;
+  while (i < n) {
+    const remaining = n - i;
+    if (remaining <= 3) {
+      chunks.push(sentences.slice(i));
+      break;
+    }
+    if (remaining === 4) {
+      chunks.push(sentences.slice(i, i + 2));
+      i += 2;
+    } else if (remaining === 5) {
+      chunks.push(sentences.slice(i, i + 3));
+      i += 3;
+    } else {
+      chunks.push(sentences.slice(i, i + 2));
+      i += 2;
+    }
+  }
+  return chunks;
+}
+
+function rechunkParagraphs(html: string): string {
+  return html.replace(
+    /(?:<p\b(?![^>]*\bclass=["'][^"']*answer-block)[^>]*>[\s\S]*?<\/p>\s*)+/gi,
+    (run) => {
+      const innerRegex =
+        /<p\b(?![^>]*\bclass=["'][^"']*answer-block)[^>]*>([\s\S]*?)<\/p>/gi;
+      const sentences: string[] = [];
+      let m: RegExpExecArray | null;
+      while ((m = innerRegex.exec(run)) !== null) {
+        const inner = m[1].trim();
+        if (!inner) continue;
+        sentences.push(...splitSentencesPreservingTags(inner));
+      }
+      if (sentences.length === 0) return run;
+      const chunks = chunkSentences(sentences);
+      return chunks.map((c) => `<p>${c.join(" ")}</p>`).join("\n");
+    },
+  );
+}
+
 function transformBodyForRender(html: string, subheadline?: string | null): string {
   return markFirstAnswerBlock(
-    highlightBrandInBody(removeDuplicateLeadParagraph(html, subheadline)),
+    highlightBrandInBody(
+      rechunkParagraphs(removeDuplicateLeadParagraph(html, subheadline)),
+    ),
   );
 }
 
