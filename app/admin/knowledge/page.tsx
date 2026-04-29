@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Switch } from "@/components/ui/switch"
+
+const DEFAULT_ROBOTS = "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+const NOINDEX_ROBOTS = "noindex, follow"
 import {
   Dialog,
   DialogContent,
@@ -239,6 +243,7 @@ export default function KnowledgeAdmin() {
   const [formOgImage, setFormOgImage] = useState("")
   const [formAuthor, setFormAuthor] = useState("Tableicity")
   const [formPublisher, setFormPublisher] = useState("Tableicity")
+  const [formAllowIndexing, setFormAllowIndexing] = useState(true)
 
   const { data: articles, isLoading } = useQuery<KnowledgeArticle[]>({
     queryKey: ["/api/admin/knowledge", filterStatus],
@@ -573,6 +578,7 @@ export default function KnowledgeAdmin() {
         ogImageUrl: formOgImage || null,
         authorName: formAuthor,
         publisherName: formPublisher,
+        robots: formAllowIndexing ? DEFAULT_ROBOTS : NOINDEX_ROBOTS,
       })
     },
     onSuccess: () => {
@@ -791,6 +797,7 @@ export default function KnowledgeAdmin() {
     setFormOgImage("")
     setFormAuthor("Tableicity")
     setFormPublisher("Tableicity")
+    setFormAllowIndexing(true)
   }
 
   function openEdit(a: KnowledgeArticle) {
@@ -805,6 +812,7 @@ export default function KnowledgeAdmin() {
     setFormOgImage(a.ogImageUrl || "")
     setFormAuthor(a.authorName)
     setFormPublisher(a.publisherName)
+    setFormAllowIndexing(!((a as any).robots || "").toLowerCase().includes("noindex"))
     setEditArticle(a)
   }
 
@@ -870,6 +878,24 @@ export default function KnowledgeAdmin() {
         <Label htmlFor="ogImage">OG Image URL</Label>
         <Input id="ogImage" value={formOgImage} onChange={(e) => setFormOgImage(e.target.value)} placeholder="https://..." data-testid="input-og-image" />
       </div>
+      {isEdit && (
+        <div className="flex items-center justify-between gap-2 flex-wrap rounded-md border p-3">
+          <div className="space-y-0.5">
+            <Label htmlFor="formAllowIndexing" className="cursor-pointer">
+              Let search engines index this page
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              When off, this article won&apos;t appear in Google or other search engines (sets <code>noindex</code>).
+            </p>
+          </div>
+          <Switch
+            id="formAllowIndexing"
+            checked={formAllowIndexing}
+            onCheckedChange={setFormAllowIndexing}
+            data-testid="switch-allow-indexing"
+          />
+        </div>
+      )}
       <Button
         onClick={() => isEdit ? updateMutation.mutate() : createMutation.mutate()}
         disabled={isEdit ? updateMutation.isPending : createMutation.isPending}
