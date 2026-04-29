@@ -81,6 +81,10 @@ export async function pickNextPair(strategy: PickerStrategy = "balanced"): Promi
     LEFT JOIN last_paired ON last_paired.city_slug = c.slug
     WHERE h.status = 'ready'
       AND c.is_published = true
+      AND EXISTS (
+        SELECT 1 FROM city_research_sources crs
+        WHERE crs.city_id = c.id AND crs.enabled = true
+      )
       AND NOT EXISTS (
         SELECT 1 FROM knowledge_articles ka
         WHERE ka.haylo_article_id = h.id AND ka.city_slug = c.slug
@@ -107,6 +111,10 @@ export async function countEligiblePairs(): Promise<number> {
     CROSS JOIN city_locations c
     WHERE h.status = 'ready'
       AND c.is_published = true
+      AND EXISTS (
+        SELECT 1 FROM city_research_sources crs
+        WHERE crs.city_id = c.id AND crs.enabled = true
+      )
       AND NOT EXISTS (
         SELECT 1 FROM knowledge_articles ka
         WHERE ka.haylo_article_id = h.id AND ka.city_slug = c.slug
