@@ -576,6 +576,7 @@ export class DatabaseStorage implements IStorage {
       datePublished: article.datePublished || now,
       dateModified: now,
       updatedAt: now,
+      robots: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
     };
 
     if (article.ogImageUrl && article.ogImageUrl.startsWith("https://")) {
