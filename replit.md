@@ -45,6 +45,11 @@ The public-facing site features dynamic city landing pages and a locations grid 
 *   **Content Generation Pipeline:** The Newsroom pipeline uses a refined 5-agent model for generating press releases, focusing on source-grounded content. This pipeline has been optimized for cost and speed, including parallel execution of certain stages.
 *   **Haylo Content Integration:** Specific adjustments were made to correctly parse and style Halo Lab's HTML format, preserving key elements like `<strong>` tags and `answer-block` paragraphs while stripping redundant `<h1>` tags for optimal display on public pages.
 *   **Performance Tuning:** The live pipeline model was upgraded to `gpt-4.1-nano` for improved speed and cost efficiency. Pipeline stages are grouped for parallel execution where dependencies allow.
+*   **Article Lead-Paragraph Deduplication (`app/discovery/knowledge/[slug]/page.tsx`):** The dek (italic sub-paragraph) under each article headline is rendered from `metaDescription` (or `subheadline` as fallback). Many AI-generated bodies open with the same sentence as the dek, so `removeDuplicateLeadParagraph()` strips duplicates from the first non-`answer-block` `<p>` in three modes:
+    1.  Exact match → drop the whole paragraph.
+    2.  Fuzzy match (≥85% length ratio with shared 80-char prefix) → drop the whole paragraph.
+    3.  **Prefix match** → the dek is the opening sentence(s) of a longer paragraph; only the dek-shaped prefix is removed and the rest of the paragraph (with all inline markup) is preserved.
+    The prefix-strip helper (`stripDekPrefixFromInnerHtml`) is tag-stack-aware (refuses to cut inside an open `<strong>`/`<em>`/etc. so it never produces unbalanced HTML), decodes HTML entities (`&nbsp;`, `&amp;`, smart quotes, numeric entities) so normalization aligns with `normalizeForCompare`, and **requires a hard sentence boundary** (`.`/`!`/`?`) immediately after the matched prefix to avoid decapitating a longer sentence that merely opens with dek-shaped text. Output then flows through `rechunkParagraphs` and `highlightBrandInBody` as before.
 
 ## Pre-Publish Dev → Prod Sync
 
