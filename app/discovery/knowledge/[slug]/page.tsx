@@ -122,7 +122,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <style dangerouslySetInnerHTML={{ __html: `
-        [data-testid="article-body"] p.answer-block {
+        .knowledge-article-body p.answer-block {
           position: relative;
           background-color: rgba(59, 130, 246, 0.08);
           border-left: 4px solid #fbbf24;
@@ -132,7 +132,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           color: rgb(219, 234, 254);
           font-style: normal;
         }
-        [data-testid="article-body"] p.answer-block::before {
+        .knowledge-article-body p.answer-block::before {
           content: "QUICK ANSWER";
           position: absolute;
           top: 0.625rem;
@@ -143,7 +143,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           color: #fbbf24;
           text-transform: uppercase;
         }
-        [data-testid="article-body"] p.answer-block strong {
+        .knowledge-article-body p.answer-block strong {
           color: #fef3c7;
         }
       `}} />
@@ -199,7 +199,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
         )}
 
         <div
-          className="prose prose-invert prose-blue max-w-none
+          className="knowledge-article-body prose prose-invert prose-blue max-w-none
             prose-headings:text-blue-200/70 prose-headings:font-medium
             prose-h2:text-lg prose-h2:mt-8 prose-h2:mb-3
             prose-h3:text-base prose-h3:mt-6 prose-h3:mb-2

@@ -9,6 +9,7 @@ import { logAuditEvent } from "@/lib/audit";
 import { processPair } from "@/lib/newsroom/pairProcessor";
 import { runPairAgentPipeline } from "@/lib/newsroom/pairAgentOrchestrator";
 import { newsroomDraftPayloadV1Schema } from "@/lib/newsroom/draftPayload";
+import { sanitizeNewsroomHtml } from "@/lib/newsroom/htmlSanitizer";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -90,7 +91,10 @@ export async function POST(req: NextRequest) {
         : await runPairAgentPipeline({ ...pairInput, username: session.username });
 
       const verdict = pair.audit.verdict;
-      const draft = pair.draftPayload;
+      const draft = {
+        ...pair.draftPayload,
+        bodyHtml: sanitizeNewsroomHtml(pair.draftPayload.bodyHtml),
+      };
 
       const draftValidation = newsroomDraftPayloadV1Schema.safeParse(draft);
       if (!draftValidation.success) {
