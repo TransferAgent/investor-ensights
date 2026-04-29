@@ -79,6 +79,103 @@ npx tsx scripts/sync-dev-to-prod.ts --confirm  # mirror Dev into Prod
 *   Stringifies `json`/`jsonb` values to avoid node-pg array-literal coercion.
 *   Prints BEFORE and AFTER row-count snapshots, with a per-table match indicator.
 
+## Remix / Regional Fork — EU Handoff Notes
+
+The EU team is creating a separate Remix of this codebase that will run on EU-hosted infrastructure with its own databases, secrets, and domain. The US instance and EU instance share zero runtime resources.
+
+The marketing/UX overview of the platform lives in `John/EU_Handover.md` (architecture, page flow, cookie banner, login redirects). This section is the **technical handoff complement** — the things that are hardcoded or US-specific in the source and would silently inherit into the EU clone if not changed.
+
+### 1. Hardcoded `tableicity.com` URLs to update for the EU domain
+
+The codebase falls back to `https://www.tableicity.com` whenever `NEXT_PUBLIC_BASE_URL` is unset, but a few places hardcode it directly:
+
+*   `middleware.ts` — apex → www redirect target.
+*   `lib/storage.ts` — canonical URL written into `knowledge_articles.canonicalUrl` on create/update (overrides whatever `NEXT_PUBLIC_BASE_URL` is set to).
+*   `lib/newsroom/cityResearchAutoSeeder.ts` — User-Agent string sent to source sites.
+*   `scripts/newsroom-cron-tick.mjs` — fallback cron base URL.
+*   `config/localVibePrompts.ts` — example URL inside an LLM prompt.
+
+`NEXT_PUBLIC_BASE_URL` itself is read by ~12 routes/pages (sitemap, robots, JSON-LD, OpenGraph, draft URLs). Setting it correctly in the EU repl handles those automatically; the five files above must be edited by hand.
+
+### 2. Hardcoded brand string `"Tableicity"`
+
+Will appear in copy, JSON-LD, defaults, and prompts unless renamed:
+
+*   `shared/schema.ts` — `knowledge_articles.authorName` and `publisherName` default to `"Tableicity"`.
+*   `lib/newsroom/pairProcessor.ts` — hardcodes `authorName: "Tableicity"`, `publisherName: "Tableicity"`, and the meta-description fallback `"… Tableicity insights for founders in {city}, {state}."`
+*   `config/localVibePrompts.ts` — the system prompt opens with **"You are writing a Tableicity press-release-style knowledge article for US founders and finance operators."** Change brand AND `for US founders` for an EU brief.
+*   `components/homepage/login-panel.tsx`, `marketing-panel.tsx`, `city-marketing-panel.tsx` — visible brand text and slideshow alt text (10+ strings).
+
+### 3. Required environment secrets for the EU repl
+
+Every secret is per-instance — never share US ↔ EU. Recreate all of these in the EU repl's secrets:
+
+| Secret | Used by | Notes for EU |
+|---|---|---|
+| `DATABASE_URL` | dev DB connection | Provision an EU-region Postgres (Neon EU, Supabase EU, etc.) for data residency. |
+| `PROD_DATABASE_URL` | `scripts/sync-dev-to-prod.ts`, `scripts/push-schema-to-prod.sh` | EU prod DB. The sync script refuses to run if dev/prod resolve to the same host+db, which also prevents accidental cross-region writes. |
+| `SESSION_SECRET` | JWT signing in `lib/auth.ts` and `server/routes.ts` | Generate a fresh random string; do not reuse the US value. |
+| `NEXT_PUBLIC_BASE_URL` | sitemap, robots, JSON-LD, canonical URLs | Set to the EU public domain (e.g. `https://www.tableicity.eu`). |
+| `OPENAI_API_KEY` | Newsroom 5-agent pipeline + auditor | Confirm the OpenAI org has an EU data-residency agreement. |
+| `OPENCAGE_API_KEY` | `lib/geocoding.ts` for city lat/long | Works globally; just create a separate key for usage tracking. |
+| `CRON_SECRET` | `app/api/cron/newsroom-scheduler` and `scripts/newsroom-cron-tick.mjs` | Per-instance random string. |
+| `NEWSROOM_WORKER_SECRET` | `lib/newsroom.ts` worker auth | Per-instance random string. |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_DISPLAY` / `ADMIN_PURGE_OTHERS` | `scripts/upsert-super-admin.ts` for first admin seed | EU team picks their own; password ≥ 12 chars. |
+
+`.env.example` only lists the four most-basic vars (`DATABASE_URL`, `SESSION_SECRET`, `NEXT_PUBLIC_BASE_URL`, `PORT`) and is out of date — the table above is authoritative.
+
+### 4. US-centric schema fields
+
+`city_locations` (in `shared/schema.ts`) was modeled around US states:
+
+*   `state_code varchar(2) NOT NULL` — fits US 2-letter state codes; also fits ISO 3166-1 alpha-2 country codes if the EU team wants to repurpose it for country, but the field name will be misleading. Cleaner option: add `country_code` and make `state_code` nullable, or rename via a migration.
+*   `state_name varchar(50)` — fine for any region.
+*   Slug builder in `server/routes.ts` and `client/src/pages/admin-cities.tsx` is `${cityName}-${stateCode.toLowerCase()}`. EU example: `paris-fr` works, but the EU team should decide if they want country-only suffix, region (NUTS), or postal-prefix slugs.
+
+### 5. US-centric Newsroom auto-seeder (`lib/newsroom/cityResearchAutoSeeder.ts`)
+
+Before each Pair run the auto-seeder probes US-shaped URLs for grounding:
+
+*   Wikipedia: `en.wikipedia.org/wiki/{City},_{StateName}` (English-only).
+*   Municipal: `{cityFlat}.gov`, `cityof{cityFlat}.org`, `cityof{cityFlat}.com`.
+*   Chamber: `{cityFlat}chamber.com`, `{cityFlat}chamberofcommerce.com`.
+*   Crunchbase: `crunchbase.com/hub/{state}-{city}-startups`.
+
+For EU cities these will mostly 404 — meaning every EU city will fail the **Scheduler Picker Grounding Gate** (`lib/newsroom/schedulerPicker.ts`) and the auto-scheduler will skip them. The EU team should either:
+
+*   Replace the URL families with EU-appropriate sources (Wikipedia in local language, Eurostat city profiles, EU chamber of commerce networks, official municipal `.gouv.fr` / `.gov.uk` / `.gv.at` patterns, etc.), **or**
+*   Manually seed `city_research_sources` for each EU city via `POST /api/admin/cities/[id]/research-sources` and rely on manual `/admin/newsroom/pair` runs.
+
+### 6. GDPR & data residency
+
+The US instance has minimal user-facing PII (admin login only), but the EU instance will be subject to GDPR end-to-end. Items to verify before opening to EU traffic:
+
+*   **Cookie consent**: `John/EU_Handover.md` notes the existing cookie card is a US-style gateway. EU needs granular categories (necessary / analytics / marketing) with reject-all defaulting to no non-essential cookies. The auth cookie itself (httpOnly JWT) is strictly necessary and exempt.
+*   **Database hosting region** — pick an EU region in Neon/Supabase. The sync script does not enforce this; it's a hosting choice.
+*   **OpenAI**: confirm Zero Data Retention or EU residency on the OpenAI account used for the Newsroom pipeline. Article body content goes to OpenAI on every Pair run.
+*   **OpenCage**: lat/long geocoding sends city/address strings to OpenCage. They are ICO-registered and GDPR-compliant.
+*   **Admin audit log** (`admin_audit_log`): records actor email, IP, and action — already a controller-of-record dataset; add to your Article 30 register.
+*   **Right-to-erasure**: there is no public-user account system, so erasure scope is limited to admin users (`DELETE /api/admin/users/[id]`) and any inbound email/contact form submissions you may add later.
+
+### 7. Pre-publish sync — per-instance
+
+The sync workflow described earlier in this document is **per-instance**. The EU repl will have its own `DATABASE_URL` (EU dev) and `PROD_DATABASE_URL` (EU prod), and `scripts/sync-dev-to-prod.ts` runs Dev→Prod within that one EU instance. The script's safety check (refuses to run if both resolve to the same host+db) also makes it impossible to accidentally point the US dev at the EU prod or vice versa, but only because they will naturally be different hosts — there is no explicit US/EU tagging in the script.
+
+### 8. Suggested smoke tests after the EU clone is wired up
+
+Run these in order before announcing the EU site:
+
+1.  `npm run dev` — confirm the app boots and `GET /` returns 200.
+2.  Visit `/locations` — should load (empty grid is fine).
+3.  Seed at least one EU city via the admin UI or `POST /api/admin/cities`; confirm OpenCage geocoding fills lat/long.
+4.  Visit `/locations/[your-eu-slug]` — verify the page renders and the Google Map embeds for the EU coordinates.
+5.  `npx tsx scripts/upsert-super-admin.ts` (with EU env vars) — confirm admin login works at `/admin`.
+6.  Open `/sitemap.xml` and `/robots.txt` — confirm they emit the EU `NEXT_PUBLIC_BASE_URL`, not `tableicity.com`.
+7.  Search the rendered HTML of `/` and `/locations/[slug]` for the literal string `tableicity.com` — should be zero matches once the five hardcoded files in §1 are updated.
+8.  Run a manual Newsroom Pair against an EU city via `/admin/newsroom/pair` — confirm the pipeline completes (or fails cleanly) and check the resulting article's `canonicalUrl` points at the EU domain.
+9.  `npx tsx scripts/sync-dev-to-prod.ts` (dry run) — confirm it correctly identifies EU dev and EU prod as separate hosts and the table list looks right.
+10. Verify the cookie consent card shows EU-style granular categories before any tracker fires.
+
 ## External Dependencies
 
 *   **PostgreSQL**: Primary database.
