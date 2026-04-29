@@ -132,77 +132,29 @@ Everything else in this document is either already handled cleanly by Tableicity
 
 ---
 
-## 7. Answer Blocks — currently missing from the export
+## 7. Answer Blocks — see canonical spec from Halo
 
-Halo's system generates **Answer Blocks** alongside each prose essay — concise ~45–50 word summaries with their own headlines, explicitly designed as Google-bot content with low-to-zero drift from the original prose. These are an established SEO pattern that wins featured snippets, "People Also Ask" boxes, voice search results, and AI summary boxes.
+Halo's team has already written the authoritative spec for Answer Block markup. It lives in this folder as **`Answer_Block_Spec_From_Halo.md`** and supersedes anything earlier in this document on the topic.
 
-**Status today:** Halo generates Answer Blocks but they are **NOT included in the HTML export** that lands in Tableicity's `haylo-inbox/`. The exported file contains only the editorial prose. As a result, no Tableicity-published press release has Answer Blocks, and the SEO opportunity is being lost end-to-end.
+The short version: Halo emits Answer Blocks **inline** in the body as `<p class="answer-block" itemprop="abstract">…</p>` Schema.org microdata — NOT as JSON-LD FAQPage and NOT as a separate `<section>` block. They appear at meaningful section boundaries within the prose (intro abstract, mid-article transition, etc.). Body paragraphs around them stay as plain `<p>` tags.
 
-**Required:** Include Answer Blocks in every exported HTML file. Two acceptable formats — best practice is to do both.
+Read `Answer_Block_Spec_From_Halo.md` for the full spec, the suggested CSS, and the verification checklist.
 
-### 7.1 Format A — JSON-LD `FAQPage` schema (required, gold standard)
+### 7.1 What this means for Tableicity (concrete work)
 
-Embed the structured data as a `<script type="application/ld+json">` block at the top or bottom of the file. Invisible to human readers, fully parsed by Google.
+Three items are required for Answer Blocks to actually deliver SEO value end-to-end. All three are on Tableicity's side.
 
-```html
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "Challenges of Global Expansion",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Global expansion for startups is a complex ambition requiring a solid cap table to navigate equity management challenges. Regulatory compliance, investor trust, and equity compensation issues can derail growth if records are messy. A robust equity structure is essential to support international scaling and seize new market opportunities."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Solutions for Equity Management",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Platforms like Tableicity enhance global expansion by securing cap table data with Hash-256 encryption and Zero-Knowledge Proofs, meeting privacy demands in strict markets like the EU. Compliance-ready features and real-time automation align with standards like Open Cap Table Format, enabling startups to focus on growth."
-      }
-    }
-  ]
-}
-</script>
-```
+1. **Allow `class` and `itemprop` attributes through the sanitizer.** Tableicity's `lib/newsroom/htmlSanitizer.ts` currently strips both attributes from `<p>` tags. Update its `allowedAttributes` config to permit `class` and `itemprop` on `<p>` (and `class` on `<article>` for the `halo-published` wrapper).
 
-### 7.2 Format B — Visible `<section class="answer-blocks">` markup (optional, additive)
+2. **Stop stripping `<strong>` tags.** Tableicity's `lib/newsroom/hayloBodyNormalizer.ts` currently strips every `<strong>` and `<b>` tag. Halo intentionally bolds key terms (*GDPR*, *EU*, *VCs*, *Series A*) and the Answer Block spec relies on that emphasis surviving to the rendered page. Remove the strong-stripping behavior. Item 3 of §2 of this document (which previously asked Halo to stop bolding) is rescinded — Halo's bolding is intentional and Tableicity should preserve it.
 
-If Halo also wants to render the Answer Blocks as visible content on the page, add a section at the end of the body (after the conclusion) with this exact structure:
+3. **Add CSS for `.answer-block`.** The public knowledge page needs styling for the answer-block class. Halo provided baseline CSS in their spec doc — warm parchment background, gold left border, "QUICK ANSWER" label. Drop it into Tableicity's CSS (or restyle to match Tableicity's brand palette).
 
-```html
-<section class="answer-blocks" data-source="halo-answer-blocks">
-  <h2>Quick Answers</h2>
-  <div class="answer-block">
-    <h3>Challenges of Global Expansion</h3>
-    <p>Global expansion for startups is a complex ambition...</p>
-  </div>
-  <div class="answer-block">
-    <h3>Solutions for Equity Management</h3>
-    <p>Platforms like Tableicity enhance global expansion...</p>
-  </div>
-</section>
-```
+### 7.2 What Tableicity should NOT do
 
-Tableicity will detect this section by its `data-source="halo-answer-blocks"` attribute and render it cleanly under the press-release body.
-
-### 7.3 What Tableicity will do with Answer Blocks once they arrive
-
-- Add a structured `answerBlocks` storage column on the Haylo article record
-- Parse them out of the HTML on ingest (preferring JSON-LD if present, falling back to visible markup)
-- Render them as JSON-LD `FAQPage` schema on every published press release for Google
-- Optionally render them as a visible "Quick Answers" section under the body
-
-This is on Tableicity's roadmap as a follow-up workstream once Halo starts including them in the export. **No work happens on Tableicity's side until Halo confirms the export will include Answer Blocks** — there's nothing to build against until the data arrives.
-
-### 7.4 Drift discipline (informational)
-
-Halo's UI already reports prose drift when generating Answer Blocks (target ~0%). Maintain that discipline — Tableicity's downstream rendering assumes the Answer Block summaries are faithful to the prose, not contradictory restatements of it. If drift exceeds ~5% for a given essay, that essay should be flagged in Halo before export rather than shipped with mismatched Answer Blocks.
+- **Do not modify Answer Block text.** Halo enforces a 30–70 word budget and a 5% drift threshold on these summaries. City-localization passes (if any) must skip Answer Block paragraphs entirely.
+- **Do not add JSON-LD `FAQPage` schema separately.** The microdata `itemprop="abstract"` is the chosen signal. Adding parallel JSON-LD would be redundant at best and conflicting at worst.
+- **Do not parse Answer Blocks into a separate database column.** They live in the body HTML where Halo placed them. Round-tripping them through a structured column adds complexity without benefit — the body HTML IS the source of truth.
 
 ---
 
