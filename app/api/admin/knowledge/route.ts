@@ -3,6 +3,7 @@ import { verifySession } from "@/lib/auth";
 import { storage } from "@/lib/storage";
 import { logAuditEvent } from "@/lib/audit";
 import { sanitizeString } from "@/lib/sanitize";
+import { sanitizeNewsroomHtml } from "@/lib/newsroom/htmlSanitizer";
 
 export async function GET(req: NextRequest) {
   const session = await verifySession(req);
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     subheadline: body.subheadline || null,
     dateline: body.dateline ? sanitizeString(body.dateline) : null,
     metaDescription: body.metaDescription ? sanitizeString(body.metaDescription) : null,
-    bodyHtml: body.bodyHtml || "<p></p>",
+    bodyHtml: sanitizeNewsroomHtml(body.bodyHtml || "<p></p>"),
     boilerplateHtml: body.boilerplateHtml || null,
     ogImageUrl: body.ogImageUrl || null,
     authorName: body.authorName || "Tableicity",

@@ -3,6 +3,7 @@ import { verifySession } from "@/lib/auth";
 import { storage } from "@/lib/storage";
 import { logAuditEvent } from "@/lib/audit";
 import { sanitizeString } from "@/lib/sanitize";
+import { sanitizeNewsroomHtml } from "@/lib/newsroom/htmlSanitizer";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await verifySession(req);
@@ -27,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.subheadline !== undefined) data.subheadline = body.subheadline || null;
   if (body.dateline !== undefined) data.dateline = body.dateline ? sanitizeString(body.dateline) : null;
   if (body.metaDescription !== undefined) data.metaDescription = body.metaDescription ? sanitizeString(body.metaDescription) : null;
-  if (body.bodyHtml !== undefined) data.bodyHtml = body.bodyHtml;
+  if (body.bodyHtml !== undefined) data.bodyHtml = sanitizeNewsroomHtml(body.bodyHtml);
   if (body.boilerplateHtml !== undefined) data.boilerplateHtml = body.boilerplateHtml || null;
   if (body.ogImageUrl !== undefined) data.ogImageUrl = body.ogImageUrl || null;
   if (body.authorName !== undefined) data.authorName = body.authorName;
