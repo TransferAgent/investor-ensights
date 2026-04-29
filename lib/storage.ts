@@ -64,6 +64,9 @@ export interface IStorage {
   getAdminById(id: string): Promise<AdminUser | undefined>;
   createAdmin(admin: InsertAdminUser): Promise<AdminUser>;
   adminExists(): Promise<boolean>;
+  listAdmins(): Promise<Array<Omit<AdminUser, "passwordHash">>>;
+  deleteAdmin(id: string): Promise<boolean>;
+  updateAdminPassword(id: string, passwordHash: string): Promise<boolean>;
 
   createAuditLog(log: InsertAdminAuditLog): Promise<AdminAuditLog>;
   getAuditLogs(limit?: number): Promise<AdminAuditLog[]>;
@@ -368,6 +371,33 @@ export class DatabaseStorage implements IStorage {
       .select({ count: sql<number>`count(*)` })
       .from(adminUsers);
     return Number(result.count) > 0;
+  }
+
+  async listAdmins(): Promise<Array<Omit<AdminUser, "passwordHash">>> {
+    const rows = await db
+      .select({
+        id: adminUsers.id,
+        username: adminUsers.username,
+        displayName: adminUsers.displayName,
+        createdAt: adminUsers.createdAt,
+      })
+      .from(adminUsers)
+      .orderBy(adminUsers.createdAt);
+    return rows;
+  }
+
+  async deleteAdmin(id: string): Promise<boolean> {
+    const result = await db.delete(adminUsers).where(eq(adminUsers.id, id)).returning({ id: adminUsers.id });
+    return result.length > 0;
+  }
+
+  async updateAdminPassword(id: string, passwordHash: string): Promise<boolean> {
+    const result = await db
+      .update(adminUsers)
+      .set({ passwordHash })
+      .where(eq(adminUsers.id, id))
+      .returning({ id: adminUsers.id });
+    return result.length > 0;
   }
 
   async getStats() {

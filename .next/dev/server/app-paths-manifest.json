@@ -1,4 +1,6 @@
 {
-  "/discovery/knowledge/[slug]/page": "app/discovery/knowledge/[slug]/page.js",
+  "/api/admin/login/route": "app/api/admin/login/route.js",
+  "/api/admin/users/[id]/route": "app/api/admin/users/[id]/route.js",
+  "/api/admin/users/route": "app/api/admin/users/route.js",
   "/page": "app/page.js"
 }

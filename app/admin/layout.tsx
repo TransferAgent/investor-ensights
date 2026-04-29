@@ -32,6 +32,7 @@ import {
   Mail,
   Bot,
   BookOpen,
+  Users,
 } from "lucide-react"
 
 const navItems = [
@@ -44,6 +45,7 @@ const navItems = [
   { title: "Newsroom", url: "/admin/newsroom", icon: Bot },
   { title: "Data Store", url: "/admin/data-store", icon: Database },
   { title: "Email", url: "/admin/email", icon: Mail },
+  { title: "Admin Users", url: "/admin/settings/admins", icon: Users },
 ]
 
 const socialPlatforms = [
