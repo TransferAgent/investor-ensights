@@ -39,8 +39,51 @@ function markFirstAnswerBlock(html: string): string {
   );
 }
 
-function transformBodyForRender(html: string): string {
-  return markFirstAnswerBlock(highlightBrandInBody(html));
+function normalizeForCompare(s: string): string {
+  return s
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/[.\s]+$/, "")
+    .toLowerCase()
+    .trim();
+}
+
+function removeDuplicateLeadParagraph(html: string, subheadline?: string | null): string {
+  if (!subheadline) return html;
+  const subNorm = normalizeForCompare(subheadline);
+  if (subNorm.length < 20) return html;
+  let removed = false;
+  return html.replace(
+    /<p\b(?![^>]*\bclass=["'][^"']*answer-block)[^>]*>([\s\S]*?)<\/p>/i,
+    (match, inner) => {
+      if (removed) return match;
+      const innerNorm = normalizeForCompare(inner);
+      if (!innerNorm) return match;
+      if (innerNorm === subNorm) {
+        removed = true;
+        return "";
+      }
+      const lenRatio =
+        Math.min(innerNorm.length, subNorm.length) /
+        Math.max(innerNorm.length, subNorm.length);
+      if (lenRatio < 0.85) return match;
+      const headLen = Math.min(80, subNorm.length, innerNorm.length);
+      const subHead = subNorm.slice(0, headLen);
+      const innerHead = innerNorm.slice(0, headLen);
+      if (subHead === innerHead) {
+        removed = true;
+        return "";
+      }
+      return match;
+    },
+  );
+}
+
+function transformBodyForRender(html: string, subheadline?: string | null): string {
+  return markFirstAnswerBlock(
+    highlightBrandInBody(removeDuplicateLeadParagraph(html, subheadline)),
+  );
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -173,6 +216,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
         .knowledge-article-body strong,
         .knowledge-article-body b {
           font-weight: inherit !important;
+          color: inherit !important;
         }
       `}} />
 
@@ -234,7 +278,12 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
             prose-p:text-blue-100/80
             prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline
             prose-strong:text-white prose-li:text-blue-100/80"
-          dangerouslySetInnerHTML={{ __html: transformBodyForRender(article.bodyHtml) }}
+          dangerouslySetInnerHTML={{
+            __html: transformBodyForRender(
+              article.bodyHtml,
+              article.metaDescription || article.subheadline,
+            ),
+          }}
           data-testid="article-body"
         />
 
