@@ -39,14 +39,161 @@ function markFirstAnswerBlock(html: string): string {
   );
 }
 
+const NAMED_ENTITIES: Record<string, string> = {
+  "&nbsp;": " ",
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&apos;": "'",
+  "&ndash;": "\u2013",
+  "&mdash;": "\u2014",
+  "&hellip;": "\u2026",
+  "&ldquo;": "\u201c",
+  "&rdquo;": "\u201d",
+  "&lsquo;": "\u2018",
+  "&rsquo;": "\u2019",
+};
+
+function decodeHtmlEntities(s: string): string {
+  return s.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (m) => {
+    const lower = m.toLowerCase();
+    if (NAMED_ENTITIES[lower] !== undefined) return NAMED_ENTITIES[lower];
+    const num = m.match(/^&#(x?)([0-9a-fA-F]+);$/);
+    if (num) {
+      const code = parseInt(num[2], num[1] ? 16 : 10);
+      if (!Number.isNaN(code)) {
+        try {
+          return String.fromCodePoint(code);
+        } catch {
+          return m;
+        }
+      }
+    }
+    return m;
+  });
+}
+
 function normalizeForCompare(s: string): string {
-  return s
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
+  return decodeHtmlEntities(s.replace(/<[^>]+>/g, ""))
     .replace(/\s+/g, " ")
     .replace(/[.\s]+$/, "")
     .toLowerCase()
     .trim();
+}
+
+const VOID_HTML_TAGS = new Set([
+  "br", "img", "hr", "wbr", "input", "meta", "link",
+  "source", "area", "col", "embed", "param", "track",
+]);
+
+function stripDekPrefixFromInnerHtml(
+  innerHtml: string,
+  dekNorm: string,
+): string | null {
+  // Walk innerHtml token-by-token. Track an open-inline-tag stack so we only
+  // ever cut at a position where the stack is empty (no dangling open tags).
+  // Decode HTML entities so normalization matches normalizeForCompare. Require
+  // a hard sentence boundary (terminator immediately after the dek, optionally
+  // after a balanced closing tag) before stripping, so we don't decapitate a
+  // longer sentence that merely opens with the dek text.
+  const stack: string[] = [];
+  let normIdx = 0;
+  let lastWasSpace = true;
+  let cutAt = -1;
+  let i = 0;
+
+  const consumeNormChar = (c: string): boolean => {
+    let normCh: string | null = null;
+    if (/\s/.test(c)) {
+      if (!lastWasSpace) {
+        normCh = " ";
+        lastWasSpace = true;
+      }
+    } else {
+      normCh = c.toLowerCase();
+      lastWasSpace = false;
+    }
+    if (normCh === null) return true;
+    if (normIdx >= dekNorm.length) return true;
+    if (normCh !== dekNorm[normIdx]) return false;
+    normIdx++;
+    return true;
+  };
+
+  while (i < innerHtml.length && normIdx < dekNorm.length) {
+    const ch = innerHtml[i];
+    if (ch === "<") {
+      const close = innerHtml.indexOf(">", i);
+      if (close < 0) return null;
+      const tag = innerHtml.slice(i, close + 1);
+      const m = tag.match(/^<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9]*)/);
+      if (m) {
+        const isClose = m[1] === "/";
+        const name = m[2].toLowerCase();
+        const isSelf = /\/\s*>$/.test(tag) || VOID_HTML_TAGS.has(name);
+        if (isClose) {
+          if (stack.length && stack[stack.length - 1] === name) stack.pop();
+        } else if (!isSelf) {
+          stack.push(name);
+        }
+      }
+      i = close + 1;
+      continue;
+    }
+    if (ch === "&") {
+      const semi = innerHtml.indexOf(";", i);
+      if (semi > 0 && semi - i <= 10) {
+        const entity = innerHtml.slice(i, semi + 1);
+        const decoded = decodeHtmlEntities(entity);
+        if (decoded !== entity) {
+          for (const c of decoded) {
+            if (!consumeNormChar(c)) return null;
+            if (normIdx === dekNorm.length) break;
+          }
+          i = semi + 1;
+          if (normIdx === dekNorm.length) {
+            if (stack.length > 0) return null;
+            cutAt = i;
+            break;
+          }
+          continue;
+        }
+      }
+    }
+    if (!consumeNormChar(ch)) return null;
+    i++;
+    if (normIdx === dekNorm.length) {
+      if (stack.length > 0) return null;
+      cutAt = i;
+      break;
+    }
+  }
+
+  if (cutAt < 0 || normIdx !== dekNorm.length) return null;
+
+  // Sentence-boundary check: after the cut, the very next non-tag character
+  // must be a sentence terminator. We allow ourselves to step over balanced
+  // closing tags (e.g. dek wrapped to end of an inline tag), but never over
+  // arbitrary text or whitespace before the terminator — that would indicate
+  // the dek matched a clause, not a complete sentence.
+  let next = cutAt;
+  while (next < innerHtml.length && innerHtml[next] === "<") {
+    const close = innerHtml.indexOf(">", next);
+    if (close < 0) return null;
+    const t = innerHtml.slice(next, close + 1);
+    if (!/^<\s*\//.test(t)) break;
+    next = close + 1;
+  }
+  if (next >= innerHtml.length) return "";
+  if (!/[.!?]/.test(innerHtml[next])) return null;
+
+  // Eat the terminator(s) and following whitespace so the body resumes cleanly
+  // at the next sentence. Do NOT eat commas/dashes — those would belong to the
+  // following sentence and removing them changes meaning.
+  while (next < innerHtml.length && /[.!?]/.test(innerHtml[next])) next++;
+  while (next < innerHtml.length && /\s/.test(innerHtml[next])) next++;
+  return innerHtml.slice(next);
 }
 
 function removeDuplicateLeadParagraph(html: string, subheadline?: string | null): string {
@@ -55,11 +202,13 @@ function removeDuplicateLeadParagraph(html: string, subheadline?: string | null)
   if (subNorm.length < 20) return html;
   let removed = false;
   return html.replace(
-    /<p\b(?![^>]*\bclass=["'][^"']*answer-block)[^>]*>([\s\S]*?)<\/p>/i,
-    (match, inner) => {
+    /(<p\b(?![^>]*\bclass=["'][^"']*answer-block)[^>]*>)([\s\S]*?)(<\/p>)/i,
+    (match, openTag, inner, closeTag) => {
       if (removed) return match;
       const innerNorm = normalizeForCompare(inner);
       if (!innerNorm) return match;
+
+      // Case 1: body p1 is essentially identical to the dek → drop it entirely.
       if (innerNorm === subNorm) {
         removed = true;
         return "";
@@ -67,13 +216,25 @@ function removeDuplicateLeadParagraph(html: string, subheadline?: string | null)
       const lenRatio =
         Math.min(innerNorm.length, subNorm.length) /
         Math.max(innerNorm.length, subNorm.length);
-      if (lenRatio < 0.85) return match;
-      const headLen = Math.min(80, subNorm.length, innerNorm.length);
-      const subHead = subNorm.slice(0, headLen);
-      const innerHead = innerNorm.slice(0, headLen);
-      if (subHead === innerHead) {
-        removed = true;
-        return "";
+      if (lenRatio >= 0.85) {
+        const headLen = Math.min(80, subNorm.length, innerNorm.length);
+        if (subNorm.slice(0, headLen) === innerNorm.slice(0, headLen)) {
+          removed = true;
+          return "";
+        }
+      }
+
+      // Case 2: dek is a PREFIX of body p1 (much longer paragraph that opens
+      // with the dek text, then continues). Strip just the dek-matching prefix
+      // so the rest of the paragraph survives. Tag-aware so inline markup
+      // later in the paragraph is preserved.
+      if (innerNorm.startsWith(subNorm)) {
+        const stripped = stripDekPrefixFromInnerHtml(inner, subNorm);
+        if (stripped !== null) {
+          removed = true;
+          if (stripped.trim() === "") return "";
+          return openTag + stripped + closeTag;
+        }
       }
       return match;
     },
