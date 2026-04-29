@@ -132,7 +132,81 @@ Everything else in this document is either already handled cleanly by Tableicity
 
 ---
 
-## 7. Future direction (informational)
+## 7. Answer Blocks — currently missing from the export
+
+Halo's system generates **Answer Blocks** alongside each prose essay — concise ~45–50 word summaries with their own headlines, explicitly designed as Google-bot content with low-to-zero drift from the original prose. These are an established SEO pattern that wins featured snippets, "People Also Ask" boxes, voice search results, and AI summary boxes.
+
+**Status today:** Halo generates Answer Blocks but they are **NOT included in the HTML export** that lands in Tableicity's `haylo-inbox/`. The exported file contains only the editorial prose. As a result, no Tableicity-published press release has Answer Blocks, and the SEO opportunity is being lost end-to-end.
+
+**Required:** Include Answer Blocks in every exported HTML file. Two acceptable formats — best practice is to do both.
+
+### 7.1 Format A — JSON-LD `FAQPage` schema (required, gold standard)
+
+Embed the structured data as a `<script type="application/ld+json">` block at the top or bottom of the file. Invisible to human readers, fully parsed by Google.
+
+```html
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Challenges of Global Expansion",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Global expansion for startups is a complex ambition requiring a solid cap table to navigate equity management challenges. Regulatory compliance, investor trust, and equity compensation issues can derail growth if records are messy. A robust equity structure is essential to support international scaling and seize new market opportunities."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Solutions for Equity Management",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Platforms like Tableicity enhance global expansion by securing cap table data with Hash-256 encryption and Zero-Knowledge Proofs, meeting privacy demands in strict markets like the EU. Compliance-ready features and real-time automation align with standards like Open Cap Table Format, enabling startups to focus on growth."
+      }
+    }
+  ]
+}
+</script>
+```
+
+### 7.2 Format B — Visible `<section class="answer-blocks">` markup (optional, additive)
+
+If Halo also wants to render the Answer Blocks as visible content on the page, add a section at the end of the body (after the conclusion) with this exact structure:
+
+```html
+<section class="answer-blocks" data-source="halo-answer-blocks">
+  <h2>Quick Answers</h2>
+  <div class="answer-block">
+    <h3>Challenges of Global Expansion</h3>
+    <p>Global expansion for startups is a complex ambition...</p>
+  </div>
+  <div class="answer-block">
+    <h3>Solutions for Equity Management</h3>
+    <p>Platforms like Tableicity enhance global expansion...</p>
+  </div>
+</section>
+```
+
+Tableicity will detect this section by its `data-source="halo-answer-blocks"` attribute and render it cleanly under the press-release body.
+
+### 7.3 What Tableicity will do with Answer Blocks once they arrive
+
+- Add a structured `answerBlocks` storage column on the Haylo article record
+- Parse them out of the HTML on ingest (preferring JSON-LD if present, falling back to visible markup)
+- Render them as JSON-LD `FAQPage` schema on every published press release for Google
+- Optionally render them as a visible "Quick Answers" section under the body
+
+This is on Tableicity's roadmap as a follow-up workstream once Halo starts including them in the export. **No work happens on Tableicity's side until Halo confirms the export will include Answer Blocks** — there's nothing to build against until the data arrives.
+
+### 7.4 Drift discipline (informational)
+
+Halo's UI already reports prose drift when generating Answer Blocks (target ~0%). Maintain that discipline — Tableicity's downstream rendering assumes the Answer Block summaries are faithful to the prose, not contradictory restatements of it. If drift exceeds ~5% for a given essay, that essay should be flagged in Halo before export rather than shipped with mismatched Answer Blocks.
+
+---
+
+## 8. Future direction (informational)
 
 Tableicity is planning a "Beast Connection" workstream — a direct API consumer of Halo's Publishing endpoint. When that's in place, Halo essays will move from Halo's Ready queue into Tableicity's Haylo Library automatically, replacing today's manual file drop and Scan Inbox flow.
 
