@@ -27,6 +27,22 @@ function highlightBrandInBody(html: string): string {
     .join("");
 }
 
+function markFirstAnswerBlock(html: string): string {
+  let injected = false;
+  return html.replace(
+    /<p\b([^>]*\bclass=")(answer-block)([^"]*"[^>]*)>/gi,
+    (match, before, cls, after) => {
+      if (injected) return match;
+      injected = true;
+      return `<p${before}${cls} answer-block-first${after}>`;
+    },
+  );
+}
+
+function transformBodyForRender(html: string): string {
+  return markFirstAnswerBlock(highlightBrandInBody(html));
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const article = await storage.getKnowledgeArticleBySlug(slug);
@@ -122,7 +138,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <style dangerouslySetInnerHTML={{ __html: `
-        .knowledge-article-body p.answer-block:first-of-type {
+        .knowledge-article-body p.answer-block.answer-block-first {
           position: relative;
           background-color: rgba(59, 130, 246, 0.08);
           border-left: 4px solid #fbbf24;
@@ -132,7 +148,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           color: rgb(219, 234, 254);
           font-style: normal;
         }
-        .knowledge-article-body p.answer-block:first-of-type::before {
+        .knowledge-article-body p.answer-block.answer-block-first::before {
           content: "QUICK ANSWER";
           position: absolute;
           top: 0.625rem;
@@ -143,7 +159,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           color: #fbbf24;
           text-transform: uppercase;
         }
-        .knowledge-article-body p.answer-block:not(:first-of-type) {
+        .knowledge-article-body p.answer-block:not(.answer-block-first) {
           position: absolute !important;
           width: 1px !important;
           height: 1px !important;
@@ -156,7 +172,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
         }
         .knowledge-article-body strong,
         .knowledge-article-body b {
-          font-weight: inherit;
+          font-weight: inherit !important;
         }
       `}} />
 
@@ -218,7 +234,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
             prose-p:text-blue-100/80
             prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline
             prose-strong:text-white prose-li:text-blue-100/80"
-          dangerouslySetInnerHTML={{ __html: highlightBrandInBody(article.bodyHtml) }}
+          dangerouslySetInnerHTML={{ __html: transformBodyForRender(article.bodyHtml) }}
           data-testid="article-body"
         />
 
