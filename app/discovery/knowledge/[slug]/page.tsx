@@ -218,6 +218,11 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           font-weight: inherit !important;
           color: inherit !important;
         }
+        .knowledge-article-body p:not(.answer-block) {
+          margin-top: 0.75em !important;
+          margin-bottom: 0.75em !important;
+          line-height: 1.65 !important;
+        }
       `}} />
 
       <header className="border-b border-white/10">
