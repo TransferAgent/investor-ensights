@@ -121,6 +121,32 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <style dangerouslySetInnerHTML={{ __html: `
+        [data-testid="article-body"] p.answer-block {
+          position: relative;
+          background-color: rgba(59, 130, 246, 0.08);
+          border-left: 4px solid #fbbf24;
+          border-radius: 0 0.375rem 0.375rem 0;
+          padding: 2.25rem 1.25rem 1.25rem 1.5rem;
+          margin: 1.75rem 0;
+          color: rgb(219, 234, 254);
+          font-style: normal;
+        }
+        [data-testid="article-body"] p.answer-block::before {
+          content: "QUICK ANSWER";
+          position: absolute;
+          top: 0.625rem;
+          left: 1.5rem;
+          font-size: 0.625rem;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          color: #fbbf24;
+          text-transform: uppercase;
+        }
+        [data-testid="article-body"] p.answer-block strong {
+          color: #fef3c7;
+        }
+      `}} />
 
       <header className="border-b border-white/10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">

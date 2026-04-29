@@ -1,9 +1,20 @@
 import sanitizeHtml from "sanitize-html";
 
 const NEWSROOM_HTML_OPTIONS: sanitizeHtml.IOptions = {
-  allowedTags: ["p", "h2", "h3", "ul", "ol", "li", "strong", "em", "a", "br", "blockquote"],
+  allowedTags: [
+    "p", "h2", "h3", "ul", "ol", "li", "strong", "em", "a", "br", "blockquote",
+    "article", "section",
+  ],
   allowedAttributes: {
     a: ["href", "title", "rel", "target"],
+    p: ["class", "itemprop"],
+    article: ["class"],
+    section: ["class"],
+  },
+  allowedClasses: {
+    p: ["answer-block"],
+    article: ["halo-published"],
+    section: ["newsroom-local-vibe"],
   },
   allowedSchemes: ["http", "https", "mailto"],
   allowedSchemesAppliedToAttributes: ["href"],

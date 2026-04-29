@@ -1,7 +1,13 @@
 /**
  * Strips Haylo-specific stylistic noise so the press-release version reads
- * cleanly without duplicate H1s, duplicate datelines, or marketing-flavored
- * over-bolding.
+ * cleanly without duplicate H1s or duplicate datelines.
+ *
+ * Note (April 2026): Halo formally committed in writing that <strong> tags are
+ * intentional editorial emphasis on key terms (named entities, regulatory
+ * references, dollar figures, statute names) and not stylistic over-bolding.
+ * Default `stripStrong` is therefore now `false`. The option remains for any
+ * caller that explicitly opts back in (e.g., for legacy content rescue), but
+ * the live + dry-run paths now preserve <strong> end-to-end.
  *
  * Pure string-only transformation (no DOM parser dependency).
  */
@@ -24,7 +30,7 @@ export interface NormalizeOptions {
 const DEFAULTS: Required<NormalizeOptions> = {
   stripFirstH1: true,
   stripLeadingDateline: true,
-  stripStrong: true,
+  stripStrong: false,
 };
 
 export function normalizeHayloBody(html: string, opts: NormalizeOptions = {}): string {
