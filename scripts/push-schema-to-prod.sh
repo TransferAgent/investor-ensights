@@ -8,15 +8,15 @@
 # Usage:
 #   bash scripts/push-schema-to-prod.sh
 #
-# Reads the prod connection string from the `engineer1_prod_db` secret.
+# Reads the prod connection string from the `PROD_DATABASE_URL` secret.
 
 set -euo pipefail
 
-if [ -z "${engineer1_prod_db:-}" ]; then
-  echo "Missing env var 'engineer1_prod_db' (prod connection string)." >&2
+if [ -z "${PROD_DATABASE_URL:-}" ]; then
+  echo "Missing env var 'PROD_DATABASE_URL' (prod connection string)." >&2
   exit 1
 fi
 
 echo "Pushing schema to PRODUCTION database..."
-DATABASE_URL="$engineer1_prod_db" npx drizzle-kit push --force
+DATABASE_URL="$PROD_DATABASE_URL" npx drizzle-kit push --force
 echo "✓ Schema push complete."

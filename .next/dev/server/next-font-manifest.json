@@ -1,14 +1,5 @@
 {
   "app": {
-    "[project]/app/admin/login/page": [
-      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
-    ],
-    "[project]/app/admin/page": [
-      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
-    ],
-    "[project]/app/locations/page": [
-      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
-    ],
     "[project]/app/page": [
       "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
     ]

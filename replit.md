@@ -46,6 +46,34 @@ The public-facing site features dynamic city landing pages and a locations grid 
 *   **Haylo Content Integration:** Specific adjustments were made to correctly parse and style Halo Lab's HTML format, preserving key elements like `<strong>` tags and `answer-block` paragraphs while stripping redundant `<h1>` tags for optimal display on public pages.
 *   **Performance Tuning:** The live pipeline model was upgraded to `gpt-4.1-nano` for improved speed and cost efficiency. Pipeline stages are grouped for parallel execution where dependencies allow.
 
+## Pre-Publish Dev → Prod Sync
+
+**Important:** Dev and Prod use **separate** Postgres databases:
+*   Dev → Replit Helium (`heliumdb`), connected via `DATABASE_URL`.
+*   Prod → Neon (`neondb`), connected via the `PROD_DATABASE_URL` secret.
+
+Whenever the user says they intend to publish, run the sync workflow first so that any data changes (admins, cities, articles, scheduler config, etc.) made in Dev land in Prod before the deploy goes live.
+
+**Schema first (only when columns/tables changed):**
+```
+bash scripts/push-schema-to-prod.sh
+```
+Runs `drizzle-kit push --force` against `PROD_DATABASE_URL`.
+
+**Then mirror data Dev → Prod:**
+```
+npx tsx scripts/sync-dev-to-prod.ts            # dry run, no writes
+npx tsx scripts/sync-dev-to-prod.ts --confirm  # mirror Dev into Prod
+```
+
+`scripts/sync-dev-to-prod.ts` safety features:
+*   Refuses to run if `DATABASE_URL` and `PROD_DATABASE_URL` resolve to the same host+db.
+*   Computes FK dependency order dynamically from `information_schema` (parents inserted before children).
+*   Wraps the entire mirror in a single transaction on Prod (rollback on any error).
+*   `TRUNCATE … RESTART IDENTITY CASCADE` on every table before insert; resets sequences for any serial columns afterward.
+*   Stringifies `json`/`jsonb` values to avoid node-pg array-literal coercion.
+*   Prints BEFORE and AFTER row-count snapshots, with a per-table match indicator.
+
 ## External Dependencies
 
 *   **PostgreSQL**: Primary database.

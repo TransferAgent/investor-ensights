@@ -22,7 +22,7 @@
 import pg from "pg";
 
 const DEV_URL = process.env.DATABASE_URL;
-const PROD_URL = process.env.engineer1_prod_db;
+const PROD_URL = process.env.PROD_DATABASE_URL;
 
 const args = new Set(process.argv.slice(2));
 const CONFIRM = args.has("--confirm");
@@ -32,7 +32,7 @@ if (!DEV_URL) {
   process.exit(1);
 }
 if (!PROD_URL) {
-  console.error("Missing env var 'engineer1_prod_db' (prod connection string).");
+  console.error("Missing env var 'PROD_DATABASE_URL' (prod connection string).");
   process.exit(1);
 }
 if (DEV_URL === PROD_URL) {
@@ -100,15 +100,32 @@ async function topoSort(prod: pg.Pool): Promise<string[]> {
   return order;
 }
 
-async function getColumns(pool: pg.Pool, table: string): Promise<string[]> {
-  const res = await pool.query<{ column_name: string }>(
-    `SELECT column_name
+type ColumnMeta = { name: string; dataType: string };
+
+async function getColumns(pool: pg.Pool, table: string): Promise<ColumnMeta[]> {
+  // Skip stored-generated columns and identity-always columns — Postgres
+  // forbids inserting into them.
+  const res = await pool.query<{ column_name: string; data_type: string }>(
+    `SELECT column_name, data_type
      FROM information_schema.columns
      WHERE table_schema='public' AND table_name=$1
+       AND is_generated <> 'ALWAYS'
+       AND COALESCE(identity_generation, '') <> 'ALWAYS'
      ORDER BY ordinal_position`,
     [table]
   );
-  return res.rows.map((r) => r.column_name);
+  return res.rows.map((r) => ({ name: r.column_name, dataType: r.data_type }));
+}
+
+function bindValue(v: unknown, dataType: string): unknown {
+  if (v === null || v === undefined) return v;
+  // node-pg parses jsonb/json as JS objects/arrays; rebinding a JS array
+  // would otherwise be serialized as a Postgres array literal. Stringify
+  // for JSON columns so the destination receives valid JSON text.
+  if ((dataType === "jsonb" || dataType === "json") && typeof v === "object") {
+    return JSON.stringify(v);
+  }
+  return v;
 }
 
 async function countRows(pool: pg.Pool, table: string): Promise<number> {
@@ -188,11 +205,9 @@ async function main() {
     for (const t of order) {
       const cols = await getColumns(dev, t);
       if (cols.length === 0) continue;
-      const colList = cols.map((c) => `"${c}"`).join(",");
+      const colList = cols.map((c) => `"${c.name}"`).join(",");
 
-      const rowsRes = await dev.query(
-        `SELECT ${colList} FROM "${t}"`
-      );
+      const rowsRes = await dev.query(`SELECT ${colList} FROM "${t}"`);
       const rows = rowsRes.rows;
       if (rows.length === 0) {
         console.log(`· ${t}: 0 rows`);
@@ -209,7 +224,7 @@ async function main() {
           const placeholders: string[] = [];
           for (const c of cols) {
             placeholders.push(`$${p++}`);
-            params.push(r[c]);
+            params.push(bindValue(r[c.name], c.dataType));
           }
           tuples.push(`(${placeholders.join(",")})`);
         }
@@ -234,8 +249,14 @@ async function main() {
         AND pg_get_serial_sequence('public.' || quote_ident(c.table_name), c.column_name) IS NOT NULL
     `);
     for (const s of seqRes.rows) {
+      // Use the 3-arg form so empty tables get is_called=false (next nextval=1)
+      // and populated tables get is_called=true (next nextval=max+1).
       await client.query(
-        `SELECT setval($1, COALESCE((SELECT MAX("${s.column_name}") FROM "${s.table_name}"), 1))`,
+        `SELECT setval(
+           $1,
+           COALESCE((SELECT MAX("${s.column_name}") FROM "${s.table_name}"), 1),
+           (SELECT COUNT(*) > 0 FROM "${s.table_name}")
+         )`,
         [s.seq]
       );
     }
