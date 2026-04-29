@@ -9,9 +9,6 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
-
-const DEFAULT_ROBOTS = "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
-const NOINDEX_ROBOTS = "noindex, follow"
 import {
   Dialog,
   DialogContent,
@@ -68,6 +65,9 @@ import {
 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { SchedulerCard } from "./scheduler-card"
+
+const DEFAULT_ROBOTS = "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+const NOINDEX_ROBOTS = "noindex, follow"
 
 interface CityRecord {
   id: string
