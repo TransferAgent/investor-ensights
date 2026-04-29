@@ -79,6 +79,43 @@ npx tsx scripts/sync-dev-to-prod.ts --confirm  # mirror Dev into Prod
 *   Stringifies `json`/`jsonb` values to avoid node-pg array-literal coercion.
 *   Prints BEFORE and AFTER row-count snapshots, with a per-table match indicator.
 
+## Sitemap & Search Console Flow
+
+How `/sitemap.xml` is generated, when it refreshes, and how that interacts with Google Search Console.
+
+### Where the sitemap comes from
+
+`app/sitemap.ts` is a Next.js metadata route that serves `/sitemap.xml`. When it runs it queries the live database and emits one flat XML file with four kinds of entries:
+
+*   **Homepage** — `/` (priority 1.0, daily).
+*   **Cities** — `storage.getCities(true)` filtered to `allowIndexing !== false` → `/locations/{slug}` (priority 0.8, weekly, `lastModified = city.updatedAt`).
+*   **Pages** — `storage.getPages()` filtered to `isPublished === true` → `/{slug}` (priority 0.7, weekly, `lastModified = page.updatedAt`).
+*   **Knowledge articles** — `storage.getKnowledgeArticles("published")` minus any with `noindex` in `robots` → `/discovery/knowledge/{slug}` (priority 0.7, weekly, `lastModified = article.dateModified`).
+
+The base URL is `process.env.NEXT_PUBLIC_BASE_URL` (resolves to `https://www.tableicity.com` in US prod). `app/robots.ts` advertises the sitemap location to crawlers via `Sitemap: {BASE_URL}/sitemap.xml`.
+
+### When the sitemap actually refreshes
+
+There are two content-publish paths and they behave differently:
+
+**Path A — Publish via deploy.** Generate content in admin, then click Publish. The deploy rebuilds the app; during build the sitemap function runs against prod DB and the resulting XML is baked into the new deployment. Net result: every Publish guarantees a fresh sitemap.
+
+**Path B — Newsroom scheduler creates content automatically (no deploy).** The cron-driven scheduler writes a new `published` article straight into prod DB. No rebuild fires. Whether `/sitemap.xml` immediately reflects the new article depends on whether Next.js is serving the static build-time copy or regenerating it per request — to be safe, treat the sitemap as eventually-consistent until the next deploy.
+
+### Recommended workflow after publishing content
+
+1.  Generate the article (admin or scheduler) — it lands in prod DB.
+2.  Click **Publish** to deploy. This forces a fresh `/sitemap.xml` baked from the latest DB state.
+3.  Open `https://www.tableicity.com/sitemap.xml` and search for the new article slug to confirm it's listed.
+4.  In Google Search Console → **Sitemaps** → click the existing `sitemap.xml` entry → **Resubmit**. The URL never changes; resubmitting just nudges Google to recrawl sooner. (Even without resubmitting, GSC re-fetches submitted sitemaps every day or two.)
+
+### Things worth knowing
+
+*   **No 50,000-URL split needed yet.** The function returns one flat array. Current scale (~25 cities + handful of pages + ~20 articles) is well under Google's 50k-URL / 50 MB sitemap limits. If we cross either, we'll need to switch to a sitemap index file.
+*   **`changeFrequency` and `priority` are largely ignored by Google today.** The signal that actually matters is `lastModified` — which is already wired to `updatedAt` / `dateModified`, so edits propagate correctly.
+*   **Drafts and `noindex` content are excluded.** Articles with status other than `published`, cities with `allowIndexing: false`, and pages with `isPublished: false` never appear in the sitemap.
+*   **Canonical URL hardcode caveat.** `lib/storage.ts` writes the canonical URL field on knowledge articles using a hardcoded `https://www.tableicity.com/discovery/knowledge/{slug}` string — see the EU handoff notes below. The sitemap entry uses `NEXT_PUBLIC_BASE_URL`, so on a regional fork the two would disagree until that file is updated.
+
 ## Remix / Regional Fork — EU Handoff Notes
 
 The EU team is creating a separate Remix of this codebase that will run on EU-hosted infrastructure with its own databases, secrets, and domain. The US instance and EU instance share zero runtime resources.
