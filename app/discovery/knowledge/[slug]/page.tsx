@@ -123,28 +123,15 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
       />
       <style dangerouslySetInnerHTML={{ __html: `
         .knowledge-article-body p.answer-block {
-          position: relative;
-          background-color: rgba(59, 130, 246, 0.08);
-          border-left: 4px solid #fbbf24;
-          border-radius: 0 0.375rem 0.375rem 0;
-          padding: 2.25rem 1.25rem 1.25rem 1.5rem;
-          margin: 1.75rem 0;
-          color: rgb(219, 234, 254);
-          font-style: normal;
-        }
-        .knowledge-article-body p.answer-block::before {
-          content: "QUICK ANSWER";
-          position: absolute;
-          top: 0.625rem;
-          left: 1.5rem;
-          font-size: 0.625rem;
-          font-weight: 700;
-          letter-spacing: 0.12em;
-          color: #fbbf24;
-          text-transform: uppercase;
-        }
-        .knowledge-article-body p.answer-block strong {
-          color: #fef3c7;
+          position: absolute !important;
+          width: 1px !important;
+          height: 1px !important;
+          padding: 0 !important;
+          margin: -1px !important;
+          overflow: hidden !important;
+          clip: rect(0, 0, 0, 0) !important;
+          white-space: nowrap !important;
+          border: 0 !important;
         }
       `}} />
 
