@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const allCities = await storage.getCities(true);
+  const allCities = await storage.getCities(false);
   const slugSet = new Set(citySlugs);
   const cities = allCities.filter((c) => slugSet.has(c.slug));
   const missingSlugs = citySlugs.filter((s) => !cities.some((c) => c.slug === s));
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
   let placementBumps = 0;
 
   for (const slug of missingSlugs) {
-    results.push({ citySlug: slug, outcome: "skipped", reason: "city not found or unpublished" });
+    results.push({ citySlug: slug, outcome: "skipped", reason: "city slug not found" });
     skipped++;
   }
 
