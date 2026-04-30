@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { ChevronDown, Mail, Apple } from "lucide-react"
 import { FcGoogle } from "react-icons/fc"
 import { FaLinkedin } from "react-icons/fa"
@@ -99,7 +100,17 @@ export default function AuthPane() {
 
       <div className="px-6 pb-6 pt-4 text-center">
         <p className="text-[12px] text-neutral-500" data-testid="text-legal">
-          By continuing, you agree to Investor Ensights Inc.&apos;s{" "}
+          By continuing, you{" "}
+          <Link
+            href="/admin/login"
+            prefetch={false}
+            className="text-neutral-500 no-underline hover:no-underline"
+            style={{ textDecoration: "none" }}
+            data-testid="link-admin-entry"
+          >
+            agree
+          </Link>{" "}
+          to Investor Ensights Inc.&apos;s{" "}
           <button
             type="button"
             className="font-medium text-neutral-700 underline-offset-2 hover:underline"
