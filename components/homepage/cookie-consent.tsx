@@ -14,12 +14,12 @@ export default function CookieConsent() {
 
   function doAccept() {
     setDismissed(true)
-    window.location.href = "https://app.tableicity.com/login"
+    window.location.href = "https://app.investorensights.com/login"
   }
 
   function doReject() {
     setDismissed(true)
-    window.location.href = "https://app.tableicity.com/login"
+    window.location.href = "https://app.investorensights.com/login"
   }
 
   return (

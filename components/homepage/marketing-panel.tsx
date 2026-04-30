@@ -26,13 +26,13 @@ const SLIDES = [
 ]
 
 const SLIDE_ALTS = [
-  "Tableicity Cap Table Dashboard — normal view showing stakeholder equity distribution, share classes, and ownership breakdown in a privacy-first capitalization table.",
-  "Tableicity SAFE Agreement Management — tracking Simple Agreements for Future Equity with valuation caps, discount rates, and conversion terms.",
-  "Tableicity ESOP Management — Employee Stock Option Pool hierarchy with vesting schedules, grant tracking, and exercise status.",
-  "Tableicity Encrypted Hash Wall — SHA-256 hashed stakeholder identities protecting equity ownership data from leaks.",
-  "Tableicity Encrypted Data View — privacy-first cap table with pseudonymous identifiers and consent-based auditor reveal.",
-  "Tableicity Data Store — encrypted document vault for cap table records, stakeholder agreements, and compliance artifacts.",
-  "Tableicity Core Value Desk — founder workspace showcasing the privacy-first equity management philosophy behind Tableicity.",
+  "Investor Ensights Cap Table Dashboard — normal view showing stakeholder equity distribution, share classes, and ownership breakdown in a privacy-first capitalization table.",
+  "Investor Ensights SAFE Agreement Management — tracking Simple Agreements for Future Equity with valuation caps, discount rates, and conversion terms.",
+  "Investor Ensights ESOP Management — Employee Stock Option Pool hierarchy with vesting schedules, grant tracking, and exercise status.",
+  "Investor Ensights Encrypted Hash Wall — SHA-256 hashed stakeholder identities protecting equity ownership data from leaks.",
+  "Investor Ensights Encrypted Data View — privacy-first cap table with pseudonymous identifiers and consent-based auditor reveal.",
+  "Investor Ensights Data Store — encrypted document vault for cap table records, stakeholder agreements, and compliance artifacts.",
+  "Investor Ensights Core Value Desk — founder workspace showcasing the privacy-first equity management philosophy behind Investor Ensights.",
 ]
 
 const SLIDE_OBJECT_POSITION = [
@@ -113,7 +113,7 @@ export default function MarketingPanel() {
               <Building2 className="h-[18px] w-[18px] text-white" />
             </div>
             <h1 className="text-lg font-bold tracking-tight text-white" data-testid="text-brand-h1">
-              Tableicity
+              Investor Ensights
             </h1>
           </div>
           <div className="flex items-center gap-4">
@@ -163,7 +163,7 @@ export default function MarketingPanel() {
         </div>
 
         <p className="text-sm leading-relaxed mb-6 text-blue-200/80 font-normal" data-testid="text-gallery-caption">
-          Once ready, create your private, isolated cap table. Powered by SHA-256 encryption, Tableicity ensures privacy-first protection for your equity data. Experience the fastest, most intuitive way to bring your cap table to life. No spreadsheets, no waiting—just results. Tableicity: your cap table, when you&apos;re ready.{" "}
+          Once ready, create your private, isolated cap table. Powered by SHA-256 encryption, Investor Ensights ensures privacy-first protection for your equity data. Experience the fastest, most intuitive way to bring your cap table to life. No spreadsheets, no waiting—just results. Investor Ensights: your cap table, when you&apos;re ready.{" "}
           <span className="font-semibold tracking-wide text-sky-300" data-testid="text-patent-pending">
             PATENT PENDING
           </span>
@@ -212,13 +212,13 @@ export default function MarketingPanel() {
               </span>
             </Link>
             <a
-              href="mailto:info@tableicity.com"
+              href="mailto:info@investorensights.com"
               className="flex items-center gap-2"
               data-testid="link-email-contact"
             >
               <Mail className="h-3.5 w-3.5 text-blue-400 shrink-0" />
               <span className="text-xs text-blue-200/70 hover:text-blue-200/90 transition-colors">
-                info@tableicity.com
+                info@investorensights.com
               </span>
             </a>
           </div>

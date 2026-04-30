@@ -25,13 +25,13 @@ const SLIDES = [
 ]
 
 const SLIDE_ALT_TEMPLATES = [
-  "Tableicity Cap Table Dashboard for {{city}}, {{state}} founders — stakeholder equity distribution, share classes, and ownership breakdown in a privacy-first capitalization table.",
-  "Tableicity SAFE Agreement Management for {{city}}, {{state}} startups — tracking Simple Agreements for Future Equity with valuation caps, discount rates, and conversion terms.",
-  "Tableicity ESOP Management for {{city}}, {{state}} companies — Employee Stock Option Pool hierarchy with vesting schedules, grant tracking, and exercise status.",
-  "Tableicity Encrypted Hash Wall for {{city}}, {{state}} — SHA-256 hashed stakeholder identities protecting equity ownership data from leaks.",
-  "Tableicity Encrypted Data View for {{city}}, {{state}} founders — privacy-first cap table with pseudonymous identifiers and consent-based auditor reveal.",
-  "Tableicity Data Store for {{city}}, {{state}} companies — encrypted document vault for cap table records, stakeholder agreements, and compliance artifacts.",
-  "Tableicity Core Value Desk — founder workspace showcasing the privacy-first equity management philosophy for {{city}}, {{state}} startups.",
+  "Investor Ensights Cap Table Dashboard for {{city}}, {{state}} founders — stakeholder equity distribution, share classes, and ownership breakdown in a privacy-first capitalization table.",
+  "Investor Ensights SAFE Agreement Management for {{city}}, {{state}} startups — tracking Simple Agreements for Future Equity with valuation caps, discount rates, and conversion terms.",
+  "Investor Ensights ESOP Management for {{city}}, {{state}} companies — Employee Stock Option Pool hierarchy with vesting schedules, grant tracking, and exercise status.",
+  "Investor Ensights Encrypted Hash Wall for {{city}}, {{state}} — SHA-256 hashed stakeholder identities protecting equity ownership data from leaks.",
+  "Investor Ensights Encrypted Data View for {{city}}, {{state}} founders — privacy-first cap table with pseudonymous identifiers and consent-based auditor reveal.",
+  "Investor Ensights Data Store for {{city}}, {{state}} companies — encrypted document vault for cap table records, stakeholder agreements, and compliance artifacts.",
+  "Investor Ensights Core Value Desk — founder workspace showcasing the privacy-first equity management philosophy for {{city}}, {{state}} startups.",
 ]
 
 const SLIDE_OBJECT_POSITION = [
@@ -110,7 +110,7 @@ export default function CityMarketingPanel({
               <Building2 className="h-[18px] w-[18px] text-white" />
             </div>
             <span className="text-lg font-bold tracking-tight text-white">
-              Tableicity
+              Investor Ensights
             </span>
           </div>
           <div className="flex items-center gap-4">

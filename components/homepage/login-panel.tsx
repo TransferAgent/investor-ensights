@@ -27,7 +27,7 @@ export default function LoginPanel() {
         <div className="h-8 w-8 rounded-md bg-blue-600 flex items-center justify-center">
           <Building2 className="h-4 w-4 text-white" />
         </div>
-        <span className="text-lg font-bold text-white">Tableicity</span>
+        <span className="text-lg font-bold text-white">Investor Ensights</span>
       </div>
 
       <div className="absolute inset-0 overflow-y-auto flex items-center justify-center p-6 z-[3]">
@@ -65,7 +65,7 @@ export default function LoginPanel() {
                 Beta 1.01
               </span>
             </div>
-            <h1 className="text-[22px] font-bold text-white mb-1">TABLEICITY</h1>
+            <h1 className="text-[22px] font-bold text-white mb-1">INVESTOR ENSIGHTS</h1>
             <p className="text-[13px]" style={{ color: "#718096" }}>
               Equity Management for Startups
             </p>
@@ -77,7 +77,7 @@ export default function LoginPanel() {
             className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault()
-              window.location.href = "https://www.tableicity.com"
+              window.location.href = "https://investorensights.com"
             }}
           >
             <div>
@@ -158,7 +158,7 @@ export default function LoginPanel() {
             <p className="text-sm" style={{ color: "#718096" }}>
               Don&apos;t have an account?{" "}
               <a
-                href="https://app.tableicity.com/register"
+                href="https://app.investorensights.com/register"
                 className="font-medium hover:underline"
                 style={{ color: "#63B3ED" }}
                 data-testid="link-create-account"
@@ -169,7 +169,7 @@ export default function LoginPanel() {
             <p className="text-sm" style={{ color: "#718096" }}>
               Or{" "}
               <a
-                href="https://app.tableicity.com/launch"
+                href="https://app.investorensights.com/launch"
                 className="font-medium hover:underline"
                 style={{ color: "#48BB78" }}
                 data-testid="link-free-trial"
@@ -182,12 +182,12 @@ export default function LoginPanel() {
           <div className="flex items-center justify-center gap-2 mt-4 pt-4" style={{ borderTop: "1px solid rgba(99,179,237,0.1)" }}>
             <Mail className="h-3.5 w-3.5" style={{ color: "#63B3ED" }} />
             <a
-              href="mailto:info@tableicity.com"
+              href="mailto:info@investorensights.com"
               className="text-xs hover:underline transition-colors"
               style={{ color: "#718096" }}
               data-testid="link-email-login-panel"
             >
-              info@tableicity.com
+              info@investorensights.com
             </a>
           </div>
         </div>
