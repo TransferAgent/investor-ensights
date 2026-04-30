@@ -313,9 +313,9 @@ export default function KnowledgeAdmin() {
   })
 
   const { data: cities } = useQuery<CityRecord[]>({
-    queryKey: ["/api/locations"],
+    queryKey: ["/api/admin/cities"],
     queryFn: async () => {
-      const res = await fetch("/api/locations", { credentials: "include" })
+      const res = await fetch("/api/admin/cities", { credentials: "include" })
       if (!res.ok) throw new Error("Failed to load cities")
       return res.json()
     },
