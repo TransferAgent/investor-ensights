@@ -46,7 +46,7 @@ Check for these specific failures:
 1. city-mismatch: headline names one city but body talks about a different city (Haylo body contamination)
 2. vibe-flow: the injected local-vibe paragraph reads like a non-sequitur or is grammatically broken at the seam
 3. contradiction: numbers/facts in the local-vibe contradict numbers in the Haylo body
-4. template-artifact: visible artifacts of bulk generation ("the Tableicity, team", unfilled comments like "<!-- unfilled:* -->", repeated city names within 8 words, etc.)
+4. template-artifact: visible artifacts of bulk generation ("the Investor Ensights, team", "the Tableicity, team", unfilled comments like "<!-- unfilled:* -->", repeated city names within 8 words, etc.)
 5. tone: vibe is on-topic for founders/business OR is the "insufficient commercial signal" sentinel that should not have been injected
 
 Verdict rules:

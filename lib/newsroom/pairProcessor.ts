@@ -91,7 +91,7 @@ export function buildMetaDescription(
     const fromBody = buildMetaDescriptionFromBody(hayloBodyHtml, META_DESCRIPTION_TARGET_CHARS);
     if (fromBody) return fromBody.slice(0, META_DESCRIPTION_HARD_MAX);
   }
-  const sentence = `${hayloTitle} — Tableicity insights for founders in ${cityName}, ${stateCode}.`;
+  const sentence = `${hayloTitle} — Investor Ensights insights for founders in ${cityName}, ${stateCode}.`;
   if (sentence.length >= 40) return sentence.slice(0, META_DESCRIPTION_HARD_MAX);
   return `${sentence} Cap table, equity, and 409A guidance for the ${cityName} startup community.`.slice(
     0,
@@ -194,8 +194,8 @@ export async function processPair(input: PairInput): Promise<PairResult> {
     headline: composed.title,
     dateline: composed.dateline,
     bodyHtml: composed.fullHtml,
-    authorName: "Tableicity",
-    publisherName: "Tableicity",
+    authorName: "Investor Ensights",
+    publisherName: "Investor Ensights",
     hayloArticleId: input.hayloArticle.id,
     auditVerdict: audit.verdict,
     auditFlowScore: audit.flowScore,

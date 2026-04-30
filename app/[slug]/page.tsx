@@ -5,7 +5,7 @@ import { SlideRenderer } from "@/components/slides/slide-renderer"
 import Link from "next/link"
 import { Lock } from "lucide-react"
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://yourcompany.com"
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com"
 
 const RESERVED_SLUGS = ["admin", "api", "locations", "_next", "favicon.ico"]
 
@@ -25,13 +25,13 @@ export async function generateMetadata({
 
   return {
     title: page.metaTitle || page.pageTitle,
-    description: page.metaDescription || `${page.pageTitle} - YourCompany`,
+    description: page.metaDescription || `${page.pageTitle} | Investor Ensights`,
     alternates: {
       canonical: `${BASE_URL}/${page.slug}`,
     },
     openGraph: {
       title: page.metaTitle || page.pageTitle,
-      description: page.metaDescription || `${page.pageTitle} - YourCompany`,
+      description: page.metaDescription || `${page.pageTitle} | Investor Ensights`,
       url: `${BASE_URL}/${page.slug}`,
       ...(page.ogImageUrl ? { images: [{ url: page.ogImageUrl }] } : {}),
     },
@@ -78,7 +78,7 @@ export default async function CustomPage({
       <footer className="border-t">
         <div className="mx-auto max-w-6xl px-4 py-6 flex items-center justify-between flex-wrap gap-2">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} YourCompany. All rights reserved.
+            &copy; {new Date().getFullYear()} Investor Ensights. All rights reserved.
           </p>
           <Link
             href="/admin/login"

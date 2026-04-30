@@ -32,7 +32,7 @@ export const AGENT_ROLE_DEFAULTS: Array<{
   {
     role: "data_analyst",
     displayName: "Data Analyst",
-    description: "Cross-references researcher leads with Crunchbase / public filings; assigns Tableicity Score.",
+    description: "Cross-references researcher leads with Crunchbase / public filings; assigns Investor Ensights Score.",
     provider: "anthropic",
     modelEndpoint: "claude-3-5-sonnet",
     systemPrompt: "You are a fact-checker and entity-resolution analyst. Score leads 1-100 for cap-table fit.",

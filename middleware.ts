@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from "next/server"
 export function middleware(request: NextRequest) {
   const host = request.headers.get("host")?.split(":")[0] || ""
 
-  if (host === "tableicity.com") {
+  if (host === "www.investorensights.com") {
     const url = new URL(request.url)
-    const redirectUrl = `https://www.tableicity.com${url.pathname}${url.search}`
+    const redirectUrl = `https://investorensights.com${url.pathname}${url.search}`
     return NextResponse.redirect(redirectUrl, 301)
   }
 

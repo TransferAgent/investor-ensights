@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next"
 import { storage } from "@/lib/storage"
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://yourcompany.com"
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [cities, pages, articles] = await Promise.all([

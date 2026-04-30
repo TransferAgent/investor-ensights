@@ -3,18 +3,21 @@ import { storage } from "@/lib/storage"
 import { SlideRenderer } from "@/components/slides/slide-renderer"
 import HeroHome from "@/components/homepage/hero-home"
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://yourcompany.com"
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com"
+
+const DEFAULT_TITLE = "Investor Ensights | Ground-Truth Data on Local Company Formation & Equity Activity"
+const DEFAULT_DESCRIPTION = "Investor Ensights publishes ground-truth data on local company formation and equity activity for institutional and retail investors."
 
 export async function generateMetadata(): Promise<Metadata> {
   const homePage = await storage.getPageBySlug("home")
   if (homePage?.isPublished) {
     return {
-      title: homePage.metaTitle || homePage.pageTitle || "Tableicity | Cap Table Management Solutions",
-      description: homePage.metaDescription || "Tableicity: The privacy-first cap table. Leveraging SHA-256 hashes & ZK-proofs for secure, pseudonymous, and borderless equity management. Start today.",
+      title: homePage.metaTitle || homePage.pageTitle || DEFAULT_TITLE,
+      description: homePage.metaDescription || DEFAULT_DESCRIPTION,
       alternates: { canonical: BASE_URL },
       openGraph: {
         title: homePage.metaTitle || homePage.pageTitle,
-        description: homePage.metaDescription || "Tableicity: The privacy-first cap table. Leveraging SHA-256 hashes & ZK-proofs for secure, pseudonymous, and borderless equity management. Start today.",
+        description: homePage.metaDescription || DEFAULT_DESCRIPTION,
         url: BASE_URL,
         ...(homePage.ogImageUrl ? { images: [{ url: homePage.ogImageUrl }] } : {}),
       },
@@ -22,8 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
-    title: "Tableicity | Cap Table Management Solutions",
-    description: "Tableicity: The privacy-first cap table. Leveraging SHA-256 hashes & ZK-proofs for secure, pseudonymous, and borderless equity management. Start today.",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
     alternates: { canonical: BASE_URL },
   }
 }

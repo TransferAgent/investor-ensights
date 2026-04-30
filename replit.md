@@ -2,7 +2,23 @@
 
 ## Overview
 
-This project is a **City Landing Page Manager**, a full-stack web application designed for programmatic SEO. It enables the creation and management of location-based landing pages for various US cities using reusable content templates with dynamic placeholder substitution. The application provides a public-facing website for browsing city locations and templated content, as well as an admin dashboard for managing cities, content templates, and their assignments. Its core purpose is to automate content generation and deployment for location-specific marketing.
+This project is **Investor Ensights** (deployed at investorensights.com), a programmatic-SEO publishing platform. It is a remix/rebrand of the original Tableicity codebase, repositioned as a financial-insights publisher serving institutional and retail investors with ground-truth data on local company formation and equity activity. The platform provides public city-level pages and AI-generated press releases / knowledge articles, plus an admin dashboard for managing cities, templates, and editorial content. Multi-tenancy (5 SaaS personas on this same platform) is on the roadmap.
+
+### Brand
+- **Name:** Investor Ensights (note the "E" in Ensights — distinct from "Insights")
+- **Domain (apex, no www):** https://investorensights.com
+- **Email:** info@investorensights.com
+- **Audience line:** "for institutional and retail investors seeking ground-truth data on local company formation and equity activity"
+- **Favicon:** `app/icon.png` — solid black circle on transparent background
+- **Publisher logo (Google JSON-LD):** `public/investor-ensights-logo.png` — wordmark in dark navy serif with circle/line mark; served at `${BASE_URL}/investor-ensights-logo.png`
+
+### Rebrand notes (April 2026)
+- The codebase was rebranded from "Tableicity" → "Investor Ensights" on April 30, 2026.
+- All 21 legacy `knowledge_articles` rows were wiped — clean editorial canvas.
+- `NEXT_PUBLIC_BASE_URL` is set to `https://investorensights.com` (shared env, no trailing slash, no www). `middleware.ts` 301-redirects www → apex.
+- **Internal identifiers intentionally NOT renamed** (would cascade through prompts, DB columns, sentinel markers): `tableicityScore` field, `<|tableicity_source_N|>` LLM sentinel markers, `END_TABLEICITY_SOURCE` markers, `TableicitySource` TS types. These are invisible to end users and renaming them would require schema migrations + prompt re-tuning.
+- **Deferred to next sprint** (per user — pages redesign in 1 week): the homepage hero (`HeroHome`) and the visible `components/homepage/{login,marketing,city-marketing,cookie-consent}-panel.tsx` panels still contain Tableicity product copy. Default page metadata, locations pages, article pages, and admin form defaults have all been swapped.
+- **Legacy templates not retired**: `app/api/knowledge/bulk-generate/route.ts` still contains old Tableicity product-marketing body templates (409A, ZK proofs, etc.). Production content is generated via the new `pairProcessor`/`openaiGenerator` pipeline, not this route. Retire or rewrite when product copy lands.
 
 ## User Preferences
 

@@ -537,7 +537,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createKnowledgeArticle(article: InsertKnowledgeArticle): Promise<KnowledgeArticle> {
-    const canonicalUrl = `https://www.tableicity.com/discovery/knowledge/${article.slug}`;
+    const canonicalUrl = `https://investorensights.com/discovery/knowledge/${article.slug}`;
     const [created] = await db.insert(knowledgeArticles).values({ ...article, canonicalUrl }).returning();
     return created;
   }
@@ -545,7 +545,7 @@ export class DatabaseStorage implements IStorage {
   async updateKnowledgeArticle(id: string, data: Partial<InsertKnowledgeArticle>): Promise<KnowledgeArticle | undefined> {
     const updateData: any = { ...data, updatedAt: new Date(), dateModified: new Date() };
     if (data.slug) {
-      updateData.canonicalUrl = `https://www.tableicity.com/discovery/knowledge/${data.slug}`;
+      updateData.canonicalUrl = `https://investorensights.com/discovery/knowledge/${data.slug}`;
     }
     const [updated] = await db.update(knowledgeArticles).set(updateData).where(eq(knowledgeArticles.id, id)).returning();
     return updated;

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { storage } from "@/lib/storage";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://www.tableicity.com";
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com";
 
 function highlightBrandInBody(html: string): string {
   let firstReplaced = false;
@@ -16,12 +16,12 @@ function highlightBrandInBody(html: string): string {
         return token;
       }
       if (inAnchor) return token;
-      return token.replace(/\bTableicity\b/g, () => {
+      return token.replace(/\bInvestor Ensights\b/g, () => {
         if (!firstReplaced) {
           firstReplaced = true;
-          return `<a href="https://www.tableicity.com" class="text-blue-400 hover:underline">Tableicity</a>`;
+          return `<a href="https://investorensights.com" class="text-blue-400 hover:underline">Investor Ensights</a>`;
         }
-        return "Tableicity";
+        return "Investor Ensights";
       });
     })
     .join("");
@@ -388,7 +388,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
 
   const isPreview = article.status === "pending";
 
-  const authorType = article.authorName.toLowerCase() === "tableicity" ? "Organization" : "Person";
+  const authorType = article.authorName.toLowerCase() === "investor ensights" ? "Organization" : "Person";
 
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -406,6 +406,10 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
       "@type": "Organization",
       name: article.publisherName,
       url: BASE_URL,
+      logo: {
+        "@type": "ImageObject",
+        url: `${BASE_URL}/investor-ensights-logo.png`,
+      },
     },
     mainEntityOfPage: {
       "@type": "WebPage",
@@ -476,7 +480,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
-            <span className="text-lg font-bold text-white">Tableicity</span>
+            <span className="text-lg font-bold text-white">Investor Ensights</span>
           </a>
           <nav className="flex items-center gap-4">
             <a href="/locations" className="text-sm text-blue-200/70 hover:text-white transition-colors" data-testid="link-locations">
@@ -549,7 +553,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
 
       <footer className="border-t border-white/10 py-8">
         <div className="max-w-4xl mx-auto px-6 text-center text-sm text-blue-200/40">
-          &copy; {new Date().getFullYear()} Tableicity. All rights reserved.
+          &copy; {new Date().getFullYear()} Investor Ensights. All rights reserved.
         </div>
       </footer>
     </div>

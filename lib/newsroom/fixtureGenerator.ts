@@ -129,7 +129,7 @@ export const fixtureGenerator: PipelineGenerator = {
       position: idx,
     }));
     if (links.length === 0) {
-      links.push({ targetSlug: "locations", anchorText: "all Tableicity city pages", position: 0 });
+      links.push({ targetSlug: "locations", anchorText: "all Investor Ensights city pages", position: 0 });
     }
     return {
       output: { fixture: true, links, linkCount: links.length },

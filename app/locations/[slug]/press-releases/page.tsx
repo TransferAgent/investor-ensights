@@ -4,7 +4,7 @@ import Link from "next/link";
 import { storage } from "@/lib/storage";
 import { ArrowLeft } from "lucide-react";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://www.tableicity.com";
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -13,8 +13,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!city) return { title: "Not Found" };
 
   return {
-    title: city.cityName + ", " + city.stateCode + " Press Releases | Tableicity",
-    description: "All press releases and news for Tableicity in " + city.cityName + ", " + city.stateName + ". Cap table security, privacy-first equity management, and more.",
+    title: city.cityName + ", " + city.stateCode + " Press Releases | Investor Ensights",
+    description: "All press releases and news from Investor Ensights covering local company formation and equity activity in " + city.cityName + ", " + city.stateName + ".",
     alternates: { canonical: BASE_URL + "/locations/" + slug + "/press-releases" },
     robots: {
       index: true,
@@ -50,7 +50,7 @@ export default async function PressReleasesPage({ params }: { params: Promise<{ 
           {"Press Releases — " + city.cityName + ", " + city.stateCode}
         </h1>
         <p className="text-sm text-blue-200/60 mb-8">
-          {"All published press releases for Tableicity in " + city.cityName + ", " + city.stateName}
+          {"All published press releases from Investor Ensights covering " + city.cityName + ", " + city.stateName}
         </p>
 
         {articles.length === 0 ? (

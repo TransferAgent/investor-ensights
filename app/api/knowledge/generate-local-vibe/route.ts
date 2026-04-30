@@ -66,12 +66,12 @@ function generateStubPayload(city: {
 <p>As ${city.cityName}'s startup scene matures alongside growth in ${nearbyText}, Tableicity remains committed to providing the infrastructure that enables founders to focus on building their businesses while maintaining institutional-grade equity management.</p>
 
 <p>Tableicity is currently available to founders and CFOs across all 50 US states, with dedicated onboarding support for companies in the ${city.cityName} metropolitan area.</p>`,
-      boilerplateHtml: `<p><strong>About Tableicity</strong> — Tableicity is a privacy-first cap table management platform designed for US founders, CFOs, and finance operators. Featuring SHA-256 data integrity, zero-knowledge proofs, and on-demand auditor reveal, Tableicity provides institutional-grade equity management tools to companies of all sizes. Learn more at <a href="https://www.tableicity.com">www.tableicity.com</a>.</p>`,
+      boilerplateHtml: `<p><strong>About Investor Ensights</strong> — Investor Ensights publishes ground-truth data on local company formation and equity activity for institutional and retail investors. Learn more at <a href="https://investorensights.com">investorensights.com</a>.</p>`,
     },
     attribution: {
-      authorName: "Tableicity" as const,
+      authorName: "Investor Ensights" as const,
       authorType: "Organization" as const,
-      publisherName: "Tableicity" as const,
+      publisherName: "Investor Ensights" as const,
     },
     conductor: {
       manualDirective: manualDirective || undefined,

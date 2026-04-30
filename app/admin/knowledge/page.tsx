@@ -241,8 +241,8 @@ export default function KnowledgeAdmin() {
   const [formBody, setFormBody] = useState("")
   const [formBoilerplate, setFormBoilerplate] = useState("")
   const [formOgImage, setFormOgImage] = useState("")
-  const [formAuthor, setFormAuthor] = useState("Tableicity")
-  const [formPublisher, setFormPublisher] = useState("Tableicity")
+  const [formAuthor, setFormAuthor] = useState("Investor Ensights")
+  const [formPublisher, setFormPublisher] = useState("Investor Ensights")
   const [formAllowIndexing, setFormAllowIndexing] = useState(true)
 
   const { data: articles, isLoading } = useQuery<KnowledgeArticle[]>({
@@ -795,8 +795,8 @@ export default function KnowledgeAdmin() {
     setFormBody("")
     setFormBoilerplate("")
     setFormOgImage("")
-    setFormAuthor("Tableicity")
-    setFormPublisher("Tableicity")
+    setFormAuthor("Investor Ensights")
+    setFormPublisher("Investor Ensights")
     setFormAllowIndexing(true)
   }
 
@@ -862,7 +862,7 @@ export default function KnowledgeAdmin() {
       </div>
       <div>
         <Label htmlFor="boilerplate">Boilerplate HTML (About section)</Label>
-        <Textarea id="boilerplate" value={formBoilerplate} onChange={(e) => setFormBoilerplate(e.target.value)} placeholder="<p>About Tableicity...</p>" rows={3} className="font-mono text-xs" data-testid="input-boilerplate" />
+        <Textarea id="boilerplate" value={formBoilerplate} onChange={(e) => setFormBoilerplate(e.target.value)} placeholder="<p>About Investor Ensights...</p>" rows={3} className="font-mono text-xs" data-testid="input-boilerplate" />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -1919,21 +1919,21 @@ export default function KnowledgeAdmin() {
                             <p className="text-sm" data-testid="text-preview-headline">{previewHeadline}</p>
                           </div>
                           <div>
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Slug</span>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Slug (representative)</span>
                             <p className="text-xs text-muted-foreground font-mono" data-testid="text-preview-slug">
-                              tableicity-{city.cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}-cap-table
+                              {city.cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}-{city.stateCode.toLowerCase()}-equity-activity
                             </p>
                           </div>
                           <div>
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Live URL</span>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Live URL (representative)</span>
                             <a
-                              href={`/discovery/knowledge/tableicity-${city.cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}-cap-table`}
+                              href={`/discovery/knowledge/${city.cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}-${city.stateCode.toLowerCase()}-equity-activity`}
                               target="_blank"
                               rel="noopener"
                               className="text-xs text-blue-500 hover:underline block truncate"
                               data-testid="link-preview-url"
                             >
-                              /discovery/knowledge/tableicity-{city.cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}-cap-table
+                              /discovery/knowledge/{city.cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}-{city.stateCode.toLowerCase()}-equity-activity
                             </a>
                           </div>
                         </div>
@@ -2304,7 +2304,7 @@ function TemplateForm({ initial, onSubmit, isPending, cities }: {
   const [datelinePattern, setDatelinePattern] = useState(initial?.datelinePattern || "")
   const [bodyHtmlPattern, setBodyHtmlPattern] = useState(initial?.bodyHtmlPattern || "")
   const [boilerplateHtml, setBoilerplateHtml] = useState(initial?.boilerplateHtml || "")
-  const [ogImageUrl, setOgImageUrl] = useState(initial?.ogImageUrl || "https://www.tableicity.com/beast-06-zk-network.png")
+  const [ogImageUrl, setOgImageUrl] = useState(initial?.ogImageUrl || "https://investorensights.com/investor-ensights-logo.png")
   const [allowIndexing, setAllowIndexing] = useState(initial?.allowIndexing ?? true)
   const [previewCity, setPreviewCity] = useState("")
   const [showPreview, setShowPreview] = useState(false)
@@ -2330,7 +2330,7 @@ function TemplateForm({ initial, onSubmit, isPending, cities }: {
       </div>
       <div>
         <Label>Meta Title</Label>
-        <Input value={titlePattern} onChange={(e) => setTitlePattern(e.target.value)} placeholder="e.g., Cap Table Readiness in {{city}}, {{state_code}} | Tableicity" data-testid="input-template-title" />
+        <Input value={titlePattern} onChange={(e) => setTitlePattern(e.target.value)} placeholder="e.g., Local Equity Activity in {{city}}, {{state_code}} | Investor Ensights" data-testid="input-template-title" />
       </div>
       <div>
         <Label>Meta Description</Label>
@@ -2391,7 +2391,7 @@ function TemplateForm({ initial, onSubmit, isPending, cities }: {
                     <h2 className="text-sm font-normal text-blue-200/70" dangerouslySetInnerHTML={{ __html: replacePlaceholders(subheadlinePattern).replace(/<\/?h[1-6][^>]*>/gi, "") }} />
                   )}
                   <div className="text-xs text-blue-200/50 border-b border-white/10 pb-3">
-                    By Tableicity &middot; {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                    By Investor Ensights &middot; {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
                   </div>
                   <div
                     className="prose prose-sm prose-invert max-w-none
@@ -2405,7 +2405,7 @@ function TemplateForm({ initial, onSubmit, isPending, cities }: {
                   />
                   {boilerplateHtml && (
                     <div className="mt-4 pt-4 border-t border-white/10">
-                      <p className="text-[10px] uppercase tracking-wider text-blue-200/40 mb-2">About Tableicity</p>
+                      <p className="text-[10px] uppercase tracking-wider text-blue-200/40 mb-2">About Investor Ensights</p>
                       <div className="text-xs text-blue-200/50" dangerouslySetInnerHTML={{ __html: replacePlaceholders(boilerplateHtml) }} />
                     </div>
                   )}
@@ -2593,7 +2593,7 @@ function SeoVisibilitySection() {
         <Textarea
           id="safe-list"
           rows={10}
-          placeholder={"https://www.tableicity.com/locations/austin-tx\nhttps://www.tableicity.com/discovery/knowledge/tableicity-boston-cap-table"}
+          placeholder={"https://investorensights.com/locations/austin-tx\nhttps://investorensights.com/discovery/knowledge/austin-tx-equity-activity"}
           value={safeListText}
           onChange={(e) => setSafeListText(e.target.value)}
           data-testid="textarea-safe-list"
@@ -2731,7 +2731,7 @@ function SeoVisibilitySection() {
           rows={3}
           value={restoreText}
           onChange={(e) => setRestoreText(e.target.value)}
-          placeholder="https://www.tableicity.com/locations/austin-tx"
+          placeholder="https://investorensights.com/locations/austin-tx"
           className="font-mono text-xs"
           data-testid="textarea-restore-slugs"
         />

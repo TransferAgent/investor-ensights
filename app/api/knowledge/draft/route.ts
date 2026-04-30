@@ -112,7 +112,7 @@ function validatePayload(body: any): { valid: boolean; errors: string[] } {
       const hasKeyword = keywords.some(kw => headlineLower.includes(kw));
       const hasCityRef = slugParts.some((part: string) => part.length > 2 && headlineLower.includes(part));
       if (!hasKeyword && !hasCityRef) {
-        errors.push("Headline must reference the city or a Tableicity keyword.");
+        errors.push("Headline must reference the city or an Investor Ensights keyword.");
       }
     }
 
@@ -129,8 +129,8 @@ function validatePayload(body: any): { valid: boolean; errors: string[] } {
     if (!body.attribution.authorName || typeof body.attribution.authorName !== "string") {
       errors.push("attribution.authorName is required");
     }
-    if (body.attribution.publisherName && body.attribution.publisherName !== "Tableicity") {
-      errors.push("attribution.publisherName must be 'Tableicity'");
+    if (body.attribution.publisherName && body.attribution.publisherName !== "Investor Ensights") {
+      errors.push("attribution.publisherName must be 'Investor Ensights'");
     }
   }
 
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
       bodyHtml: body.article.bodyHtml,
       boilerplateHtml: body.article.boilerplateHtml || null,
       authorName: body.attribution.authorName,
-      publisherName: "Tableicity",
+      publisherName: "Investor Ensights",
     });
 
     const payloadHash = createHash("sha256")

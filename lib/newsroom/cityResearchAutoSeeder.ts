@@ -9,7 +9,7 @@ const MIN_CONTENT_BYTES = 800;
 const MAX_PROBE_BYTES = 200_000;
 const TOTAL_SEEDING_BUDGET_MS = 12_000;
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; TableicityNewsroomBot/1.0; +https://www.tableicity.com)";
+  "Mozilla/5.0 (compatible; InvestorEnsightsNewsroomBot/1.0; +https://investorensights.com)";
 
 export interface AutoSeedResult {
   citySlug: string;

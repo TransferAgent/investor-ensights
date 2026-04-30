@@ -88,7 +88,7 @@ function buildVibeBlock(cityName: string, vibe: string, sourceUrl?: string | nul
   const cite = sourceUrl
     ? ` <a href="${escapeHtml(sourceUrl)}" rel="nofollow noopener" target="_blank" class="newsroom-cite">[source]</a>`
     : "";
-  return `<section class="newsroom-local-vibe" data-newsroom-injected="local-vibe"><h2>Why ${escapeHtml(cityName)} Founders Choose Tableicity</h2><p>${escapeHtml(vibe)}${cite}</p></section>`;
+  return `<section class="newsroom-local-vibe" data-newsroom-injected="local-vibe"><h2>What ${escapeHtml(cityName)} Investors Should Know</h2><p>${escapeHtml(vibe)}${cite}</p></section>`;
 }
 
 function injectVibe(bodyHtml: string, vibeBlock: string): { html: string; strategy: ComposeResult["vibeStrategy"] } {
@@ -161,9 +161,9 @@ export function composePressRelease(input: ComposeInput): ComposeResult {
   const wrapperTemplate = `<article class="newsroom-press-release" data-city-slug="{{city_slug}}" data-topic="{{topic}}">
   <div class="pr-body">{{haylo_body}}</div>
   <footer class="pr-footer">
-    <h2>About Tableicity</h2>
-    <p>Tableicity is a privacy-first cap table management platform combining zero-knowledge encryption with intuitive equity tools. Built for founders, CFOs, and legal teams in {{city_name}} and beyond.</p>
-    <p class="pr-copyright">© {{year}} Tableicity. All rights reserved.</p>
+    <h2>About Investor Ensights</h2>
+    <p>Investor Ensights publishes ground-truth data on local company formation and equity activity for institutional and retail investors evaluating opportunities in {{city_name}} and beyond.</p>
+    <p class="pr-copyright">© {{year}} Investor Ensights. All rights reserved.</p>
   </footer>
 </article>`;
 

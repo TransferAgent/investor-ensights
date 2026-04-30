@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const SECRET = process.env.CRON_SECRET;
-const BASE = process.env.NEXT_PUBLIC_BASE_URL || "https://www.tableicity.com";
+const BASE = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com";
 
 if (!SECRET) {
   console.error("CRON_SECRET is not set on this deployment.");

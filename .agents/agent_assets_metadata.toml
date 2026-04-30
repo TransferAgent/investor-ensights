@@ -1,5 +1,16 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "LleYNHrytw83oaLCG_KDl"
+uri = "file://app/icon.png"
+type = "image"
+title = "investor-ensights-favicon-black-circle"
+
+[[generated]]
+id = "srjrzqDQCVvph3KAKlkWq"
+uri = "file://public/investor-ensights-logo.png"
+type = "image"
+title = "investor-ensights-publisher-logo"
 
 [[outputs]]
 id = "H8VCHfKuHDt6JHRR47nJz"

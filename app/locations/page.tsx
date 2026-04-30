@@ -5,11 +5,11 @@ import { Building2, Globe, Phone, Lock } from "lucide-react"
 import { storage } from "@/lib/storage"
 import CityGrid from "../city-grid"
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://yourcompany.com"
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com"
 
 export const metadata: Metadata = {
-  title: "Cap Table Solution for Equity Management",
-  description: "Cap Table solution Ensuring your equity ownership remains pseudonymous through SHA-256 Encryption with on-demand auditor reveal. Built for Founders who refuse to treat their ownership data as public property.",
+  title: "City Coverage | Investor Ensights",
+  description: "Investor Ensights publishes ground-truth data on local company formation and equity activity across major US metros for institutional and retail investors.",
   alternates: { canonical: `${BASE_URL}/locations` },
 }
 
@@ -25,10 +25,10 @@ export default async function LocationsPage() {
             className="mb-4 text-4xl font-bold tracking-tight text-primary-foreground md:text-5xl lg:text-6xl"
             data-testid="text-hero-title"
           >
-            Your Cap Table Solution Near You
+            Local Company Formation & Equity Activity
           </h1>
           <h2 className="mx-auto mb-8 max-w-2xl text-lg text-primary-foreground/80 md:text-xl font-normal">
-            Built for Founders who refuse to treat their ownership data as public property.
+            Ground-truth data for institutional and retail investors, city by city.
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Badge variant="secondary" className="text-sm">
@@ -52,7 +52,7 @@ export default async function LocationsPage() {
       <footer className="border-t">
         <div className="mx-auto max-w-6xl px-4 py-6 flex items-center justify-between flex-wrap gap-2">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} Tableicity. All rights reserved.
+            &copy; {new Date().getFullYear()} Investor Ensights. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <Link

@@ -12,7 +12,7 @@ const MAX_BYTES_PER_SOURCE = 1_500_000;
 const MAX_MARKDOWN_CHARS_PER_SOURCE = 12_000;
 const TOTAL_MARKDOWN_BUDGET = 40_000;
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; TableicityNewsroomBot/1.0; +https://www.tableicity.com)";
+  "Mozilla/5.0 (compatible; InvestorEnsightsNewsroomBot/1.0; +https://investorensights.com)";
 
 const turndown = new TurndownService({
   headingStyle: "atx",

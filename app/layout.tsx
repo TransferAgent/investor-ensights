@@ -10,9 +10,9 @@ const openSans = Open_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "YourCompany - Sales & Marketing Services",
+  title: "Investor Ensights",
   description:
-    "Professional sales and marketing services across 150+ major US cities.",
+    "Ground-truth data on local company formation and equity activity for institutional and retail investors.",
 }
 
 export default function RootLayout({

@@ -18,7 +18,7 @@ export const KnowledgeDraftPayloadV1 = z.object({
   attribution: z.object({
     authorName: z.string().min(1),
     authorType: z.enum(["Organization", "Person"]),
-    publisherName: z.literal("Tableicity"),
+    publisherName: z.literal("Investor Ensights"),
   }),
   conductor: z.object({
     manualDirective: z.string().optional(),

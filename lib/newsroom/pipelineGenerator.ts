@@ -127,9 +127,9 @@ export function composeDraftFromOutputs(opts: {
     subheadline: cw.subheadline,
     dateline: cw.dateline,
     bodyHtml: cw.bodyHtml,
-    boilerplateHtml: `<p>About Tableicity: cap-table software built for founders outside the coastal hubs. Free for teams under 25; paid plans start at $29/mo. <a href="https://www.tableicity.com">tableicity.com</a></p>`,
-    authorName: "Tableicity Newsroom",
-    publisherName: "Tableicity",
+    boilerplateHtml: `<p>About Investor Ensights — Investor Ensights publishes ground-truth data on local company formation and equity activity for institutional and retail investors. <a href="https://investorensights.com">investorensights.com</a></p>`,
+    authorName: "Investor Ensights Newsroom",
+    publisherName: "Investor Ensights",
     internalLinks: links,
   };
 }

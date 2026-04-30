@@ -529,7 +529,7 @@ export function makeOpenAIGenerator(
         output: {
           model: MODEL,
           promptVersion: versionTag,
-          links: [{ targetSlug: "locations", anchorText: "all Tableicity city pages", position: 0 }],
+          links: [{ targetSlug: "locations", anchorText: "all Investor Ensights city pages", position: 0 }],
           note: "No candidate cities available; emitted /locations index link.",
         },
         tokensUsed: 0,

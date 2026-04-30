@@ -8,7 +8,7 @@ import {
 import CityMarketingPanel from "@/components/homepage/city-marketing-panel"
 import LoginPanel from "@/components/homepage/login-panel"
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://yourcompany.com"
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com"
 
 export async function generateStaticParams() {
   const cities = await storage.getCities(true)
@@ -56,13 +56,13 @@ export async function generateMetadata({
     (template?.metaTitlePattern
       ? replacePlaceholders(template.metaTitlePattern, metaCityData)
       : null) ||
-    `Tableicity - Cap Table Management Services in ${city.cityName}, ${city.stateCode}`
+    `Investor Ensights — Local Company Formation & Equity Activity in ${city.cityName}, ${city.stateCode}`
   const description =
     city.metaDescription ||
     (template?.metaDescriptionPattern
       ? replacePlaceholders(template.metaDescriptionPattern, metaCityData)
       : null) ||
-    `Privacy-first cap table management in ${city.cityName}, ${city.stateName || city.stateCode}. Manage equity, stakeholders, and compliance with enterprise-grade security.${landmarkSnippet}`
+    `Ground-truth data on local company formation and equity activity in ${city.cityName}, ${city.stateName || city.stateCode} for institutional and retail investors.${landmarkSnippet}`
 
   return {
     title,
@@ -81,7 +81,7 @@ export async function generateMetadata({
       title,
       description,
       url: `${BASE_URL}/locations/${city.slug}`,
-      siteName: "Tableicity",
+      siteName: "Investor Ensights",
       type: "website",
     },
   }
@@ -133,7 +133,7 @@ export default async function CityPage({
   const body =
     assignment?.customBody ||
     replacePlaceholders(template?.bodyContentPattern || "", cityData) ||
-    `We're proud to serve the ${city.cityName} community with top-tier cap table management solutions. Our platform helps startups in ${city.stateName || city.stateCode} manage equity, stakeholders, and compliance with enterprise-grade security.`
+    `Investor Ensights publishes ground-truth data on local company formation and equity activity in ${city.cityName}, ${city.stateName || city.stateCode} for institutional and retail investors.`
 
   let mapSrc = (city as any).mapEmbedUrl || null
   if (!mapSrc && city.streetAddress) {
@@ -148,7 +148,7 @@ export default async function CityPage({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
-    name: `Tableicity - ${city.cityName}`,
+    name: `Investor Ensights — ${city.cityName}`,
     address: {
       "@type": "PostalAddress",
       streetAddress: city.streetAddress,
