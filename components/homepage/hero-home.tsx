@@ -1,13 +1,13 @@
 "use client"
 
-import MarketingPanel from "./marketing-panel"
-import LoginPanel from "./login-panel"
+import AuthPane from "./auth-pane"
+import ImagePane from "./image-pane"
 
 export default function HeroHome() {
   return (
     <div className="min-h-screen flex">
-      <MarketingPanel />
-      <LoginPanel />
+      <AuthPane />
+      <ImagePane />
     </div>
   )
 }
