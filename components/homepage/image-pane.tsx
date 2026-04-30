@@ -7,24 +7,6 @@ export default function ImagePane() {
       style={{ backgroundColor: "#000" }}
       data-testid="pane-image"
     >
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: "url(/auth-hero.png)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      />
-
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "linear-gradient(90deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0) 100%)",
-        }}
-      />
-
       <div className="relative z-[1] flex h-full w-full items-center justify-center">
         <div className="flex flex-col items-center">
           <span
