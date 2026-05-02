@@ -4,9 +4,12 @@ import { storage } from "@/lib/storage";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com";
 
-function highlightBrandInBody(html: string): string {
+function highlightBrandInBody(html: string, citySlug?: string | null): string {
   let firstReplaced = false;
   let inAnchor = false;
+  const href = citySlug
+    ? `https://www.tableicity.com/locations/${citySlug}`
+    : "https://www.tableicity.com";
   const tokens = html.split(/(<[^>]*>)/);
   return tokens
     .map((token) => {
@@ -16,12 +19,12 @@ function highlightBrandInBody(html: string): string {
         return token;
       }
       if (inAnchor) return token;
-      return token.replace(/\bInvestor Ensights\b/g, () => {
+      return token.replace(/\bTableicity\b/g, () => {
         if (!firstReplaced) {
           firstReplaced = true;
-          return `<a href="https://investorensights.com" class="text-blue-400 hover:underline">Investor Ensights</a>`;
+          return `<a href="${href}" class="text-blue-400 hover:underline">Tableicity</a>`;
         }
-        return "Investor Ensights";
+        return "Tableicity";
       });
     })
     .join("");
@@ -321,10 +324,15 @@ function rechunkParagraphs(html: string): string {
   );
 }
 
-function transformBodyForRender(html: string, subheadline?: string | null): string {
+function transformBodyForRender(
+  html: string,
+  subheadline?: string | null,
+  citySlug?: string | null,
+): string {
   return markFirstAnswerBlock(
     highlightBrandInBody(
       rechunkParagraphs(removeDuplicateLeadParagraph(html, subheadline)),
+      citySlug,
     ),
   );
 }
@@ -534,6 +542,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
             __html: transformBodyForRender(
               article.bodyHtml,
               article.metaDescription || article.subheadline,
+              article.citySlug,
             ),
           }}
           data-testid="article-body"
