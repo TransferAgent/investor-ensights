@@ -897,6 +897,7 @@ export default function KnowledgeAdmin() {
             <Switch
               id="formAllowIndexing"
               checked={formAllowIndexing}
+              aria-disabled={lockedToIndex}
               onCheckedChange={(next) => {
                 if (next && !isPublished) {
                   toast({

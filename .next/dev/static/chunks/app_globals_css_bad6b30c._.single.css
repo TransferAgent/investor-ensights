@@ -3821,12 +3821,12 @@ body {
   opacity: .7;
 }
 
-.opacity-90 {
-  opacity: .9;
-}
-
 .opacity-80 {
   opacity: .8;
+}
+
+.opacity-90 {
+  opacity: .9;
 }
 
 .shadow-\[0_0_0_1px_hsl\(var\(--sidebar-border\)\)\] {
