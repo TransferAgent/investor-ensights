@@ -878,24 +878,41 @@ export default function KnowledgeAdmin() {
         <Label htmlFor="ogImage">OG Image URL</Label>
         <Input id="ogImage" value={formOgImage} onChange={(e) => setFormOgImage(e.target.value)} placeholder="https://..." data-testid="input-og-image" />
       </div>
-      {isEdit && (
-        <div className="flex items-center justify-between gap-2 flex-wrap rounded-md border p-3">
-          <div className="space-y-0.5">
-            <Label htmlFor="formAllowIndexing" className="cursor-pointer">
-              Let search engines index this page
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              When off, this article won&apos;t appear in Google or other search engines (sets <code>noindex</code>).
-            </p>
+      {isEdit && (() => {
+        const isPublished = editArticle?.status === "published"
+        const lockedToIndex = !isPublished && !formAllowIndexing
+        return (
+          <div className={`flex items-center justify-between gap-2 flex-wrap rounded-md border p-3 ${lockedToIndex ? "opacity-80" : ""}`}>
+            <div className="space-y-0.5">
+              <Label htmlFor="formAllowIndexing" className="cursor-pointer">
+                Let search engines index this page
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {isPublished
+                  ? <>When off, this article won&apos;t appear in Google or other search engines (sets <code>noindex</code>).</>
+                  : <>Index can only be turned on for published articles. Publish first, then flip Index.</>
+                }
+              </p>
+            </div>
+            <Switch
+              id="formAllowIndexing"
+              checked={formAllowIndexing}
+              onCheckedChange={(next) => {
+                if (next && !isPublished) {
+                  toast({
+                    title: "Publish first",
+                    description: "Index can only be turned on for published articles. Publish this article, then flip Index.",
+                    variant: "destructive",
+                  })
+                  return
+                }
+                setFormAllowIndexing(next)
+              }}
+              data-testid="switch-allow-indexing"
+            />
           </div>
-          <Switch
-            id="formAllowIndexing"
-            checked={formAllowIndexing}
-            onCheckedChange={setFormAllowIndexing}
-            data-testid="switch-allow-indexing"
-          />
-        </div>
-      )}
+        )
+      })()}
       <Button
         onClick={() => isEdit ? updateMutation.mutate() : createMutation.mutate()}
         disabled={isEdit ? updateMutation.isPending : createMutation.isPending}
