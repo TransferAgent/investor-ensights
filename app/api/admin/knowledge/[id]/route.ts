@@ -33,7 +33,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.ogImageUrl !== undefined) data.ogImageUrl = body.ogImageUrl || null;
   if (body.authorName !== undefined) data.authorName = body.authorName;
   if (body.publisherName !== undefined) data.publisherName = body.publisherName;
-  if (body.robots !== undefined) data.robots = body.robots;
+  if (body.robots !== undefined) {
+    const wantsIndex = !String(body.robots || "").toLowerCase().includes("noindex");
+    if (wantsIndex) {
+      const current = await storage.getKnowledgeArticleById(id);
+      if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      if (current.status !== "published") {
+        return NextResponse.json(
+          { error: "Cannot set robots to Index on a non-published article. Publish the article first, then flip Index." },
+          { status: 409 }
+        );
+      }
+    }
+    data.robots = body.robots;
+  }
   if (body.slug !== undefined) {
     data.slug = sanitizeString(body.slug).toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
   }
