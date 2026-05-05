@@ -111,22 +111,31 @@ export default function AuthPane() {
             agree
           </Link>{" "}
           to Investor Ensights Inc.&apos;s{" "}
-          <button
-            type="button"
+          <Link
+            href="/terms"
             className="font-medium text-neutral-700 underline-offset-2 hover:underline"
             data-testid="link-terms"
           >
             Terms of Service
-          </button>{" "}
+          </Link>{" "}
           and{" "}
-          <button
-            type="button"
+          <Link
+            href="/privacy"
             className="font-medium text-neutral-700 underline-offset-2 hover:underline"
             data-testid="link-privacy"
           >
             Privacy Policy
-          </button>
+          </Link>
           .
+        </p>
+        <p className="mt-2 text-[11px] text-neutral-400">
+          <Link
+            href="/site-map"
+            className="hover:text-neutral-700 hover:underline"
+            data-testid="link-sitemap"
+          >
+            Sitemap
+          </Link>
         </p>
       </div>
     </div>

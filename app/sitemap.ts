@@ -40,6 +40,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }))
 
+  const staticEntries: MetadataRoute.Sitemap = [
+    {
+      url: `${BASE_URL}/terms`,
+      lastModified: new Date(),
+      changeFrequency: "yearly" as const,
+      priority: 0.3,
+    },
+    {
+      url: `${BASE_URL}/privacy`,
+      lastModified: new Date(),
+      changeFrequency: "yearly" as const,
+      priority: 0.3,
+    },
+    {
+      url: `${BASE_URL}/site-map`,
+      lastModified: new Date(),
+      changeFrequency: "daily" as const,
+      priority: 0.4,
+    },
+  ]
+
   return [
     {
       url: BASE_URL,
@@ -47,6 +68,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily" as const,
       priority: 1,
     },
+    ...staticEntries,
     ...cityEntries,
     ...pageEntries,
     ...articleEntries,
