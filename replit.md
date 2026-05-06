@@ -30,7 +30,7 @@ A programmatic-SEO publishing platform providing financial insights on local com
 *   **Admin dashboard**: `app/admin/*`
 *   **API routes**: `app/api/*`
 *   **DB Schema**: `shared/schema.ts`
-*   **Sitemap generation**: `app/sitemap.ts`
+*   **Sitemap generation**: `app/sitemap.xml/route.ts` (route handler — emits clean public-cacheable XML, no cookies; see `Site_Map.md` §12)
 *   **Robots.txt**: `app/robots.ts`
 *   **Main Configuration**: `next.config.js`, `tailwind.config.ts`, `drizzle.config.ts`
 *   **Helper scripts**: `scripts/*`

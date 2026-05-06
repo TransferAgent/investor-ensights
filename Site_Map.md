@@ -10,9 +10,10 @@
 | Phase | Trigger to enter | What it covers | Status |
 |---|---|---|---|
 | **Phase 1 — current** | 0 → ~5,000 articles | Data-correctness, admin Index/NoIndex controls, basic Next.js metadata-route sitemap | ✅ **Live in prod** |
-| **Phase 2 — scale** | When indexed URLs exceed ~5,000, **or** when crawler load becomes visible in logs, **or** when you need fine-grained HTTP cache control | Convert `app/sitemap.ts` → `app/sitemap.xml/route.ts` (route handler), explicit `Cache-Control: public, s-maxage=300, stale-while-revalidate=3600`, prepare for sitemap-index split, optional gzip | 🟡 **Deferred** — see §12 |
+| **Phase 2A — route handler** | Triggered early (May 2026) by GSC "Couldn't fetch" — clean public-cacheable headers and removal of `Set-Cookie` were needed to satisfy Google's strict sitemap fetcher | `app/sitemap.xml/route.ts` route handler, `Cache-Control: public, s-maxage=300, stale-while-revalidate=3600`, `X-Robots-Tag: noindex`, no cookies | ✅ **Live** — see §12 |
+| **Phase 2B/C — index split + gzip** | When indexed URLs exceed ~5,000 or sitemap exceeds ~500 KB | Sitemap-index split into per-type child sitemaps; optional gzip compression | 🟡 **Deferred** — see §12 |
 
-Phase 1 is sufficient for "several months" at the current growth rate. Phase 2 is a 15–30 min upgrade with a clean migration path; revisit when article count clears ~5K or you want CDN-level caching.
+Phase 2A was promoted from "deferred" to "shipped" earlier than planned because the original Phase-1 metadata-route sitemap shipped with `Cache-Control: private` and a `Set-Cookie` header (Replit Deployments / Next.js defaults), which Google's sitemap fetcher rejected with "Couldn't fetch." Phase 2B/C still deferred until the scale triggers fire.
 
 ---
 
@@ -315,26 +316,21 @@ Pull the trigger on Phase 2 when **any one** of these is true:
 3. **You need to set custom HTTP headers** (e.g., `X-Robots-Tag`, hreflang index, `<image:image>` namespaces) that Next.js's metadata-route helper doesn't expose.
 4. **Approaching the 50,000 URL / 50 MB hard limit** of a single sitemap (Google's spec). Below this, a single file is fine; at this point, an index is mandatory.
 
-### Phase 2A — Route-handler migration (~15 min)
+### Phase 2A — Route-handler migration (✅ shipped May 2026)
 
-**Goal**: Move from Next.js's metadata convention to a hand-rolled route handler so we own headers and output completely.
+**What was built:** `app/sitemap.xml/route.ts` route handler with hand-rendered XML, replacing the Next.js metadata-route convention. `app/sitemap.ts` deleted in the same commit. Entry-collection logic (cities/pages/articles fetch + filter) is verbatim from the old file — same content semantics.
 
-1. **Create** `app/sitemap.xml/route.ts` returning a `Response` with:
-   ```ts
-   return new Response(xmlString, {
-     status: 200,
-     headers: {
-       "Content-Type": "application/xml; charset=utf-8",
-       "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600",
-       "X-Robots-Tag": "noindex",   // hide the sitemap itself from search results
-     },
-   })
-   ```
-2. **Move** the entry-collection logic (cities/pages/articles fetch + filter) verbatim from `app/sitemap.ts`. No business-logic changes.
-3. **Hand-render the XML** (small helper, ~30 lines): `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">…</urlset>`.
-4. **Delete** `app/sitemap.ts` in the **same commit** to avoid Next.js registering both routes simultaneously (this is the only real risk in the migration).
-5. **Verify** with `curl -I https://investorensights.com/sitemap.xml` — header should now show `cache-control: public, s-maxage=300, stale-while-revalidate=3600`.
-6. **Verify URL count is unchanged** (should still match `Phase 1` reconciliation table from §1).
+**Headers now served:**
+```
+content-type:  application/xml; charset=utf-8
+cache-control: public, s-maxage=300, stale-while-revalidate=3600
+x-robots-tag:  noindex
+```
+**Headers NO LONGER served** (the actual fix for GSC "Couldn't fetch"):
+- ❌ `cache-control: private, max-age=0, must-revalidate` — was Next.js metadata-route default on dynamic responses
+- ❌ `set-cookie: GAESA=...` — was Replit Deployments / Google Frontend session cookie attached to dynamic responses
+
+**Known residual limitation — `Vary: rsc, next-router-...`:** Next.js 16's runtime still appends RSC-related Vary tokens to *every* response, including pure route handlers. There is no clean way to suppress this from inside the Next.js stack (middleware runs before the response, so it can't strip them; setting `Vary` in the route handler results in two `Vary` lines, not replacement). Per RFC 9110, multiple `Vary` field-lines are equivalent to one combined comma-separated list, so HTTP semantics are unchanged. Vary tokens are far less likely to trip Google's sitemap fetcher than the cookie + private-cache combo we eliminated, so we accept this limitation. If GSC still rejects after this fix, the next escalation is to serve the sitemap from a layer outside Next entirely (Express pre-route, or a static rebuild on cron) — not done now to keep the change minimal.
 
 ### Phase 2B — Sitemap index split (~30 min, only when >5K URLs)
 
@@ -367,4 +363,4 @@ When article count approaches 50K (or you simply want logical separation):
 
 ---
 
-*Last updated: 2026-05-06 — Phase 1 live in prod (commit `77a2c28`). Phase 2 deferred until article count crosses ~5K or other §12 trigger fires.*
+*Last updated: 2026-05-06 — Phase 1 live in prod (commit `77a2c28`); Phase 2A route handler shipped same day (replaces `app/sitemap.ts` with `app/sitemap.xml/route.ts`). Phase 2B/C deferred until article count crosses ~5K or sitemap exceeds 500 KB.*

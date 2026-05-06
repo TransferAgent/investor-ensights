@@ -2688,6 +2688,10 @@ body {
   border-color: rgb(252 211 77 / var(--tw-border-opacity, 1));
 }
 
+.border-amber-500\/30 {
+  border-color: #f59e0b4d;
+}
+
 .border-amber-500\/40 {
   border-color: #f59e0b66;
 }
@@ -2734,6 +2738,10 @@ body {
 
 .border-destructive\/50 {
   border-color: hsl(var(--destructive) / .5);
+}
+
+.border-emerald-500\/30 {
+  border-color: #10b9814d;
 }
 
 .border-emerald-500\/40 {
@@ -2830,14 +2838,6 @@ body {
   border-color: #eab30833;
 }
 
-.border-amber-500\/30 {
-  border-color: #f59e0b4d;
-}
-
-.border-emerald-500\/30 {
-  border-color: #10b9814d;
-}
-
 .border-l-transparent {
   border-left-color: #0000;
 }
@@ -2882,6 +2882,10 @@ body {
 
 .bg-amber-50\/40 {
   background-color: #fffbeb66;
+}
+
+.bg-amber-500\/10 {
+  background-color: #f59e0b1a;
 }
 
 .bg-amber-500\/15 {
@@ -2942,6 +2946,10 @@ body {
 .bg-emerald-50 {
   --tw-bg-opacity: 1;
   background-color: rgb(236 253 245 / var(--tw-bg-opacity, 1));
+}
+
+.bg-emerald-500\/10 {
+  background-color: #10b9811a;
 }
 
 .bg-emerald-500\/15 {
@@ -3099,14 +3107,6 @@ body {
 .bg-zinc-200 {
   --tw-bg-opacity: 1;
   background-color: rgb(228 228 231 / var(--tw-bg-opacity, 1));
-}
-
-.bg-amber-500\/10 {
-  background-color: #f59e0b1a;
-}
-
-.bg-emerald-500\/10 {
-  background-color: #10b9811a;
 }
 
 .bg-gradient-to-br {
@@ -4544,9 +4544,17 @@ input[type="search"]::-webkit-search-cancel-button {
   background-color: rgb(254 243 199 / var(--tw-bg-opacity, 1));
 }
 
+.hover\:bg-amber-500\/20:hover {
+  background-color: #f59e0b33;
+}
+
 .hover\:bg-emerald-100:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(209 250 229 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-emerald-500\/20:hover {
+  background-color: #10b98133;
 }
 
 .hover\:bg-emerald-700:hover {
@@ -4599,14 +4607,6 @@ input[type="search"]::-webkit-search-cancel-button {
 .hover\:bg-zinc-200:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(228 228 231 / var(--tw-bg-opacity, 1));
-}
-
-.hover\:bg-amber-500\/20:hover {
-  background-color: #f59e0b33;
-}
-
-.hover\:bg-emerald-500\/20:hover {
-  background-color: #10b98133;
 }
 
 .hover\:text-accent-foreground:hover {
