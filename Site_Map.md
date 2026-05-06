@@ -1,7 +1,18 @@
 # Site Map & Indexing — Handover
 
 > Audience: the Tableicity remix (and anyone porting this work back to the parent codebase).
-> Scope: how indexing flows from the database → sitemap → Google, why our prod sitemap was "empty" of city pages, and the new admin UX (per-row toggle + bulk actions) that lets a publisher control indexing without touching SQL.
+> Scope: how indexing flows from the database → sitemap → Google, the new admin UX (per-row toggle + bulk actions) that lets a publisher control indexing without touching SQL, and the **two-phase scale plan** for the sitemap itself.
+
+---
+
+## 0. Two-phase strategy at a glance
+
+| Phase | Trigger to enter | What it covers | Status |
+|---|---|---|---|
+| **Phase 1 — current** | 0 → ~5,000 articles | Data-correctness, admin Index/NoIndex controls, basic Next.js metadata-route sitemap | ✅ **Live in prod** |
+| **Phase 2 — scale** | When indexed URLs exceed ~5,000, **or** when crawler load becomes visible in logs, **or** when you need fine-grained HTTP cache control | Convert `app/sitemap.ts` → `app/sitemap.xml/route.ts` (route handler), explicit `Cache-Control: public, s-maxage=300, stale-while-revalidate=3600`, prepare for sitemap-index split, optional gzip | 🟡 **Deferred** — see §12 |
+
+Phase 1 is sufficient for "several months" at the current growth rate. Phase 2 is a 15–30 min upgrade with a clean migration path; revisit when article count clears ~5K or you want CDN-level caching.
 
 ---
 
@@ -20,20 +31,26 @@ After deploying the rebrand to `investorensights.com`, the sitemap appeared func
 | URL counts in the live sitemap | 1 home + 3 legal + 41 articles + **0 cities** = **45 URLs** |
 | Prod database row counts | 340 cities total, **0 with `is_published = true`**; 41 articles published & indexable |
 
-### Root cause
-**It was a data problem, not a code problem.**
-`app/sitemap.ts` correctly calls `storage.getCities(true)` (only-published) and filters out rows where `allow_indexing = false`. Because every one of the 340 city rows in prod had `is_published = false`, the sitemap legitimately contained **zero `/locations/...` URLs**. Google was crawling exactly what we told it existed.
+### Root cause (resolved as of 2026-05-06)
+**It was a data problem, not a code problem.** `app/sitemap.ts` correctly calls `storage.getCities(true)` (only-published) and filters out rows where `allow_indexing = false`. Because every one of the 340 city rows in prod had `is_published = false`, the sitemap legitimately contained zero `/locations/...` URLs.
 
-### Secondary smells (worth noting, not the root cause)
-1. `/sitemap.xml` ships with `cache-control: private` (Next.js default for dynamic metadata routes). Googlebot still fetches it, but `public, max-age=300` is more correct.
-2. Article slugs still contain the legacy `tableicity-...` prefix. Once Google indexes a URL, it's permanent — every indexed article on `investorensights.com` becomes a `tableicity-*` URL forever unless we add redirects.
+**Resolution path taken**: Cities are intentionally NoIndex by design — *articles* are the platform's product, cities are the geographic anchor / data scaffold for article generation. The publisher confirmed all 340 cities should remain NoIndex. Sitemap is correct.
+
+### Final reconciled state (post-deploy, commit `77a2c28`)
+
+| Bucket | Sitemap | DB truth | Match |
+|---|---|---|---|
+| Articles | 41 | 41 published & indexable | ✓ |
+| Cities | 0 | 0 indexable (340 NoIndex by design) | ✓ |
+| Home + Terms + Privacy + Site-map | 4 | — | — |
+| **Total URLs** | **45** | — | — |
 
 ---
 
 ## 2. The new feature — granular Index/NoIndex control
 
 The fix isn't "publish everything and hope." A publisher needs the ability to:
-- Mark a city/article **NoIndex** while still keeping it published (e.g., thin content, duplicate, regional placeholder).
+- Mark a city/article **NoIndex** while still keeping it published (e.g., thin content, duplicate, regional placeholder, or — as in this deployment — entire-table-by-design).
 - Mark something **Index** only after it's been Published (you can't tell Google to index a draft).
 - Do both per-row and in bulk.
 
@@ -197,6 +214,7 @@ NEW:
 EDITED (backend):
   app/api/admin/bulk-update/route.ts            ← added "index" / "noindex" actions for cities
   app/api/admin/cities/[id]/route.ts            ← per-row guard + boolean validation
+  app/sitemap.ts                                ← Phase 1 caching tweaks (revalidate=300, fixed static lastmod, dynamic home lastmod)
 
 EDITED (frontend):
   app/admin/cities/page.tsx                     ← new column, toolbar buttons, two new mutations
@@ -207,19 +225,21 @@ No schema migration required — the underlying columns (`city_locations.allow_i
 
 ---
 
-## 8. How the sitemap consumes this
+## 8. How the sitemap consumes this (Phase 1 — current)
 
-`app/sitemap.ts`:
+`app/sitemap.ts` (Next.js metadata route, returns `MetadataRoute.Sitemap`):
 
 ```ts
+export const revalidate = 300                   // ISR — regenerate at most every 5 min
+
 const [cities, pages, articles] = await Promise.all([
-  storage.getCities(true),                    // is_published = true ONLY
+  storage.getCities(true),                      // is_published = true ONLY
   storage.getCustomPagesPublished(),
   storage.getKnowledgeArticlesByStatus("published"),
 ])
 
 const cityEntries = cities
-  .filter((c) => c.allowIndexing !== false)   // also drop NoIndex cities
+  .filter((c) => c.allowIndexing !== false)     // also drop NoIndex cities
   .map((c) => ({ url: `${BASE_URL}/locations/${c.slug}`, ... }))
 
 const articleEntries = articles
@@ -231,7 +251,12 @@ So a row appears in `/sitemap.xml` if and only if:
 - **City**: `is_published = true` AND `allow_indexing = true`
 - **Article**: `status = 'published'` AND `robots` does not contain `"noindex"`
 
-This matches what the new admin toggle controls. **Publishing a city with NoIndex on means the page is reachable by direct URL but Google is told not to index it.**
+`<lastmod>` strategy:
+- Static pages (`/`, `/terms`, `/privacy`, `/site-map`) use a **fixed timestamp constant** so they don't generate noisy "freshness" signals on every request.
+- The home page `<lastmod>` is computed as `max(updatedAt)` across all sitemap entries — gives Google a real signal whenever any article changes.
+- Per-URL `<lastmod>` for articles/cities comes from each row's `updatedAt`.
+
+**Phase 1 known limitation (acceptable):** The response ships with `cache-control: private, max-age=0, must-revalidate`. Next.js metadata routes don't reliably propagate `revalidate` into HTTP headers when the route reads from a database, and Replit Deployments' frontend defaults to `private` for dynamic responses. **Practical impact: none** — Googlebot crawls regardless of cache headers, and at <5K URLs the per-request regeneration cost is negligible. Phase 2 fixes this if/when it matters.
 
 ---
 
@@ -245,16 +270,21 @@ This matches what the new admin toggle controls. **Publishing a city with NoInde
 
 For articles, the same flow: Publish first, then Index. The bulk **Index** button auto-skips Pending articles and tells you how many it skipped.
 
+**Note specific to this deployment:** Cities are intentionally NoIndex across the board. The publisher's path-to-Index is *articles only*. Steps 1–2 above apply when/if that policy ever changes.
+
 ---
 
-## 10. Known gaps / things deliberately not done
+## 10. Phase 1 known gaps (deliberately deferred)
 
-| Gap | Why deferred |
-|---|---|
-| TOCTOU race: two admins simultaneously unpublishing + indexing the same row could leave it in an inconsistent state. | Single-admin tool; near-zero real-world risk. Fix would require a new `updateCityWithCondition()` storage method using a SQL `WHERE` clause. |
-| Sitemap ships with `cache-control: private`. | Cosmetic; Googlebot still crawls. Easy follow-up. |
-| Article slugs still prefixed `tableicity-...` | Permanent once indexed. Needs a separate "rewrite slug + 301 redirect" migration before a large bulk-publish. |
-| Sitemap is eventually-consistent (Next.js revalidate). | Documented in `replit.md`; redeploy to force-refresh. |
+| Gap | Why deferred | Resolved by |
+|---|---|---|
+| TOCTOU race: two admins simultaneously unpublishing + indexing the same row could leave it in an inconsistent state. | Single-admin tool; near-zero real-world risk. Fix would require a new `updateCityWithCondition()` storage method using a SQL `WHERE` clause. | Future hardening |
+| Sitemap ships with `cache-control: private`. | Cosmetic at <5K URLs; Googlebot still crawls. | **Phase 2** (§12) |
+| Sitemap is eventually-consistent (Next.js revalidate). | Documented in `replit.md`; redeploy to force-refresh. | Phase 2 makes this CDN-cached but still 5-min eventually-consistent by design |
+| No sitemap index split. | Single `<urlset>` is fine up to 50,000 URLs / 50 MB per Google spec. | **Phase 2** (§12) when crossing ~5K URLs |
+| No gzip compression. | XML at 41 URLs is ~6 KB; gzip saves nothing meaningful. | **Phase 2** (§12) when sitemap exceeds ~500 KB |
+
+> **Out of scope (intentional, not gaps):** Article slugs containing `tableicity-...` tokens are working as designed — they include intentional internal backlinks to Tableicity city pages. Slugs are off-limits.
 
 ---
 
@@ -274,4 +304,67 @@ Articles:
 
 ---
 
-*Last updated: 2026-05-06 — covers the per-row + bulk Index/NoIndex feature shipped in commit `0cf0e56`.*
+## 12. Phase 2 — scale plan (when to trigger and what to do)
+
+### When to trigger
+
+Pull the trigger on Phase 2 when **any one** of these is true:
+
+1. **Indexed URL count crosses ~5,000.** Per-request regeneration starts to cost real CPU; CDN edge caching becomes worthwhile.
+2. **Crawler load becomes visible** in Replit Deployments logs (e.g., Googlebot fetches `/sitemap.xml` >100×/hour, or response times start drifting >500 ms).
+3. **You need to set custom HTTP headers** (e.g., `X-Robots-Tag`, hreflang index, `<image:image>` namespaces) that Next.js's metadata-route helper doesn't expose.
+4. **Approaching the 50,000 URL / 50 MB hard limit** of a single sitemap (Google's spec). Below this, a single file is fine; at this point, an index is mandatory.
+
+### Phase 2A — Route-handler migration (~15 min)
+
+**Goal**: Move from Next.js's metadata convention to a hand-rolled route handler so we own headers and output completely.
+
+1. **Create** `app/sitemap.xml/route.ts` returning a `Response` with:
+   ```ts
+   return new Response(xmlString, {
+     status: 200,
+     headers: {
+       "Content-Type": "application/xml; charset=utf-8",
+       "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600",
+       "X-Robots-Tag": "noindex",   // hide the sitemap itself from search results
+     },
+   })
+   ```
+2. **Move** the entry-collection logic (cities/pages/articles fetch + filter) verbatim from `app/sitemap.ts`. No business-logic changes.
+3. **Hand-render the XML** (small helper, ~30 lines): `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">…</urlset>`.
+4. **Delete** `app/sitemap.ts` in the **same commit** to avoid Next.js registering both routes simultaneously (this is the only real risk in the migration).
+5. **Verify** with `curl -I https://investorensights.com/sitemap.xml` — header should now show `cache-control: public, s-maxage=300, stale-while-revalidate=3600`.
+6. **Verify URL count is unchanged** (should still match `Phase 1` reconciliation table from §1).
+
+### Phase 2B — Sitemap index split (~30 min, only when >5K URLs)
+
+When article count approaches 50K (or you simply want logical separation):
+
+1. **Promote** `app/sitemap.xml/route.ts` to return a sitemap **index** (`<sitemapindex>` listing child sitemaps).
+2. **Add** `app/sitemap-articles.xml/route.ts`, `app/sitemap-cities.xml/route.ts`, `app/sitemap-static.xml/route.ts` as separate route handlers.
+3. **Optional**: paginate articles when a single child sitemap approaches 50K URLs (`/sitemap-articles-1.xml`, `/sitemap-articles-2.xml`).
+4. **Update** `app/robots.ts` to point at the new index URL (it already points at `/sitemap.xml`, so no change needed if you keep the same name).
+5. **Resubmit** in Google Search Console.
+
+### Phase 2C — Gzip compression (~5 min, only when sitemap >500 KB)
+
+1. In the route handler, gzip the XML body and emit `Content-Encoding: gzip` when the request `Accept-Encoding` includes `gzip`. Most CDN/edge layers handle this automatically — only do it manually if Replit's frontend doesn't.
+
+### What Phase 2 does NOT change
+
+- Database schema, admin UX, API contracts, per-row Index/NoIndex behavior — all stay identical.
+- Filtering rules (Published + Indexable) — unchanged.
+- The sitemap's *content* — stays semantically identical to Phase 1.
+
+### Migration risk checklist
+
+| Risk | Mitigation |
+|---|---|
+| Both `app/sitemap.ts` and `app/sitemap.xml/route.ts` registered → nondeterministic responses | Delete `app/sitemap.ts` in the **same commit** as the route handler is added. Verify with build log. |
+| Lose Next.js's `MetadataRoute.Sitemap` typing | Acceptable — replaced by a small typed XML helper. |
+| Replit Deployments edge layer ignores `s-maxage` | Verify with `curl -I` after deploy. If ignored, falls back to Next.js in-process ISR (still better than current). |
+| `robots.txt` references stale URL | `app/robots.ts` already references `/sitemap.xml` — same path works for both. No edit needed. |
+
+---
+
+*Last updated: 2026-05-06 — Phase 1 live in prod (commit `77a2c28`). Phase 2 deferred until article count crosses ~5K or other §12 trigger fires.*
