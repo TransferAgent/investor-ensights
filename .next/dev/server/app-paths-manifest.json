@@ -1,5 +1,8 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
+  "/admin/cities/page": "app/admin/cities/page.js",
   "/admin/knowledge/page": "app/admin/knowledge/page.js",
+  "/api/admin/cities/article-counts/route": "app/api/admin/cities/article-counts/route.js",
   "/page": "app/page.js",
   "/sitemap.xml/route": "app/sitemap.xml/route.js"
 }

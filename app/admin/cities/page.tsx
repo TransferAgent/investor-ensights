@@ -224,6 +224,10 @@ export default function AdminCitiesPage() {
     queryKey: ["/api/admin/cities"],
   })
 
+  const { data: articleCounts = {} } = useQuery<Record<string, number>>({
+    queryKey: ["/api/admin/cities/article-counts"],
+  })
+
   const { data: templates = [] } = useQuery<ContentTemplate[]>({
     queryKey: ["/api/admin/templates"],
   })
@@ -690,6 +694,7 @@ export default function AdminCitiesPage() {
                   <th className="px-4 py-3 text-left font-medium">Status</th>
                   <th className="px-4 py-3 text-left font-medium">Coordinates</th>
                   <th className="px-4 py-3 text-left font-medium">Slug</th>
+                  <th className="px-4 py-3 text-left font-medium">Articles</th>
                   <th className="px-4 py-3 text-left font-medium">Index</th>
                   <th className="px-4 py-3 text-right font-medium">Actions</th>
                 </tr>
@@ -738,6 +743,28 @@ export default function AdminCitiesPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground font-mono">
                       {city.slug}
+                    </td>
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const count = articleCounts[city.slug] ?? 0
+                        return (
+                          <span
+                            className={`inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-md text-xs font-medium tabular-nums ${
+                              count > 0
+                                ? "bg-primary/10 text-primary"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                            data-testid={`text-article-count-${city.slug}`}
+                            title={
+                              count === 0
+                                ? "No published articles for this city"
+                                : `${count} published article${count === 1 ? "" : "s"} linked to this city`
+                            }
+                          >
+                            {count}
+                          </span>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       {(() => {
