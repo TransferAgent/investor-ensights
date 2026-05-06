@@ -52,6 +52,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if (body.canonicalUrl !== undefined) data.canonicalUrl = body.canonicalUrl || null;
   if (body.campaignId !== undefined) data.campaignId = body.campaignId || null;
+  if (body.googleIndexed !== undefined) data.googleIndexed = !!body.googleIndexed;
 
   const updated = await storage.updateKnowledgeArticle(id, data);
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });

@@ -1,4 +1,5 @@
 {
+  "/admin/knowledge/page": "app/admin/knowledge/page.js",
   "/page": "app/page.js",
   "/sitemap.xml/route": "app/sitemap.xml/route.js"
 }

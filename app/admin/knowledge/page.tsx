@@ -100,6 +100,7 @@ interface KnowledgeArticle {
   updatedAt: string
   campaignId: string | null
   citySlug: string | null
+  googleIndexed?: boolean
 }
 
 interface KnowledgeCampaign {
@@ -482,6 +483,21 @@ export default function KnowledgeAdmin() {
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
       toast({ title: vars.next ? "Article indexed" : "Article set to NoIndex" })
+    },
+    onError: (err: any) => {
+      toast({ title: "Update failed", description: err.message, variant: "destructive" })
+    },
+  })
+
+  const toggleGoogleIndexedMutation = useMutation({
+    mutationFn: async ({ id, next }: { id: string; next: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/admin/knowledge/${id}`, {
+        googleIndexed: next,
+      })
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
     },
     onError: (err: any) => {
       toast({ title: "Update failed", description: err.message, variant: "destructive" })
@@ -1519,6 +1535,7 @@ export default function KnowledgeAdmin() {
                             <TableHead>Status</TableHead>
                             <TableHead>Freshness</TableHead>
                             <TableHead>Modified</TableHead>
+                            <TableHead className="text-center" title="Mark when you've requested indexing in Google Search Console">Google</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1595,6 +1612,18 @@ export default function KnowledgeAdmin() {
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
                                 {new Date(a.updatedAt).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Checkbox
+                                  checked={!!a.googleIndexed}
+                                  disabled={a.status !== "published" || toggleGoogleIndexedMutation.isPending}
+                                  onCheckedChange={(checked) => {
+                                    toggleGoogleIndexedMutation.mutate({ id: a.id, next: !!checked })
+                                  }}
+                                  data-testid={`checkbox-google-indexed-${a.id}`}
+                                  aria-label={`Mark ${a.headline} as Google-indexed`}
+                                  title={a.status === "published" ? "Tick when you've requested indexing in GSC" : "Publish before tracking Google indexing"}
+                                />
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-0.5">

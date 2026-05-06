@@ -315,6 +315,7 @@ export const knowledgeArticles = pgTable(
     gscClicks: integer("gsc_clicks").default(0),
     gscAvgPosition: numeric("gsc_avg_position", { precision: 5, scale: 2 }).default("0"),
     gscLastSynced: timestamp("gsc_last_synced", { withTimezone: true }),
+    googleIndexed: boolean("google_indexed").notNull().default(false),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
