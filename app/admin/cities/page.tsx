@@ -41,6 +41,8 @@ import {
   Upload,
   Download,
   MapPin,
+  ShieldCheck,
+  ShieldOff,
 } from "lucide-react"
 
 const US_STATES = [
@@ -281,6 +283,55 @@ export default function AdminCitiesPage() {
         title: "Success",
         description: "Template assigned to selected cities",
       })
+    },
+  })
+
+  const bulkIndexMutation = useMutation({
+    mutationFn: async (action: "index" | "noindex") => {
+      const res = await apiRequest("POST", "/api/admin/bulk-update", {
+        cityIds: Array.from(selectedIds),
+        action,
+      })
+      return { action, body: await res.json() }
+    },
+    onSuccess: ({ action, body }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cities"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] })
+      setSelectedIds(new Set())
+      const applied = body?.applied ?? 0
+      const skipped = body?.skipped ?? 0
+      const verb = action === "index" ? "indexed" : "set to NoIndex"
+      toast({
+        title: `Bulk ${action === "index" ? "Index" : "NoIndex"} complete`,
+        description:
+          skipped > 0
+            ? `${applied} ${verb}, ${skipped} skipped (must be Published to Index)`
+            : `${applied} cities ${verb}`,
+      })
+    },
+    onError: (err: any) => {
+      toast({ title: "Bulk update failed", description: err.message, variant: "destructive" })
+    },
+  })
+
+  const toggleIndexMutation = useMutation({
+    mutationFn: async ({ city, next }: { city: CityRecord; next: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/admin/cities/${city.id}`, {
+        allowIndexing: next,
+        latitude: city.latitude || "0",
+        longitude: city.longitude || "0",
+      })
+      return res.json()
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cities"] })
+      toast({
+        title: vars.next ? "City indexed" : "City set to NoIndex",
+        description: vars.city.cityName,
+      })
+    },
+    onError: (err: any) => {
+      toast({ title: "Update failed", description: err.message, variant: "destructive" })
     },
   })
 
@@ -536,6 +587,33 @@ export default function AdminCitiesPage() {
 
           <Button
             size="sm"
+            variant="secondary"
+            onClick={() => bulkIndexMutation.mutate("index")}
+            disabled={bulkIndexMutation.isPending}
+            data-testid="button-bulk-index"
+            title="Set selected published cities to Index"
+          >
+            {bulkIndexMutation.isPending ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
+            )}
+            Index
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => bulkIndexMutation.mutate("noindex")}
+            disabled={bulkIndexMutation.isPending}
+            data-testid="button-bulk-noindex"
+            title="Set selected cities to NoIndex"
+          >
+            <ShieldOff className="mr-1.5 h-3.5 w-3.5" />
+            NoIndex
+          </Button>
+
+          <Button
+            size="sm"
             variant="ghost"
             onClick={() => setSelectedIds(new Set())}
             data-testid="button-clear-selection"
@@ -612,6 +690,7 @@ export default function AdminCitiesPage() {
                   <th className="px-4 py-3 text-left font-medium">Status</th>
                   <th className="px-4 py-3 text-left font-medium">Coordinates</th>
                   <th className="px-4 py-3 text-left font-medium">Slug</th>
+                  <th className="px-4 py-3 text-left font-medium">Index</th>
                   <th className="px-4 py-3 text-right font-medium">Actions</th>
                 </tr>
               </thead>
@@ -659,6 +738,50 @@ export default function AdminCitiesPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground font-mono">
                       {city.slug}
+                    </td>
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const isIndex = city.allowIndexing
+                        const locked = !isIndex && !city.isPublished
+                        return (
+                          <button
+                            type="button"
+                            aria-disabled={locked}
+                            disabled={toggleIndexMutation.isPending}
+                            onClick={() => {
+                              if (locked) {
+                                toast({
+                                  title: "Publish first",
+                                  description: "Only Published cities can be flipped to Index.",
+                                  variant: "destructive",
+                                })
+                                return
+                              }
+                              toggleIndexMutation.mutate({ city, next: !isIndex })
+                            }}
+                            className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors ${
+                              isIndex
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
+                                : "border-amber-500/30 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20"
+                            } ${locked ? "opacity-60" : ""}`}
+                            data-testid={`toggle-index-${city.slug}`}
+                            title={
+                              locked
+                                ? "Publish this city before enabling Index"
+                                : isIndex
+                                ? "Click to set NoIndex"
+                                : "Click to set Index"
+                            }
+                          >
+                            {isIndex ? (
+                              <ShieldCheck className="h-3 w-3" />
+                            ) : (
+                              <ShieldOff className="h-3 w-3" />
+                            )}
+                            {isIndex ? "Index" : "NoIndex"}
+                          </button>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">

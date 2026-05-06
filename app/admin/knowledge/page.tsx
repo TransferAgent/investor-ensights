@@ -59,6 +59,7 @@ import {
   FolderOpen,
   Folder,
   ShieldOff,
+  ShieldCheck,
   Zap,
   Pause,
   Play,
@@ -444,6 +445,46 @@ export default function KnowledgeAdmin() {
     },
     onError: (err: any) => {
       toast({ title: "Pair failed", description: err.message, variant: "destructive" })
+    },
+  })
+
+  const bulkIndexMutation = useMutation({
+    mutationFn: async ({ articleIds, action }: { articleIds: string[]; action: "index" | "noindex" }) => {
+      const res = await apiRequest("POST", "/api/admin/knowledge/bulk-index", { articleIds, action })
+      return { action, body: await res.json() }
+    },
+    onSuccess: ({ action, body }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge/metrics"] })
+      const applied = body?.applied ?? 0
+      const skipped = body?.skipped ?? 0
+      const verb = action === "index" ? "indexed" : "set to NoIndex"
+      toast({
+        title: `Bulk ${action === "index" ? "Index" : "NoIndex"} complete`,
+        description: skipped > 0
+          ? `${applied} ${verb}, ${skipped} skipped (must be Published to Index)`
+          : `${applied} articles ${verb}`,
+      })
+      setSelectedArticles([])
+    },
+    onError: (err: any) => {
+      toast({ title: "Bulk update failed", description: err.message, variant: "destructive" })
+    },
+  })
+
+  const toggleArticleIndexMutation = useMutation({
+    mutationFn: async ({ id, next }: { id: string; next: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/admin/knowledge/${id}`, {
+        robots: next ? DEFAULT_ROBOTS : NOINDEX_ROBOTS,
+      })
+      return res.json()
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
+      toast({ title: vars.next ? "Article indexed" : "Article set to NoIndex" })
+    },
+    onError: (err: any) => {
+      toast({ title: "Update failed", description: err.message, variant: "destructive" })
     },
   })
 
@@ -1269,6 +1310,42 @@ export default function KnowledgeAdmin() {
                 )}
               </Button>
               <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  const publishedIds = selectedArticles.filter(id =>
+                    articles?.find(a => a.id === id && a.status === "published")
+                  )
+                  if (publishedIds.length === 0) {
+                    toast({ title: "No published articles selected", description: "Only Published articles can be flipped to Index.", variant: "destructive" })
+                    return
+                  }
+                  bulkIndexMutation.mutate({ articleIds: publishedIds, action: "index" })
+                }}
+                disabled={bulkIndexMutation.isPending}
+                data-testid="button-bulk-index"
+                title="Set selected published articles to Index"
+              >
+                {bulkIndexMutation.isPending ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...</>
+                ) : (
+                  <><ShieldCheck className="mr-2 h-4 w-4" /> Index</>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (selectedArticles.length === 0) return
+                  bulkIndexMutation.mutate({ articleIds: selectedArticles, action: "noindex" })
+                }}
+                disabled={bulkIndexMutation.isPending}
+                data-testid="button-bulk-noindex"
+                title="Set selected articles to NoIndex"
+              >
+                <ShieldOff className="mr-2 h-4 w-4" /> NoIndex
+              </Button>
+              <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
@@ -1438,6 +1515,7 @@ export default function KnowledgeAdmin() {
                             </TableHead>
                             <TableHead>Headline</TableHead>
                             <TableHead>Slug</TableHead>
+                            <TableHead>Index</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Freshness</TableHead>
                             <TableHead>Modified</TableHead>
@@ -1463,6 +1541,50 @@ export default function KnowledgeAdmin() {
                               </TableCell>
                               <TableCell className="font-medium max-w-[200px] truncate">{a.headline.replace(/<[^>]*>/g, "")}</TableCell>
                               <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">{a.slug}</TableCell>
+                              <TableCell>
+                                {(() => {
+                                  const isIndex = !String((a as any).robots || "").toLowerCase().includes("noindex")
+                                  const locked = !isIndex && a.status !== "published"
+                                  return (
+                                    <button
+                                      type="button"
+                                      aria-disabled={locked}
+                                      disabled={toggleArticleIndexMutation.isPending}
+                                      onClick={() => {
+                                        if (locked) {
+                                          toast({
+                                            title: "Publish first",
+                                            description: "Only Published articles can be flipped to Index.",
+                                            variant: "destructive",
+                                          })
+                                          return
+                                        }
+                                        toggleArticleIndexMutation.mutate({ id: a.id, next: !isIndex })
+                                      }}
+                                      className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors ${
+                                        isIndex
+                                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
+                                          : "border-amber-500/30 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20"
+                                      } ${locked ? "opacity-60" : ""}`}
+                                      data-testid={`toggle-index-${a.id}`}
+                                      title={
+                                        locked
+                                          ? "Publish this article before enabling Index"
+                                          : isIndex
+                                          ? "Click to set NoIndex"
+                                          : "Click to set Index"
+                                      }
+                                    >
+                                      {isIndex ? (
+                                        <ShieldCheck className="h-3 w-3" />
+                                      ) : (
+                                        <ShieldOff className="h-3 w-3" />
+                                      )}
+                                      {isIndex ? "Index" : "NoIndex"}
+                                    </button>
+                                  )
+                                })()}
+                              </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className={statusColors[a.status] || ""} data-testid={`badge-status-${a.id}`}>
                                   {a.status}

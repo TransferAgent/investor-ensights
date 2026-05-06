@@ -17,6 +17,27 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
+    if (body.allowIndexing !== undefined && typeof body.allowIndexing !== "boolean") {
+      return NextResponse.json({ error: "allowIndexing must be a boolean" }, { status: 400 });
+    }
+    if (body.isPublished !== undefined && typeof body.isPublished !== "boolean") {
+      return NextResponse.json({ error: "isPublished must be a boolean" }, { status: 400 });
+    }
+
+    if (body.allowIndexing === true) {
+      const current = await storage.getCityById(id);
+      if (!current) {
+        return NextResponse.json({ error: "City not found" }, { status: 404 });
+      }
+      const willBePublished = body.isPublished === undefined ? current.isPublished : body.isPublished;
+      if (!willBePublished) {
+        return NextResponse.json(
+          { error: "Cannot enable Index on a non-published city. Publish the city first, then flip Index." },
+          { status: 409 }
+        );
+      }
+    }
+
     if (!body.latitude || !body.longitude) {
       const addressForGeocode = body.streetAddress || body.cityName || "";
       const cityName = body.cityName || "";
