@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   const haylo = await storage.getHayloArticleById(hayloArticleId);
   if (!haylo) return NextResponse.json({ error: "Haylo article not found" }, { status: 404 });
-  if (haylo.status !== "ready") {
+  if (!dryRun && haylo.status !== "ready") {
     return NextResponse.json({ error: `Haylo article status is "${haylo.status}" — only "ready" articles can be paired.` }, { status: 409 });
   }
 
@@ -108,6 +108,11 @@ export async function POST(req: NextRequest) {
       }
 
       if (verdict === "pass") {
+        if (dryRun) {
+          passed++;
+          results.push({ citySlug: city.slug, outcome: "pass", verdict, flowScore: pair.audit.flowScore });
+          continue;
+        }
         const existing = await db
           .select({ id: knowledgeArticles.id })
           .from(knowledgeArticles)
@@ -156,6 +161,11 @@ export async function POST(req: NextRequest) {
         passed++;
         results.push({ citySlug: city.slug, outcome: "pass", verdict, flowScore: pair.audit.flowScore, articleId: article.id });
       } else if (verdict === "warn") {
+        if (dryRun) {
+          warned++;
+          results.push({ citySlug: city.slug, outcome: "warn", verdict, flowScore: pair.audit.flowScore });
+          continue;
+        }
         const dupe = await db
           .select({ id: newsroomReviewQueue.id })
           .from(newsroomReviewQueue)
@@ -190,26 +200,30 @@ export async function POST(req: NextRequest) {
         warned++;
         results.push({ citySlug: city.slug, outcome: "warn", verdict, flowScore: pair.audit.flowScore, reviewQueueId: reviewRow.id });
       } else {
-        await db.insert(knowledgeGenerationLog).values({
-          citySlug: city.slug,
-          directive: `pair:${haylo.slug}`,
-          status: "failed",
-          errorMessage: `Audit FAIL (${pair.audit.flowScore}/100): ${pair.audit.summary}`,
-        });
+        if (!dryRun) {
+          await db.insert(knowledgeGenerationLog).values({
+            citySlug: city.slug,
+            directive: `pair:${haylo.slug}`,
+            status: "failed",
+            errorMessage: `Audit FAIL (${pair.audit.flowScore}/100): ${pair.audit.summary}`,
+          });
+        }
         failed++;
         results.push({ citySlug: city.slug, outcome: "fail", verdict, flowScore: pair.audit.flowScore, reason: pair.audit.summary });
       }
     } catch (e: any) {
       errored++;
       const msg = e?.message ?? String(e);
-      try {
-        await db.insert(knowledgeGenerationLog).values({
-          citySlug: city.slug,
-          directive: `pair:${haylo.slug}`,
-          status: "error",
-          errorMessage: msg.slice(0, 500),
-        });
-      } catch {}
+      if (!dryRun) {
+        try {
+          await db.insert(knowledgeGenerationLog).values({
+            citySlug: city.slug,
+            directive: `pair:${haylo.slug}`,
+            status: "error",
+            errorMessage: msg.slice(0, 500),
+          });
+        } catch {}
+      }
       results.push({ citySlug: city.slug, outcome: "error", reason: msg });
     }
   }
