@@ -765,7 +765,7 @@ export class DatabaseStorage implements IStorage {
     const where = [] as any[];
     if (filters?.status) where.push(eq(hayloArticles.status, filters.status));
     if (filters?.topicSlug) where.push(eq(hayloArticles.topicSlug, filters.topicSlug));
-    const q = db.select().from(hayloArticles).orderBy(desc(hayloArticles.updatedAt));
+    const q = db.select().from(hayloArticles).orderBy(asc(hayloArticles.createdAt));
     if (where.length === 0) return q;
     return q.where(where.length === 1 ? where[0] : and(...where));
   }

@@ -1,9 +1,6 @@
 {
   "app": {
-    "[project]/app/_not-found/page": [
-      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
-    ],
-    "[project]/app/admin/cities/page": [
+    "[project]/app/admin/haylo/page": [
       "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
     ],
     "[project]/app/admin/knowledge/page": [
