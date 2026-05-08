@@ -99,6 +99,9 @@ export default function AuthPane() {
       </div>
 
       <div className="px-6 pb-6 pt-4 text-center">
+        <p className="mb-2 text-[12px] text-neutral-500" data-testid="text-address">
+          9121 Haven Ave., Rancho Cucamonga, CA 91730
+        </p>
         <p className="text-[12px] text-neutral-500" data-testid="text-legal">
           By continuing, you{" "}
           <Link
