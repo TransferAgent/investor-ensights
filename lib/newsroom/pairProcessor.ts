@@ -103,11 +103,6 @@ function mockAudit(input: { citySlug: string; hayloArticleId: string; localVibeW
   const seed = createHash("sha1").update(`${input.citySlug}|${input.hayloArticleId}`).digest()[0];
   const bucket = seed % 10;
 
-  let verdict: AuditVerdict;
-  if (bucket < 5) verdict = "pass";
-  else if (bucket < 9) verdict = "warn";
-  else verdict = "fail";
-
   const issues: AuditorIssue[] = [];
   if (!input.localVibeWasInjected) {
     issues.push({
@@ -120,30 +115,15 @@ function mockAudit(input: { citySlug: string; hayloArticleId: string; localVibeW
     issues.push({ severity: "low", category: "template-artifact", message: w });
   }
 
-  if (verdict === "warn") {
-    issues.push({
-      severity: "medium",
-      category: "tone",
-      message: "Mock auditor flagged this for human review (dry run heuristic).",
-    });
-  }
-  if (verdict === "fail") {
-    issues.push({
-      severity: "high",
-      category: "city-mismatch",
-      message: "Mock auditor blocked publication (dry run heuristic — no real LLM call made).",
-    });
-  }
-
-  const flowScore = verdict === "pass" ? 85 + (bucket % 3) : verdict === "warn" ? 65 + (bucket % 5) : 40 + (bucket % 10);
-  const summary =
-    verdict === "pass"
-      ? "Dry run: composition looks coherent. (Mock — set OPENAI_API_KEY and uncheck Dry Run for a real audit.)"
-      : verdict === "warn"
-        ? "Dry run: needs human eyes before publishing. (Mock auditor.)"
-        : "Dry run: blocked from publishing. (Mock auditor.)";
-
-  return { verdict, flowScore, issues, summary };
+  const flowScore = 85 + (bucket % 3);
+  return {
+    verdict: "pass",
+    flowScore,
+    issues,
+    summary: "Dry run: composition looks coherent. (Mock — set OPENAI_API_KEY and uncheck Dry Run for a real audit.)",
+    costUsd: 0,
+    totalTokens: 0,
+  };
 }
 
 export async function processPair(input: PairInput): Promise<PairResult> {

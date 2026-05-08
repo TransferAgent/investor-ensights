@@ -1940,9 +1940,8 @@ export default function KnowledgeAdmin() {
                   {studioSource === "haylo" && (
                     <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1">
                       <div className="font-semibold text-foreground">How pairs route:</div>
-                      <div>• <span className="font-medium text-green-600">PASS</span> → published as <code>pending</code> in Knowledge → Articles (publish from there)</div>
-                      <div>• <span className="font-medium text-yellow-600">WARN</span> → Newsroom → Review Queue for human approval</div>
-                      <div>• <span className="font-medium text-red-600">FAIL</span> → blocked; logged in generation log</div>
+                      <div>• <span className="font-medium">On Dry Run:</span> all pairs land in Articles as <code>pending</code></div>
+                      <div>• <span className="font-medium">Live:</span> <span className="text-green-600">PASS</span> → Articles · <span className="text-yellow-600">WARN</span> → Newsroom · <span className="text-red-600">FAIL</span> → blocked</div>
                       <div>Max {25} cities per submit. Larger batches: split into runs.</div>
                     </div>
                   )}
@@ -1951,7 +1950,7 @@ export default function KnowledgeAdmin() {
                       if (studioSource === "haylo") {
                         if (studioSelectedCities.length > 0 && studioHayloId) {
                           const msg = studioDryRun
-                            ? `Glue ${studioSelectedCities.length} press release${studioSelectedCities.length === 1 ? "" : "s"} from this Haylo article? DRY RUN — mock auditor, no LLM cost, output goes to Review Queue.`
+                            ? `Glue ${studioSelectedCities.length} press release${studioSelectedCities.length === 1 ? "" : "s"} from this Haylo article? DRY RUN — mock auditor, no LLM cost, all pairs land in Articles as Pending.`
                             : `Glue ${studioSelectedCities.length} press release${studioSelectedCities.length === 1 ? "" : "s"} from this Haylo article? Live 5-agent pipeline · ~30s each · ~$0.0024 each.`
                           if (confirm(msg)) studioPairMutation.mutate()
                         }
