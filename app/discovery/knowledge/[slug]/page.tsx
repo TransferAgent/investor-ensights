@@ -490,11 +490,6 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
             </div>
             <span className="text-lg font-bold text-white">Investor Ensights</span>
           </a>
-          <nav className="flex items-center gap-4">
-            <a href="/locations" className="text-sm text-blue-200/70 hover:text-white transition-colors" data-testid="link-locations">
-              Locations
-            </a>
-          </nav>
         </div>
       </header>
 
@@ -561,8 +556,13 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
       </article>
 
       <footer className="border-t border-white/10 py-8">
-        <div className="max-w-4xl mx-auto px-6 text-center text-sm text-blue-200/40">
-          &copy; {new Date().getFullYear()} Investor Ensights. All rights reserved.
+        <div className="max-w-4xl mx-auto px-6 text-center text-sm text-blue-200/40 space-y-3">
+          <nav className="flex items-center justify-center">
+            <a href="/locations" className="text-blue-200/70 hover:text-white transition-colors" data-testid="link-locations">
+              Locations
+            </a>
+          </nav>
+          <div>&copy; {new Date().getFullYear()} Investor Ensights. All rights reserved.</div>
         </div>
       </footer>
     </div>

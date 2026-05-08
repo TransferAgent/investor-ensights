@@ -247,8 +247,6 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <NoindexBaselineCard />
-      <IndexBaselineCard />
       <div className="mb-8">
         <h1 className="text-2xl font-bold" data-testid="text-admin-title">
           Admin Dashboard

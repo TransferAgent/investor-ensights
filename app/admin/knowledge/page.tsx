@@ -65,7 +65,6 @@ import {
   Play,
 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
-import { SchedulerCard } from "./scheduler-card"
 
 const DEFAULT_ROBOTS = "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
 const NOINDEX_ROBOTS = "noindex, follow"
@@ -1733,9 +1732,6 @@ export default function KnowledgeAdmin() {
               Pick a source (Haylo Article or legacy Template), select cities, and submit. Haylo pairs run through the full 5-agent Newsroom pipeline; passes land in Articles, warnings go to Newsroom Review Queue.
             </p>
           </div>
-
-          <SchedulerCard />
-
 
           <Card className="p-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
