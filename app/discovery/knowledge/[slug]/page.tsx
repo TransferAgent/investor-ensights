@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { storage } from "@/lib/storage";
+import { withTenantAsync } from "@/lib/tenant/context";
+import { resolveTenantFromArticleSlug } from "@/lib/tenant/resolve-from-slug";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com";
 
@@ -339,7 +341,11 @@ function transformBodyForRender(
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const article = await storage.getKnowledgeArticleBySlug(slug);
+  // MT-4.5: public route — resolve which tenant owns this slug from the persona
+  // prefix, then query inside that tenant's schema. Without this wrap, storage
+  // falls back to DEFAULT_TENANT_SLUG and any non-Tableicity article 404s.
+  const tenantSlug = await resolveTenantFromArticleSlug(slug);
+  const article = await withTenantAsync(tenantSlug, () => storage.getKnowledgeArticleBySlug(slug));
   if (!article || article.status === "archived") return { title: "Not Found" };
 
   if (article.status === "pending") {
@@ -388,7 +394,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function KnowledgeArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const article = await storage.getKnowledgeArticleBySlug(slug);
+  // MT-4.5: public route — see generateMetadata above for rationale.
+  const tenantSlug = await resolveTenantFromArticleSlug(slug);
+  const article = await withTenantAsync(tenantSlug, () => storage.getKnowledgeArticleBySlug(slug));
 
   if (!article || article.status === "archived") {
     notFound();

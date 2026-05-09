@@ -26,7 +26,15 @@ export interface PairResult {
 }
 
 export function buildSuggestedSlug(citySlug: string, hayloSlug: string): string {
-  const base = `tableicity-${citySlug}-${hayloSlug}`.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+  // MT-4.5: persona slug = schema name = article slug prefix (locked decision in
+  // replit.md). Use the current tenant context — Tableicity yields the original
+  // "tableicity-..." prefix (backward compatible with all 80 published slugs);
+  // any other tenant gets its own persona prefix. Falls back to DEFAULT_TENANT_SLUG
+  // ("tableicity") outside a request, preserving prior CLI behaviour.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { getCurrentTenantSlug, DEFAULT_TENANT_SLUG } = require("@/lib/tenant/context") as typeof import("@/lib/tenant/context");
+  const personaSlug = getCurrentTenantSlug() ?? DEFAULT_TENANT_SLUG;
+  const base = `${personaSlug}-${citySlug}-${hayloSlug}`.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
   return base.slice(0, 110);
 }
 
