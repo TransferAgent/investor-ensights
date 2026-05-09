@@ -28,7 +28,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "City name and state code are required" }, { status: 400 });
     }
 
-    const finalSlug = slug || `${cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${stateCode.toLowerCase()}`;
+    // MT-4.2: auto-suffix non-tableicity tenants so slugs are globally unique.
+    // Tableicity is exempt (its 340 city slugs are live and SEO-protected).
+    const TABLEICITY_SLUG = "tableicity";
+    const baseSlug = (slug || `${cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${stateCode.toLowerCase()}`)
+      .toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+    const needsSuffix = session.tenantSlug !== TABLEICITY_SLUG && !baseSlug.endsWith(`-${session.tenantSlug}`);
+    const finalSlug = needsSuffix ? `${baseSlug}-${session.tenantSlug}` : baseSlug;
     const existing = await storage.getCityBySlug(finalSlug);
     if (existing) {
       return NextResponse.json({ error: "A city with this slug already exists" }, { status: 409 });

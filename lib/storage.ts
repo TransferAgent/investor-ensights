@@ -12,6 +12,7 @@ import {
   knowledgeCampaigns,
   dataStoreFiles,
   hayloArticles,
+  citySlugRegistry,
   type CityLocation,
   type InsertCityLocation,
   type ContentTemplate,
@@ -40,6 +41,7 @@ import {
   type InsertHayloArticle,
 } from "@shared/schema";
 import { db } from "./db";
+import { requireCurrentTenantSlug } from "./tenant/context";
 import { eq, and, inArray, sql, desc, asc, gt, lt } from "drizzle-orm";
 
 export interface IStorage {
@@ -205,8 +207,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCity(city: InsertCityLocation): Promise<CityLocation> {
-    const [created] = await db.insert(cityLocations).values(city).returning();
-    return created;
+    // MT-4.2: claim the slug in the GLOBAL public.city_slug_registry atomically
+    // with the tenant-scoped insert. Without this, two tenants can silently
+    // hold the same slug, breaking public routing. Tenant resolved from the
+    // session-tenant context (the storage proxy already wraps every call in
+    // withSessionTenant).
+    const tenantSlug = requireCurrentTenantSlug();
+    return await db.transaction(async (tx) => {
+      const [created] = await tx.insert(cityLocations).values(city).returning();
+      try {
+        await tx.insert(citySlugRegistry).values({
+          slug: created.slug,
+          tenantSlug,
+          cityId: created.id,
+        });
+      } catch (e: any) {
+        // Friendly error: registry unique constraint = global slug collision.
+        if (e?.code === "23505") {
+          throw new Error(
+            `City slug "${created.slug}" is already claimed by another tenant. ` +
+            `Pick a different slug.`
+          );
+        }
+        throw e;
+      }
+      return created;
+    });
   }
 
   async updateCity(
@@ -222,7 +248,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCity(id: string): Promise<void> {
-    await db.delete(cityLocations).where(eq(cityLocations.id, id));
+    // MT-4.2: also release the global slug claim so another tenant (or the
+    // same tenant on re-create) can reuse it.
+    await db.transaction(async (tx) => {
+      const [row] = await tx.select({ slug: cityLocations.slug }).from(cityLocations).where(eq(cityLocations.id, id)).limit(1);
+      await tx.delete(cityLocations).where(eq(cityLocations.id, id));
+      if (row?.slug) {
+        await tx.delete(citySlugRegistry).where(eq(citySlugRegistry.slug, row.slug));
+      }
+    });
   }
 
   async bulkUpdateCities(

@@ -4,6 +4,14 @@ import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { geocodeAddress } from "@/lib/geocoding";
 
+const TABLEICITY_SLUG = "tableicity";
+
+function buildCitySlug(cityName: string, stateCode: string, tenantSlug: string): string {
+  const base = `${cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${stateCode.toLowerCase()}`;
+  if (tenantSlug === TABLEICITY_SLUG) return base;
+  return `${base}-${tenantSlug}`;
+}
+
 export async function POST(request: NextRequest) {
   const session = await verifySession();
   if (!session) {
@@ -24,6 +32,8 @@ export async function POST(request: NextRequest) {
       errors: [],
     };
 
+    const seenInBatch = new Set<string>();
+
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const cityName = (row.cityName || row.city_name || "").trim();
@@ -35,10 +45,18 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      const slug = `${cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${stateCode.toLowerCase()}`;
+      const slug = buildCitySlug(cityName, stateCode, session.tenantSlug);
+
+      if (seenInBatch.has(slug)) {
+        results.errors.push(`Row ${i + 1}: "${cityName}, ${stateCode}" duplicates an earlier row in this CSV (slug ${slug})`);
+        results.skipped++;
+        continue;
+      }
+      seenInBatch.add(slug);
+
       const existing = await storage.getCityBySlug(slug);
       if (existing) {
-        results.errors.push(`Row ${i + 1}: "${cityName}, ${stateCode}" already exists`);
+        results.errors.push(`Row ${i + 1}: "${cityName}, ${stateCode}" already exists in your tenant (slug ${slug})`);
         results.skipped++;
         continue;
       }
@@ -89,12 +107,12 @@ export async function POST(request: NextRequest) {
         });
         results.created++;
       } catch (e: any) {
-        results.errors.push(`Row ${i + 1}: ${e.message}`);
+        results.errors.push(`Row ${i + 1} (${cityName}, ${stateCode}): ${e?.message || "Failed to create"}`);
         results.skipped++;
       }
     }
 
-    await logAuditEvent({ username: session.username, action: "bulk_csv_import", entityType: "city", details: { created: results.created, skipped: results.skipped } });
+    await logAuditEvent({ username: session.username, action: "bulk_csv_import", entityType: "city", details: { created: results.created, skipped: results.skipped, tenantSlug: session.tenantSlug } });
 
     return NextResponse.json(results);
   } catch (e: any) {
