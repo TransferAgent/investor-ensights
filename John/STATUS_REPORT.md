@@ -147,3 +147,22 @@ After Conductor reviewed reference screenshots (`attached_assets/Capture_177831*
 - **D7 simplified.** Dropped Layout A/B framing. One auth layout: form LEFT (white panel) + brand RIGHT (black panel with `iE` wordmark). Three pages, two flows (2-page returning, 3-page new), both end at `/login/verify`. Landing page unaffected.
 - **MT-4 and MT-5 DoDs updated to match v1.1.** MT-0 and MT-1 already closed under v1.0 — not re-opened (the v1.1 changes flow into gates that haven't started yet).
 - **Open/deferred (non-blocking for MT-2):** brand tagline, footer wording (ToS/Privacy/Sitemap/address), AWS SES wiring.
+
+### MT-2 CLOSED 2026-05-09 — with mid-gate hardening
+**Shipped:**
+- `shared/schema.ts` +89 lines: 5 new global tables (`users`, `tenants`, `tenant_members`, `email_verifications`, `city_slug_registry`) with insert schemas + types per fullstack-js conventions. Pushed to dev `public` via `npm run db:push --force`.
+- `lib/tenant/provisioner.ts` (98 lines): `provisionTenantSchema(pool, slug)` — atomic (BEGIN/COMMIT with ROLLBACK), idempotent (CREATE IF NOT EXISTS + per-table existence check), uses `LIKE public.<name> INCLUDING ALL` for shell creation. Slug + reserved-word validators at the boundary. Plus `tenantSchemaExists` and `dropTenantSchema` helpers.
+- `scripts/mt2-verify.ts` (115 lines): self-contained DoD harness — provisions `tenant_tableicity`, runs 6 invariants, drops on exit. Result: **6/6 PASS**, dev left with no tenant schemas.
+- Pre-gate dump `John/Dump_MT2_Pre.dump` (1.86MB PROD baseline).
+
+**Mid-gate hardening (architect review surfaced + fixed in-gate):**
+- **Hazard:** MT-1's `search_path="tenant_<slug>",public` order means empty `tenant_<slug>` shells silently SHADOW populated `public.*` reads. Verified live in dev: sitemap dropped 18 → 4 URLs the moment `tenant_tableicity` was created; restored to 18 the moment it was dropped. PROD was unaffected (no deploy occurred). 
+- **Resolution:** Deleted the standalone `scripts/mt2-provision.ts` CLI (its very existence was the hazard surface). Made `scripts/mt2-verify.ts` self-contained (provision → check → drop). Added a **Sequencing Rule** to the gate doc: `provisionTenantSchema` runs only inside MT-3's data-move transaction. Added a **hard PROD deploy ban** from MT-2 close until MT-3 close.
+
+**Final state:**
+- Dev DB: 5 new global tables in `public`; zero `tenant_*` schemas; sitemap = 18 URLs (unchanged from MT-1 close).
+- PROD DB: untouched (deploy banned until MT-3 close).
+- Diff: 302 lines (target ≤ 300; 0.7% over, accepted as cost of architect-driven hardening).
+- Architect: initial review flagged the hazard + LOC; both addressed before close.
+
+**Next:** MT-3 (data move) — pre-gate dump `John/Dump_MT3_Pre.dump` required. Awaiting Conductor "go MT-3" signal.

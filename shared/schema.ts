@@ -16,6 +16,106 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// =============================================================================
+// MT-2: Platform tables (multi-tenant infrastructure).
+// See John/Locked_Gate_Table_MultiTenant_v1.0.md §D6 (auth), §D10 (table list).
+// All five live in the `public` schema and are global across tenants.
+// =============================================================================
+
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: varchar("email", { length: 255 }).notNull().unique(),
+    passwordHash: text("password_hash").notNull(),
+    displayName: varchar("display_name", { length: 100 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  },
+  (table) => [index("users_email_idx").on(table.email)]
+);
+
+export const tenants = pgTable(
+  "tenants",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: varchar("slug", { length: 63 }).notNull().unique(),
+    personaDisplayName: varchar("persona_display_name", { length: 100 }).notNull(),
+    publisherName: varchar("publisher_name", { length: 100 }).notNull(),
+    authorName: varchar("author_name", { length: 100 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("tenants_slug_idx").on(table.slug)]
+);
+
+export const tenantMembers = pgTable(
+  "tenant_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    tenantSlug: varchar("tenant_slug", { length: 63 })
+      .notNull()
+      .references(() => tenants.slug, { onDelete: "cascade" }),
+    role: varchar("role", { length: 32 }).notNull().default("tenant_admin"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // D2: each user belongs to exactly one tenant.
+    uniqueIndex("tenant_members_user_id_unique").on(table.userId),
+    index("tenant_members_tenant_slug_idx").on(table.tenantSlug),
+  ]
+);
+
+export const emailVerifications = pgTable(
+  "email_verifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: varchar("email", { length: 255 }).notNull(),
+    codeHash: text("code_hash").notNull(),
+    purpose: varchar("purpose", { length: 32 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("email_verifications_email_created_idx").on(table.email, table.createdAt)]
+);
+
+export const citySlugRegistry = pgTable(
+  "city_slug_registry",
+  {
+    slug: varchar("slug", { length: 255 }).primaryKey(),
+    tenantSlug: varchar("tenant_slug", { length: 63 })
+      .notNull()
+      .references(() => tenants.slug, { onDelete: "cascade" }),
+    cityId: uuid("city_id").notNull(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("city_slug_registry_tenant_idx").on(table.tenantSlug)]
+);
+
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, lastLoginAt: true });
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+export const insertTenantSchema = createInsertSchema(tenants).omit({ id: true, createdAt: true });
+export type InsertTenant = z.infer<typeof insertTenantSchema>;
+export type Tenant = typeof tenants.$inferSelect;
+
+export const insertTenantMemberSchema = createInsertSchema(tenantMembers).omit({ id: true, createdAt: true });
+export type InsertTenantMember = z.infer<typeof insertTenantMemberSchema>;
+export type TenantMember = typeof tenantMembers.$inferSelect;
+
+export const insertEmailVerificationSchema = createInsertSchema(emailVerifications).omit({ id: true, createdAt: true, consumedAt: true });
+export type InsertEmailVerification = z.infer<typeof insertEmailVerificationSchema>;
+export type EmailVerification = typeof emailVerifications.$inferSelect;
+
+export const insertCitySlugRegistrySchema = createInsertSchema(citySlugRegistry).omit({ claimedAt: true });
+export type InsertCitySlugRegistry = z.infer<typeof insertCitySlugRegistrySchema>;
+export type CitySlugRegistry = typeof citySlugRegistry.$inferSelect;
+// =============================================================================
+// End MT-2 platform tables.
+// =============================================================================
+
 export const cityLocations = pgTable(
   "city_locations",
   {
