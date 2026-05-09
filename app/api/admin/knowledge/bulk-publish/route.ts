@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (dedupedIds.length > 100) {
-    return NextResponse.json({ error: "Maximum 100 articles per batch" }, { status: 400 });
+  if (dedupedIds.length > 1000) {
+    return NextResponse.json({ error: "Maximum 1000 articles per batch" }, { status: 400 });
   }
 
   const results = { published: 0, skipped: 0, notFound: 0, errors: [] as string[] };
