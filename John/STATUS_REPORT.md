@@ -126,3 +126,17 @@ These are locked forever per Architect directive:
 - Artifacts shipped: `John/Locked_Gate_Table_MultiTenant_v1.0.md` (296 lines), `replit.md` Multi-Tenant Architecture section + 3 new Gotchas (forward-only-deletes, never-touch-slugs, sitemap-as-canary).
 - Zero code changes. Production unaffected. Sitemap = 84 URLs.
 - Next: MT-1 (Tenant-Aware DB Client) is OPEN, awaiting Conductor "go" signal.
+
+### MT-1 — Tenant-Aware DB Client (CLOSED 2026-05-09)
+- **Code:** 4 new files (`lib/tenant/context.ts`, `lib/tenant/pools.ts`, `lib/tenant/perTenantTables.ts`, `scripts/mt1-verify-guardrail.ts`), 2 modified (`lib/db.ts` is now a tenant-aware proxy wrapper, `server/db.ts` re-exports from it). **239 lines** (target ≤ 300).
+- **Behavior change:** None. All 42 existing `import { db } from "@/lib/db"` callsites work unchanged. Tableicity is the hardcoded default tenant via `TENANT_DEFAULT_SLUG` env (defaults to `"tableicity"`).
+- **Mechanism:** `search_path` is set via Postgres startup-packet `options="-c search_path=..."` — no event-handler race. `AsyncLocalStorage` threads tenant context; `withTenant(slug, fn)` / `withTenantAsync` available for new code.
+- **Refusal guardrail:** Setting `TENANT_DEFAULT_SLUG=""` and running any DB query without a `withTenant` wrapper throws `"Tenant context required: ..."`. Verified.
+- **Slug validator:** `^[a-z][a-z0-9_]{0,62}$` enforced at the pool factory. Injection attempt `"; drop schema public; --` rejected. Verified.
+- **DoD items, all verified by `npx tsx scripts/mt1-verify-guardrail.ts`:**
+  - (a) Sitemap unchanged (dev = 18 URLs, PROD = 84 — no deploy this gate).
+  - (b)+(c) App still serves; homepage 200; admin endpoints 401 unauthed (correct).
+  - (d) Empty default → throw with clear message.
+- **Architect review:** PASS with two non-blocking caveats (search_path race; slug injection). Both fixed in-gate rather than deferred to MT-3 (the dangerous gate).
+- **Pending:** Tableicity Custodian visual spot-check on the live admin UI before MT-2 begins.
+- **Next:** MT-2 (Platform Tables + `tenant_tableicity` Schema Provisioned) is OPEN, awaiting Conductor "go" signal. Pre-gate dump `John/Dump_MT2_Pre.dump` required first.

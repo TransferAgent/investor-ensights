@@ -1,13 +1,17 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
-import * as schema from "@shared/schema";
+// MT-1: this file is a duplicate of lib/db.ts with zero importers in the
+// current codebase. Re-exporting from lib/db.ts to keep the tenant-aware
+// proxies as the single source of truth — if anyone discovers and imports
+// from here in the future, they get the same tenant routing as everyone
+// else, not a bypass.
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL must be set");
-}
-
-export const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-export const db = drizzle(pool, { schema });
+export {
+  db,
+  pool,
+  withTenant,
+  withTenantAsync,
+  getCurrentTenantSlug,
+  requireCurrentTenantSlug,
+  DEFAULT_TENANT_SLUG,
+  getTenantDb,
+  getTenantPool,
+} from "@/lib/db";

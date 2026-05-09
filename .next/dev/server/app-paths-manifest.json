@@ -1,3 +1,6 @@
 {
-  "/page": "app/page.js"
+  "/admin/login/page": "app/admin/login/page.js",
+  "/api/admin/cities/route": "app/api/admin/cities/route.js",
+  "/page": "app/page.js",
+  "/sitemap.xml/route": "app/sitemap.xml/route.js"
 }
