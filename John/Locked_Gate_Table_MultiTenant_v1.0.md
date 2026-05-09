@@ -1,0 +1,185 @@
+# Locked Gate Table — Multi-Tenant Build — v1.0
+
+_Authored by the Architect. Drafted 2026-05-09._
+_Companion artifacts: `attached_assets/architecture.doc_1778035947445.md` (SAMA retrospective), `attached_assets/Multi-Tenancy-and-Auth-Guide_(2)_1778035947446.md` (schema-per-tenant pattern), `John/Dump_Three.dump` (pre-build PROD baseline)._
+_Status: **DRAFT — pending Conductor lock.** Once signed off, this becomes LOCKED and changes require a new minor version + Conductor sign-off note._
+
+---
+
+## Purpose
+
+This table is the single source of truth for the multi-tenant rebuild of Investor Ensights. Every gate names one owner, one Definition of Done, and the inputs/outputs that connect it to its neighbors. No work begins on a gate until the gate above is **CLOSED** by the Architect.
+
+The North Star is in the SAMA retrospective's "One Thing":
+
+> On day one, write down which tables are global and which are per-tenant, and make the database client refuse to query a per-tenant table without a tenant context.
+
+---
+
+## Project model (the thing being built)
+
+**Investor Ensights** = the Conductor's private internal Newsroom workshop. The SaaS marketing engine for the Conductor's 8-brand portfolio. Not a public-facing multi-tenant SaaS with anonymous signups.
+
+**Each Persona / Tenant** = one of those brands. Tableicity is the first. Future tenants are SaaS #2 through SaaS #8.
+
+**Each tenant is a silo:**
+
+- Its own PostgreSQL schema (`tenant_<persona-slug>`).
+- Its own Halo library, city catalog, articles, templates, audit log, newsroom pipeline state.
+- Brand tokens (article slug prefix, in-content publisher chrome) come from the tenant's config.
+
+**One staff user belongs to one tenant.** No tenant-picker UI. Session resolves to one persona by `tenant_members` lookup.
+
+**Public output (`/discovery/knowledge/{slug}`, `/locations/{slug}`)** is the only crawlable surface. The admin/creation surface is private to the Conductor and invited staff.
+
+---
+
+## Roles
+
+| Role | Person | Scope |
+|---|---|---|
+| **Conductor** | John | Priorities, scope, gate close approval, owns secrets vault, decides on overrides to defaults below |
+| **Architect** | (this seat) | Opens/closes gates, redlines briefs, owns this table |
+| **App Builder** | Replit Agent on `investorensights.com` repo | Implementation of every gate |
+| **Tableicity Custodian** | John | Verifies "Tableicity content untouched" check at every gate close |
+
+---
+
+## Locked decisions (the MT-0 work product)
+
+### D1 — Isolation model
+**Schema-per-tenant via PostgreSQL `search_path`.** Per the thick guide. Public schema for platform tables, `tenant_<slug>` schema for per-tenant tables.
+
+### D2 — Tenant context source
+**Session-derived.** Each user belongs to exactly one tenant via `tenant_members`. No subdomain. No path-prefix on admin routes. No tenant-picker. The tenant slug is resolved server-side from the authenticated user on every request.
+
+### D3 — Persona slug = schema name = article slug prefix
+The single string `tableicity` is simultaneously: the tenant's `slug`, its schema name (`tenant_tableicity`), and the prefix on every article URL it generates (`/discovery/knowledge/tableicity-…`). One string, three roles, no drift.
+
+### D4 — City URL namespace = global, enforced by `city_slug_registry`
+City slugs are globally unique across `investorensights.com/locations/{slug}`. Uniqueness enforced at City Batch Upload time via a tiny `public.city_slug_registry` table. Anonymous public route resolves: registry lookup → tenant slug → schema → row. **Tableicity keeps every existing city slug unchanged.** Future tenants get unique slugs assigned at upload (e.g. `irvine-ca-acme` if `irvine-ca` is taken).
+
+### D5 — Article URL namespace = globally unique by construction
+Persona prefix on every article slug (`tableicity-…`, `acme-…`, …) guarantees uniqueness without a registry table. Existing 80 Tableicity article slugs are preserved by construction.
+
+### D6 — Auth model
+- Single `users` (platform) + `tenant_members` (binding) tables.
+- Existing `admin_users.abc17@gmail.com` row backfilled into `users` + `tenant_members(tableicity, tenant_admin)` at MT-4.
+- Email-based 6-digit MFA two-phase login per the thick guide. **Default ON.**
+- `DEV_MFA_BYPASS=000000` env var permitted in dev to avoid SAMA Hurdle 5. Asserts off in production at boot.
+- No public signup route. Tenant creation is admin-only (Conductor invites a staff user, system provisions tenant + member).
+
+### D7 — Auth UI: 3 pages × 2 layouts
+Three auth pages:
+1. `/login` — email + password (Phase 1)
+2. `/login/verify` — 6-digit MFA code (Phase 2)
+3. `/login/set-password` — first-time password set, reached via emailed invite token
+
+**Layout A** (existing): branding panel LEFT, form card RIGHT. Used on landing page (`/`).
+**Layout B** (new mirrored): form card LEFT, marketing-pitch + iE branding RIGHT. Used on all three auth routes above.
+
+### D8 — Per-tenant brand chrome
+`authorName`, `publisherName`, and the prompt voice ("You are writing an X press-release") come from tenant config, not constants. Tableicity's row seeded with `publisherName="Investor Ensights"` and `authorName="Investor Ensights"` so its existing 80 articles continue to generate with identical chrome — zero content drift, zero SEO impact. New tenants pick their own at create-tenant time.
+
+### D9 — No per-persona marketing pages on `investorensights.com`
+The iE domain stays the Conductor's private workshop's marketing skin. Personas market themselves on their own websites. Newsroom only publishes their content under iE's `/discovery/knowledge/{slug}` and `/locations/{slug}` paths.
+
+### D10 — Global vs per-tenant table list
+
+**Global (`public` schema):**
+
+| Table | Notes |
+|---|---|
+| `users` (NEW) | Platform-wide identity |
+| `tenants` (NEW) | Tenant registry; carries `slug`, `personaDisplayName`, `publisherName`, `authorName` |
+| `tenant_members` (NEW) | User ↔ tenant binding; carries `role` |
+| `email_verifications` (NEW) | MFA codes |
+| `city_slug_registry` (NEW) | Global city URL namespace guard |
+| `session` (auto, connect-pg-simple) | Session store |
+| `admin_users` (EXISTING) | Migrated to `users` + `tenant_members` at MT-4, then deprecated |
+
+**Per-tenant (`tenant_<slug>` schema):**
+
+| Table | Why |
+|---|---|
+| `admin_audit_log` | Audit trail belongs to the tenant whose data was changed |
+| `city_locations` | Each tenant owns their cities |
+| `city_content_assignments` | Tenant-scoped pairings |
+| `city_research_sources` | Tenant-scoped grounding |
+| `knowledge_articles` | The published content |
+| `knowledge_article_versions` | Edit history, tenant-scoped |
+| `knowledge_templates` | Tenant-scoped |
+| `knowledge_campaigns` | Tenant-scoped |
+| `knowledge_generation_log` | Tenant-scoped |
+| `content_templates` | Tenant-scoped |
+| `custom_pages` | Tenant-scoped |
+| `page_slides` | Tenant-scoped |
+| `haylo_articles` | Each tenant ingests their own library |
+| `newsroom_*` (all 9 tables) | Pipeline state is per-tenant |
+| `data_store_files` | Per-tenant uploads |
+
+### D11 — Forward-only deletes
+Standing rule from the recovery era carries into the multi-tenant build. No retroactive deletes of slugs, audit rows, or content without Conductor sign-off.
+
+### D12 — New tenants start truly empty
+No city seed snapshot. No content seed. New tenant = empty schema with table shells only. Conductor uploads City Batch (MT-9) and Halo library separately.
+
+---
+
+## The Gate Table
+
+| # | Name | Owner | Inputs | Definition of Done | Closes when… | Unblocks |
+|---|---|---|---|---|---|---|
+| **MT-0** | **Decisions Lock + Doc** | Conductor + Architect | The 12 decisions above | This file written. `replit.md` updated with the multi-tenant decisions section. **Zero code changes.** | Conductor signs off on D1–D12 (or overrides line items, then re-signs). | MT-1, MT-5 |
+| **MT-1** | **Tenant-Aware DB Client (no behavior change)** | App Builder | Closed MT-0 | `lib/db.ts` (or equivalent) wraps a `getTenantDb(slug)` / `getTenantPool(slug)` factory that sets `search_path` per-connection. AsyncLocalStorage shim threads tenant context through routes. The per-tenant tables list from D10 is encoded as a refusal guardrail: any query against those tables without a tenant context throws loudly. Tableicity is the hardcoded default tenant for now. **All 84 sitemap URLs unchanged. All 80 articles + 340 cities still readable + writable through the admin UI.** | Architect verifies: (a) sitemap = 84, (b) one article publish + unpublish round-trip succeeds, (c) one city update succeeds, (d) removing the hardcoded default and re-running causes per-tenant queries to throw. Diff ≤ 300 lines. | MT-2 |
+| **MT-2** | **Platform Tables + `tenant_tableicity` Schema Provisioned** | App Builder | Closed MT-1 | Public schema gains the 5 NEW global tables (D10). `tenant_tableicity` schema created with all per-tenant table shells (empty). `provisionTenantSchema(slug)` function exists and is idempotent. Drizzle migrations clean. **No data moved yet.** Pre-gate dump: `John/Dump_MT2_Pre.dump`. | Architect verifies: (a) `\dn` shows `tenant_tableicity`; (b) `\dt tenant_tableicity.*` matches `\dt public.*` for the per-tenant table set; (c) sitemap = 84; (d) row counts in `public.*` match `John/Dump_Three.dump` baseline. Diff ≤ 300 lines. | MT-3 |
+| **MT-3** | **Tableicity Data Move (THE DANGEROUS ONE)** | App Builder | Closed MT-2, fresh `John/Dump_MT3_Pre.dump` | Per-tenant data copied from `public.*` → `tenant_tableicity.*` row-by-row inside one transaction with COUNT verification at the end. Tenant-aware client routes Tableicity reads/writes to `tenant_tableicity`. **Public copies left in place** (dormant) for one gate as rollback safety net. `tenants` row inserted: `slug='tableicity'`, `personaDisplayName='Tableicity'`, `publisherName='Investor Ensights'`, `authorName='Investor Ensights'`. `city_slug_registry` populated with all 340 Tableicity city slugs claimed by `tableicity`. **Tableicity Custodian visual check: 80 articles, 340 cities, 182 haylo, sitemap = 84, every audit row preserved, every published article URL still resolves.** Post-gate dump: `John/Dump_MT3_Post.dump`. | Tableicity Custodian + Architect spot-check 5 articles, 10 cities, 5 haylo essays in the live admin UI. SQL row counts match across schemas. The 2 published-article URLs from `protectedSlugs.ts` resolve identically to pre-gate. Diff ≤ 300 lines (excluding generated migration). | MT-4 |
+| **MT-4** | **Auth Refactor (admin-only tenant creation)** | App Builder | Closed MT-3, Closed MT-0 (D6 spec) | `POST /api/auth/login` two-phase (password → MFA code). `POST /api/auth/verify` completes login. `POST /api/auth/set-password` for invite flow. Existing `admin_users.abc17@gmail.com` backfilled into `users` + `tenant_members(tableicity, tenant_admin)`. **abc17 logs in (with MFA), lands in Tableicity admin, sees ALL 80 articles + 340 cities + 182 haylo.** Admin-only `POST /api/admin/tenants` endpoint that atomically: inserts `tenants` row + provisions schema + creates first `tenant_members` row + sends invite email. **No public `/signup` route exists.** | Architect logs in as Tableicity admin via the new flow, verifies dashboard shows the live numbers. `DEV_MFA_BYPASS=000000` works in dev; production env asserts it's unset at boot. Diff ≤ 300 lines. | MT-5, MT-6 |
+| **MT-5** | **3-Page Auth UI × 2 Layouts** | App Builder | Closed MT-0 (D7 spec), Closed MT-4 (auth endpoints) | Three pages exist: `/login`, `/login/verify`, `/login/set-password`. **Layout B** (form LEFT, branding RIGHT) wired to all three. Landing page (`/`) keeps **Layout A** (branding LEFT, form RIGHT) untouched. Both layouts share form components. | Conductor visual review of both layouts on all three pages. Diff ≤ 300 lines. | MT-6 |
+| **MT-6** | **Second Tenant Smoke Test** | App Builder + Architect | Closed MT-4, Closed MT-5 | Conductor creates `demo-saas-2` tenant via the admin form (no public signup). Verify: (a) `tenant_demo_saas_2` schema exists with **empty** per-tenant tables; (b) demo tenant's invited admin signs in (via emailed invite + set-password + MFA), lands in their admin, sees zero cities, zero articles, zero haylo; (c) demo admin creates an article — Tableicity admin does NOT see it; (d) Tableicity admin creates an article — demo admin does NOT see it; (e) demo admin's article slug carries `demo-saas-2-` prefix, not `tableicity-`. | Architect demos both tenants side-by-side, runs cross-tenant isolation queries (count rows in each schema, confirm no overlap). | MT-7 |
+| **MT-7** | **Background Workers Retrofit** | App Builder | Closed MT-6 | Audit every code path that runs **outside a request**: Newsroom scheduler (`newsroom_scheduler_runs`), agent loop, worker (`NEWSROOM_WORKER_SECRET`), `seedData`/`cityResearchAutoSeeder`, cron jobs, fire-and-forget promises. Each accepts `tenantSlug` explicitly OR is confirmed to touch only public-schema tables (and the MT-1 guardrail enforces this). | Architect verifies the audit checklist + runs one Newsroom scheduler tick for Tableicity, confirms it writes to `tenant_tableicity.*` not `public.*`. | MT-8 |
+| **MT-8** | **Public Schema Cleanup + Production Cutover** | App Builder + Conductor | Closed MT-7, fresh `John/Dump_MT8_Pre.dump` | Dormant public-schema copies of per-tenant tables (left from MT-3) dropped. `replit.md` final architecture + cross-cutting rules updated. Production deploy. **Live `investorensights.com/sitemap.xml` returns 84 URLs unchanged. Tableicity content fully intact. demo-saas-2 reachable via admin only.** Post-gate dump: `John/Dump_MT8_Post.dump` becomes the new baseline. | Architect verifies live PROD sitemap. Tableicity Custodian spot-checks live content. | MT-9 |
+| **MT-9** | **City Batch Upload Tool** | App Builder | Closed MT-8 | Admin-only UI for uploading a tenant's city CSV. Slug proposal step (auto-suffix on collision with `city_slug_registry`). Conductor reviews/overrides each proposed slug. On commit: writes rows to `tenant_<x>.city_locations` AND uniqueness rows to `public.city_slug_registry`. Cancellable, resumable, audit-logged. | Conductor uploads a 10-row test CSV for `demo-saas-2`, including one collision (`abilene-tx`) — system proposes `abilene-tx-demo-saas-2`, Conductor approves, all 10 rows land in `tenant_demo_saas_2.city_locations`, `city_slug_registry` shows the new claims. | (Multi-tenant build complete) |
+
+---
+
+## Cross-cutting rules (binding on every gate)
+
+1. **Tableicity content is sacred.** Every gate close requires a Tableicity Custodian verification that articles, cities, haylo essays, audit rows, newsroom state are intact. If counts diverge from `John/Dump_Three.dump` baseline (other than intentional changes within the gate's DoD), the gate is not closed.
+2. **Sitemap-as-canary.** Live PROD `investorensights.com/sitemap.xml` = 84 URLs is the operational health check at every gate close until intentionally changed.
+3. **Backup-before, backup-after** for any gate that touches data shape (MT-2, MT-3, MT-7, MT-8). Dumps land in `John/` with the gate ID in the filename.
+4. **Refusal guardrail is sacred.** Once MT-1 lands, no per-tenant query without tenant context — ever. Bypassing the guardrail in a hot path closes no gates.
+5. **Two tenants by MT-6.** No further work proceeds until two real tenants exist and pass cross-tenant isolation.
+6. **Schema wins disputes.** If a doc and `shared/schema.ts` disagree, schema is authoritative.
+7. **<300 lines per gate** (excluding generated migrations). If a gate's diff exceeds 300 lines, the Architect splits it (MT-3a / MT-3b, etc.) without re-locking the table.
+8. **Forward-only deletes.** Carries from the recovery era. No retroactive deletes of slugs, audit rows, or content without Conductor sign-off.
+9. **Brand tokens come from tenant context, never from constants.** Once MT-3 lands, `tableicity-` and `"Investor Ensights"` are read from the tenant config. Hardcoded brand strings in new code are a Code Review reject.
+10. **Dev-loop friction budget.** `DEV_MFA_BYPASS=000000` is permitted in dev. Production asserts it's unset at boot.
+
+---
+
+## Definition of "Closed"
+
+A gate is closed when the Architect:
+
+1. Verifies the DoD against the live system (not a screenshot, not a claim).
+2. Marks the gate's row in this table with `**CLOSED <date>**` in the DoD column.
+3. Posts a one-line close note in `John/STATUS_REPORT.md`.
+4. Notifies the next gate's owner that they may begin.
+
+Re-opening a closed gate requires a new minor version of this table (v1.1, v1.2, …) and a Conductor sign-off note appended below.
+
+---
+
+## Current state (as of 2026-05-09)
+
+- **MT-0:** **OPEN — awaiting Conductor sign-off on this draft.** No code changes pending.
+- **MT-1 through MT-9:** Not yet open. Do not start.
+
+---
+
+## Change log
+
+| Version | Date | Change | Approved by |
+|---|---|---|---|
+| v1.0 | 2026-05-09 | Initial draft. Gates MT-0 through MT-9 defined. Decisions D1–D12 captured. | Architect (pending Conductor lock) |
