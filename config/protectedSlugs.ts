@@ -2,14 +2,16 @@
  * Protected SEO baseline — the URLs Google currently ranks.
  * Source: John/1 Google .csv (2026-04-28 snapshot, 60 ranking URLs + homepage = 61).
  *
- * Two endpoints use these lists:
- *   - POST /api/admin/seo/apply-noindex-baseline → flips everything NOT in
- *     these lists to noindex.
+ * Used by the safety-reverse endpoint:
  *   - POST /api/admin/seo/apply-index-baseline → flips everything IN these
  *     lists back to index (use when a slug was caught by an earlier sweep
- *     but Google has now ranked it; restores indexability).
+ *     but Google has now ranked it; restores indexability). Idempotent.
  *
- * Both are idempotent.
+ * NOTE: The destructive companion endpoint (apply-noindex-baseline) was
+ * deleted per Recovery_Google.md Step 1 (2026-05-09). Per-row toggles in
+ * /admin/cities and /admin/knowledge are now the only way to flip
+ * indexability. Re-introducing a "park-everything-to-noindex" sweeper is
+ * forbidden.
  *
  * The homepage (https://www.tableicity.com/) is in the protected set but
  * is not stored in city_locations or knowledge_articles, so no DB action

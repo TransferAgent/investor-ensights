@@ -821,15 +821,6 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
-// Validate ../../../app/api/admin/seo/apply-noindex-baseline/route.ts
-{
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/seo/apply-noindex-baseline">> = Specific
-  const handler = {} as typeof import("../../../app/api/admin/seo/apply-noindex-baseline/route.js")
-  type __Check = __IsExpected<typeof handler>
-  // @ts-ignore
-  type __Unused = __Check
-}
-
 // Validate ../../../app/api/admin/stats/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/stats">> = Specific

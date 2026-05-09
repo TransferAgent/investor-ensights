@@ -57,18 +57,6 @@ function StatCard({
   )
 }
 
-interface NoindexPreview {
-  preview: boolean
-  totals: {
-    cities: number
-    articles: number
-    protectedCitiesConfigured: number
-    protectedArticlesConfigured: number
-  }
-  willFlipToNoindex: { cities: number; articles: number }
-  missingFromDatabase: { cities: string[]; articles: string[] }
-}
-
 interface IndexPreview {
   preview: boolean
   totals: {
@@ -155,85 +143,6 @@ function IndexBaselineCard() {
           className="bg-emerald-600 hover:bg-emerald-700 text-white"
         >
           {busy ? "Applying..." : "Apply Index Baseline"}
-        </Button>
-      </div>
-    </Card>
-  )
-}
-
-function NoindexBaselineCard() {
-  const { toast } = useToast()
-  const [busy, setBusy] = useState(false)
-  const { data: preview, isLoading, refetch } = useQuery<NoindexPreview>({
-    queryKey: ["/api/admin/seo/apply-noindex-baseline"],
-  })
-
-  const handleApply = async () => {
-    if (!preview) return
-    const total = preview.willFlipToNoindex.cities + preview.willFlipToNoindex.articles
-    if (total === 0) {
-      toast({ title: "Nothing to do", description: "Baseline already applied." })
-      return
-    }
-    if (
-      !confirm(
-        `Flip ${preview.willFlipToNoindex.cities} cities and ${preview.willFlipToNoindex.articles} articles to NOINDEX. The 41 protected URLs will be untouched. Continue?`
-      )
-    )
-      return
-    setBusy(true)
-    try {
-      const res = await apiRequest("POST", "/api/admin/seo/apply-noindex-baseline", {})
-      const data = await res.json()
-      toast({
-        title: "Baseline applied",
-        description: `Flipped ${data.flipped.cities} cities and ${data.flipped.articles} articles to noindex.`,
-      })
-      await refetch()
-    } catch (e: any) {
-      toast({ title: "Failed", description: e?.message || "Unknown error", variant: "destructive" })
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <Card className="mb-8 p-5 border-amber-500/40">
-      <div className="flex items-start gap-4 flex-wrap">
-        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-amber-500/15 text-amber-600">
-          <ShieldAlert className="h-5 w-5" />
-        </div>
-        <div className="flex-1 min-w-[260px]">
-          <h3 className="font-semibold">SEO Noindex Baseline</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            One-time switch. Flips every city and press release to <code>noindex</code> EXCEPT the 41 protected URLs Google currently ranks.
-            Idempotent — safe to re-run.
-          </p>
-          {isLoading || !preview ? (
-            <Skeleton className="mt-3 h-5 w-72" />
-          ) : (
-            <div className="mt-3 text-sm space-y-1">
-              <p data-testid="text-noindex-pending">
-                <strong>{preview.willFlipToNoindex.cities}</strong> cities and{" "}
-                <strong>{preview.willFlipToNoindex.articles}</strong> articles will flip to noindex.
-              </p>
-              <p className="text-muted-foreground text-xs">
-                Protected: {preview.totals.protectedCitiesConfigured} cities + {preview.totals.protectedArticlesConfigured} articles. Total in DB: {preview.totals.cities} cities, {preview.totals.articles} articles.
-              </p>
-              {(preview.missingFromDatabase.cities.length > 0 || preview.missingFromDatabase.articles.length > 0) && (
-                <p className="text-amber-600 text-xs" data-testid="text-noindex-missing">
-                  Note: {preview.missingFromDatabase.cities.length + preview.missingFromDatabase.articles.length} protected slug(s) are not in the DB and will be ignored.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-        <Button
-          onClick={handleApply}
-          disabled={busy || isLoading || !preview || preview.willFlipToNoindex.cities + preview.willFlipToNoindex.articles === 0}
-          data-testid="button-apply-noindex-baseline"
-        >
-          {busy ? "Applying..." : "Apply Noindex Baseline"}
         </Button>
       </div>
     </Card>
