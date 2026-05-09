@@ -130,7 +130,7 @@ No city seed snapshot. No content seed. New tenant = empty schema with table she
 
 | # | Name | Owner | Inputs | Definition of Done | Closes when… | Unblocks |
 |---|---|---|---|---|---|---|
-| **MT-0** | **Decisions Lock + Doc** | Conductor + Architect | The 12 decisions above | This file written. `replit.md` updated with the multi-tenant decisions section. **Zero code changes.** | Conductor signs off on D1–D12 (or overrides line items, then re-signs). | MT-1, MT-5 |
+| **MT-0** | **Decisions Lock + Doc** | Conductor + Architect | The 12 decisions above | This file written. `replit.md` updated with the multi-tenant decisions section. **Zero code changes.** **CLOSED 2026-05-09.** | Conductor signed off on D1–D12 as written, 2026-05-09. | MT-1, MT-5 |
 | **MT-1** | **Tenant-Aware DB Client (no behavior change)** | App Builder | Closed MT-0 | `lib/db.ts` (or equivalent) wraps a `getTenantDb(slug)` / `getTenantPool(slug)` factory that sets `search_path` per-connection. AsyncLocalStorage shim threads tenant context through routes. The per-tenant tables list from D10 is encoded as a refusal guardrail: any query against those tables without a tenant context throws loudly. Tableicity is the hardcoded default tenant for now. **All 84 sitemap URLs unchanged. All 80 articles + 340 cities still readable + writable through the admin UI.** | Architect verifies: (a) sitemap = 84, (b) one article publish + unpublish round-trip succeeds, (c) one city update succeeds, (d) removing the hardcoded default and re-running causes per-tenant queries to throw. Diff ≤ 300 lines. | MT-2 |
 | **MT-2** | **Platform Tables + `tenant_tableicity` Schema Provisioned** | App Builder | Closed MT-1 | Public schema gains the 5 NEW global tables (D10). `tenant_tableicity` schema created with all per-tenant table shells (empty). `provisionTenantSchema(slug)` function exists and is idempotent. Drizzle migrations clean. **No data moved yet.** Pre-gate dump: `John/Dump_MT2_Pre.dump`. | Architect verifies: (a) `\dn` shows `tenant_tableicity`; (b) `\dt tenant_tableicity.*` matches `\dt public.*` for the per-tenant table set; (c) sitemap = 84; (d) row counts in `public.*` match `John/Dump_Three.dump` baseline. Diff ≤ 300 lines. | MT-3 |
 | **MT-3** | **Tableicity Data Move (THE DANGEROUS ONE)** | App Builder | Closed MT-2, fresh `John/Dump_MT3_Pre.dump` | Per-tenant data copied from `public.*` → `tenant_tableicity.*` row-by-row inside one transaction with COUNT verification at the end. Tenant-aware client routes Tableicity reads/writes to `tenant_tableicity`. **Public copies left in place** (dormant) for one gate as rollback safety net. `tenants` row inserted: `slug='tableicity'`, `personaDisplayName='Tableicity'`, `publisherName='Investor Ensights'`, `authorName='Investor Ensights'`. `city_slug_registry` populated with all 340 Tableicity city slugs claimed by `tableicity`. **Tableicity Custodian visual check: 80 articles, 340 cities, 182 haylo, sitemap = 84, every audit row preserved, every published article URL still resolves.** Post-gate dump: `John/Dump_MT3_Post.dump`. | Tableicity Custodian + Architect spot-check 5 articles, 10 cities, 5 haylo essays in the live admin UI. SQL row counts match across schemas. The 2 published-article URLs from `protectedSlugs.ts` resolve identically to pre-gate. Diff ≤ 300 lines (excluding generated migration). | MT-4 |
@@ -173,8 +173,9 @@ Re-opening a closed gate requires a new minor version of this table (v1.1, v1.2,
 
 ## Current state (as of 2026-05-09)
 
-- **MT-0:** **OPEN — awaiting Conductor sign-off on this draft.** No code changes pending.
-- **MT-1 through MT-9:** Not yet open. Do not start.
+- **MT-0:** **CLOSED 2026-05-09.** Conductor locked D1–D12 as written. Documents shipped: this file + `replit.md` multi-tenant section.
+- **MT-1:** **OPEN — awaiting Conductor "go" signal to begin.** App Builder ready.
+- **MT-2 through MT-9:** Not yet open. Do not start.
 
 ---
 
@@ -183,3 +184,4 @@ Re-opening a closed gate requires a new minor version of this table (v1.1, v1.2,
 | Version | Date | Change | Approved by |
 |---|---|---|---|
 | v1.0 | 2026-05-09 | Initial draft. Gates MT-0 through MT-9 defined. Decisions D1–D12 captured. | Architect (pending Conductor lock) |
+| v1.0 | 2026-05-09 | **LOCKED.** Conductor signed off on D1–D12 as written. MT-0 marked CLOSED. MT-1 opens awaiting "go" signal. | Conductor (John) |

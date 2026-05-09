@@ -116,3 +116,13 @@ These are locked forever per Architect directive:
 1. **Knowledge and Locations are separate** — no schema coupling, read-only city access
 2. **Pending-only** — all generated content goes through /api/knowledge/draft, never direct DB write, never auto-publish
 3. **Canonical host** — locked to https://www.tableicity.com, never non-www
+
+---
+
+## Multi-Tenant Build — Gate Closures
+
+### MT-0 — Decisions Lock + Doc (CLOSED 2026-05-09)
+- Conductor locked decisions D1–D12 as written by the Architect.
+- Artifacts shipped: `John/Locked_Gate_Table_MultiTenant_v1.0.md` (296 lines), `replit.md` Multi-Tenant Architecture section + 3 new Gotchas (forward-only-deletes, never-touch-slugs, sitemap-as-canary).
+- Zero code changes. Production unaffected. Sitemap = 84 URLs.
+- Next: MT-1 (Tenant-Aware DB Client) is OPEN, awaiting Conductor "go" signal.
