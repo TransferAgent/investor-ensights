@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { storage } from "@/lib/storage";
 import { db } from "@/lib/db";
-import { adminUsers } from "@shared/schema";
+import { users } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { withTenantAsync } from "@/lib/tenant/context";
 import { scryptSync, randomBytes } from "crypto";
 import { z } from "zod";
 
@@ -24,11 +24,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await verifySession();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rlKey = `admin-users-write:${session.username}`;
+  const rlKey = `admin-users-write:${session.email}`;
   const { allowed, retryAfterMs } = checkRateLimit(rlKey);
   if (!allowed) {
     return NextResponse.json(
@@ -39,11 +37,9 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    const target = await storage.getAdminById(id);
-    if (!target) {
-      return NextResponse.json({ error: "Admin not found" }, { status: 404 });
-    }
-    if (target.username === session.username) {
+    const [target] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (target.email === session.email) {
       return NextResponse.json(
         { error: "You cannot delete your own account while logged in." },
         { status: 400 },
@@ -51,44 +47,31 @@ export async function DELETE(
     }
 
     let removed = false;
-    let lastAdmin = false;
+    let lastUser = false;
     await db.transaction(async (tx) => {
-      const locked = await tx.execute(
-        sql`SELECT id FROM admin_users FOR UPDATE`,
-      );
+      const locked = await tx.execute(sql`SELECT id FROM public.users FOR UPDATE`);
       const total = (locked as any).rowCount ?? (locked as any).rows?.length ?? 0;
-      if (total <= 1) {
-        lastAdmin = true;
-        return;
-      }
-      const result = await tx
-        .delete(adminUsers)
-        .where(eq(adminUsers.id, id))
-        .returning({ id: adminUsers.id });
+      if (total <= 1) { lastUser = true; return; }
+      const result = await tx.delete(users).where(eq(users.id, id)).returning({ id: users.id });
       removed = result.length > 0;
     });
 
-    if (lastAdmin) {
-      return NextResponse.json(
-        { error: "Cannot delete the last remaining admin." },
-        { status: 400 },
-      );
-    }
-    if (!removed) {
-      return NextResponse.json({ error: "Admin not found" }, { status: 404 });
-    }
+    if (lastUser) return NextResponse.json({ error: "Cannot delete the last remaining user." }, { status: 400 });
+    if (!removed) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    await logAuditEvent({
-      username: session.username,
-      action: "delete",
-      entityType: "admin_user",
-      entityId: id,
-      details: { username: target.username },
-    });
+    await withTenantAsync(session.tenantSlug, () =>
+      logAuditEvent({
+        username: session.email,
+        action: "delete",
+        entityType: "user",
+        entityId: id,
+        details: { email: target.email },
+      })
+    );
 
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Failed to delete admin" }, { status: 400 });
+    return NextResponse.json({ error: e?.message || "Failed to delete user" }, { status: 400 });
   }
 }
 
@@ -97,11 +80,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await verifySession();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rlKey = `admin-users-write:${session.username}`;
+  const rlKey = `admin-users-write:${session.email}`;
   const { allowed, retryAfterMs } = checkRateLimit(rlKey);
   if (!allowed) {
     return NextResponse.json(
@@ -115,20 +96,20 @@ export async function PATCH(
     const body = await request.json();
     const parsed = patchSchema.parse(body);
 
-    const target = await storage.getAdminById(id);
-    if (!target) {
-      return NextResponse.json({ error: "Admin not found" }, { status: 404 });
-    }
+    const [target] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     if (parsed.password) {
-      await storage.updateAdminPassword(id, hashPassword(parsed.password));
-      await logAuditEvent({
-        username: session.username,
-        action: "update",
-        entityType: "admin_user",
-        entityId: id,
-        details: { field: "password", username: target.username },
-      });
+      await db.update(users).set({ passwordHash: hashPassword(parsed.password) }).where(eq(users.id, id));
+      await withTenantAsync(session.tenantSlug, () =>
+        logAuditEvent({
+          username: session.email,
+          action: "update",
+          entityType: "user",
+          entityId: id,
+          details: { field: "password", email: target.email },
+        })
+      );
     }
 
     return NextResponse.json({ success: true });
@@ -136,6 +117,6 @@ export async function PATCH(
     if (e?.issues) {
       return NextResponse.json({ error: e.issues[0]?.message || "Invalid input" }, { status: 400 });
     }
-    return NextResponse.json({ error: e?.message || "Failed to update admin" }, { status: 400 });
+    return NextResponse.json({ error: e?.message || "Failed to update user" }, { status: 400 });
   }
 }

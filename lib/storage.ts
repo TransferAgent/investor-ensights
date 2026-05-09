@@ -805,4 +805,24 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// MT-6 silo enforcement: every storage method auto-resolves the caller's
+// tenant from the admin session cookie via withSessionTenant. If no cookie
+// (public requests, CLI scripts), it falls through to the existing tenant
+// context (env default or any explicit withTenant wrap higher up).
+//
+// This means zero per-route changes are needed for silo isolation — the
+// session cookie drives tenant context for every db call inside storage.
+// Direct `db` users in route files are responsible for their own context;
+// see app/api/admin/users/[id]/route.ts for examples.
+import { withSessionTenant } from "./tenant/session-tenant";
+
+const _storage = new DatabaseStorage();
+
+export const storage: IStorage = new Proxy(_storage, {
+  get(target, prop, receiver) {
+    const orig = Reflect.get(target, prop, receiver);
+    if (typeof orig !== "function") return orig;
+    return (...args: unknown[]) =>
+      withSessionTenant(() => (orig as (...a: unknown[]) => Promise<unknown>).apply(target, args));
+  },
+}) as unknown as IStorage;

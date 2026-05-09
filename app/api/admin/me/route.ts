@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { storage } from "@/lib/storage";
+import { db } from "@/lib/db";
+import { users, tenants, tenantMembers } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/auth";
 
 export async function GET() {
@@ -8,14 +10,30 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const admin = await storage.getAdminById(String(session.adminId));
-  if (!admin) {
+  const [row] = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      displayName: users.displayName,
+      tenantSlug: tenantMembers.tenantSlug,
+      personaDisplayName: tenants.personaDisplayName,
+    })
+    .from(users)
+    .innerJoin(tenantMembers, eq(tenantMembers.userId, users.id))
+    .innerJoin(tenants, eq(tenants.slug, tenantMembers.tenantSlug))
+    .where(eq(users.id, session.userId))
+    .limit(1);
+
+  if (!row) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   return NextResponse.json({
-    id: admin.id,
-    username: admin.username,
-    displayName: admin.displayName,
+    id: row.id,
+    username: row.email, // back-compat for existing UI
+    email: row.email,
+    displayName: row.displayName,
+    tenantSlug: row.tenantSlug,
+    tenantDisplayName: row.personaDisplayName,
   });
 }

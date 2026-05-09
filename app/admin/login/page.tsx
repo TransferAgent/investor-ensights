@@ -3,26 +3,22 @@ import { useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { QueryProvider } from "@/components/query-provider"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { apiRequest, queryClient } from "@/lib/queryClient"
-import { Shield, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 function LoginForm() {
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const router = useRouter()
   const { toast } = useToast()
 
   const loginMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/login", {
-        username,
-        password,
-      })
+      const res = await apiRequest("POST", "/api/admin/login", { email, password })
       return res.json()
     },
     onSuccess: () => {
@@ -31,73 +27,91 @@ function LoginForm() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Login Failed",
-        description: error.message.includes("401")
-          ? "Invalid credentials"
-          : "Something went wrong",
+        title: "Sign in failed",
+        description: error.message.includes("401") ? "Invalid email or password" : "Something went wrong",
         variant: "destructive",
       })
     },
   })
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm p-6">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
-            <Shield className="h-6 w-6 text-primary" />
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
+      {/* LEFT — white form panel */}
+      <div className="flex items-center justify-center bg-white px-6 py-12 lg:px-16">
+        <div className="w-full max-w-sm space-y-8">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-semibold tracking-tight text-gray-900" data-testid="text-login-title">
+              Sign in
+            </h1>
+            <p className="text-sm text-gray-500">
+              Enter your email and password to access your tenant.
+            </p>
           </div>
-          <h1 className="text-xl font-bold" data-testid="text-login-title">
-            Admin Login
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Sign in to manage locations
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              loginMutation.mutate()
+            }}
+            className="space-y-5"
+          >
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-gray-700">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="username"
+                data-testid="input-email"
+                className="bg-white border-gray-300"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-gray-700">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                autoComplete="current-password"
+                data-testid="input-password"
+                className="bg-white border-gray-300"
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-black hover:bg-gray-900 text-white"
+              disabled={loginMutation.isPending || !email || !password}
+              data-testid="button-login"
+            >
+              {loginMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Sign in
+            </Button>
+          </form>
+
+          <p className="text-xs text-gray-400">
+            Need an account? Ask your administrator to add you.
           </p>
         </div>
+      </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            loginMutation.mutate()
-          }}
-          className="space-y-4"
-        >
-          <div className="space-y-1.5">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin"
-              autoComplete="username"
-              data-testid="input-username"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-              autoComplete="current-password"
-              data-testid="input-password"
-            />
-          </div>
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={loginMutation.isPending || !username || !password}
-            data-testid="button-login"
+      {/* RIGHT — black brand panel */}
+      <div className="hidden lg:flex items-center justify-center bg-black text-white">
+        <div className="text-center space-y-4">
+          <div
+            className="text-[10rem] font-bold leading-none tracking-tight select-none"
+            data-testid="text-brand-mark"
           >
-            {loginMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
-            Sign In
-          </Button>
-        </form>
-      </Card>
+            iE
+          </div>
+          <div className="text-sm uppercase tracking-[0.3em] text-gray-400">
+            Investor Ensights
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
