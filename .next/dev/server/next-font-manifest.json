@@ -1,6 +1,27 @@
 {
   "app": {
+    "[project]/app/admin/cities/page": [
+      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
+    ],
+    "[project]/app/admin/data-store/page": [
+      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
+    ],
+    "[project]/app/admin/haylo/page": [
+      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
+    ],
+    "[project]/app/admin/knowledge/page": [
+      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
+    ],
     "[project]/app/admin/login/page": [
+      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
+    ],
+    "[project]/app/admin/newsroom/page": [
+      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
+    ],
+    "[project]/app/admin/page": [
+      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
+    ],
+    "[project]/app/admin/templates/page": [
       "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
     ],
     "[project]/app/page": [
