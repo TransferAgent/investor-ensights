@@ -94,7 +94,10 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       await apiRequest("POST", "/api/admin/logout")
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/me"] })
+      // MT-4.3: nuke ALL cached query data on logout so the next user signing
+      // in on this browser does not see the previous tenant's data flash on
+      // screen before the refetch lands. Pair of /admin/login/page.tsx onSuccess.
+      queryClient.clear()
       router.push("/admin/login")
     },
   })

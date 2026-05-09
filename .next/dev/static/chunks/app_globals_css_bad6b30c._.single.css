@@ -3010,6 +3010,11 @@ body {
   background-color: rgb(229 229 229 / var(--tw-bg-opacity, 1));
 }
 
+.bg-neutral-300 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(212 212 212 / var(--tw-bg-opacity, 1));
+}
+
 .bg-neutral-900 {
   --tw-bg-opacity: 1;
   background-color: rgb(23 23 23 / var(--tw-bg-opacity, 1));
@@ -3102,11 +3107,6 @@ body {
 .bg-zinc-200 {
   --tw-bg-opacity: 1;
   background-color: rgb(228 228 231 / var(--tw-bg-opacity, 1));
-}
-
-.bg-neutral-300 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(212 212 212 / var(--tw-bg-opacity, 1));
 }
 
 .bg-gradient-to-br {
@@ -3898,10 +3898,6 @@ body {
   text-decoration-line: underline;
 }
 
-.no-underline {
-  text-decoration-line: none;
-}
-
 .underline-offset-2 {
   text-underline-offset: 2px;
 }
@@ -4682,10 +4678,6 @@ input[type="search"]::-webkit-search-cancel-button {
 
 .hover\:underline:hover {
   text-decoration-line: underline;
-}
-
-.hover\:no-underline:hover {
-  text-decoration-line: none;
 }
 
 .hover\:opacity-100:hover {

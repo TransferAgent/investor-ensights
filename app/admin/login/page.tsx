@@ -22,7 +22,12 @@ function LoginForm() {
       return res.json()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/me"] })
+      // MT-4.3: nuke ALL cached query data on login. Without this, if a
+      // previous user (different tenant) was logged in on this browser, the
+      // cached /api/admin/cities (etc.) responses from that tenant would be
+      // shown to the new user before the refetch lands — visible cross-tenant
+      // data leak in the UI even though the server is siloed correctly.
+      queryClient.clear()
       router.push("/admin")
     },
     onError: (error: Error) => {
