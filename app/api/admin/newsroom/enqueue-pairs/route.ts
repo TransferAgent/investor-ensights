@@ -10,6 +10,7 @@ import { processPair } from "@/lib/newsroom/pairProcessor";
 import { runPairAgentPipeline } from "@/lib/newsroom/pairAgentOrchestrator";
 import { newsroomDraftPayloadV1Schema } from "@/lib/newsroom/draftPayload";
 import { sanitizeNewsroomHtml } from "@/lib/newsroom/htmlSanitizer";
+import { withTenantAsync } from "@/lib/tenant/context";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -45,6 +46,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request", details: e?.errors ?? String(e) }, { status: 400 });
   }
 
+  // MT-4.4: this route uses `db` directly (not via storage proxy), so it must
+  // explicitly wrap its work in tenant context. Without this, `db` falls back
+  // to DEFAULT_TENANT_SLUG ("tableicity") and any non-Tableicity tenant ends
+  // up writing to / reading from Tableicity's schema — silent cross-tenant
+  // bleed for every direct-db statement in this handler.
+  return withTenantAsync(session.tenantSlug, () => handlePost(session, body));
+}
+
+async function handlePost(
+  session: { username: string; tenantSlug: string },
+  body: { hayloArticleId: string; citySlugs: string[]; dryRun: boolean }
+) {
   const { hayloArticleId, citySlugs, dryRun } = body;
 
   const haylo = await storage.getHayloArticleById(hayloArticleId);
