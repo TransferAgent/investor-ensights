@@ -32,6 +32,7 @@ const createSchema = z.object({
       personaDisplayName: z.string().min(1).max(100),
       publisherName: z.string().min(1).max(100),
       authorName: z.string().min(1).max(100),
+      companyName: z.string().min(1).max(200),
     })
     .optional(),
 });
@@ -125,8 +126,8 @@ export async function POST(request: NextRequest) {
         // Provision tenant schema in this same transaction.
         await provisionTenantSchemaWithClient(client, t.slug);
         await client.query(
-          `INSERT INTO public.tenants (slug, persona_display_name, publisher_name, author_name) VALUES ($1, $2, $3, $4)`,
-          [t.slug, t.personaDisplayName, t.publisherName, t.authorName]
+          `INSERT INTO public.tenants (slug, persona_display_name, publisher_name, author_name, company_name) VALUES ($1, $2, $3, $4, $5)`,
+          [t.slug, t.personaDisplayName, t.publisherName, t.authorName, t.companyName]
         );
         createdTenantSlug = t.slug;
       } else {

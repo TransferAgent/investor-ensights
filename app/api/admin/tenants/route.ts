@@ -15,6 +15,7 @@ export async function GET() {
       personaDisplayName: tenants.personaDisplayName,
       publisherName: tenants.publisherName,
       authorName: tenants.authorName,
+      companyName: tenants.companyName,
       createdAt: tenants.createdAt,
     })
     .from(tenants)

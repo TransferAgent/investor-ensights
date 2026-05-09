@@ -43,6 +43,10 @@ export const tenants = pgTable(
     personaDisplayName: varchar("persona_display_name", { length: 100 }).notNull(),
     publisherName: varchar("publisher_name", { length: 100 }).notNull(),
     authorName: varchar("author_name", { length: 100 }).notNull(),
+    // MT-4.1: legal/marketing company name. Used for slug-swap operations
+    // and brand interactions in body copy. Nullable to keep existing tenants
+    // valid; surfaced in the homepage tenant picker as the human-readable label.
+    companyName: varchar("company_name", { length: 200 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("tenants_slug_idx").on(table.slug)]

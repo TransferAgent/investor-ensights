@@ -47,6 +47,7 @@ export default function AdminUsersPage() {
   const [tenantChoice, setTenantChoice] = useState<string>("") // slug or NEW_TENANT_SENTINEL
   const [newTenantSlug, setNewTenantSlug] = useState("")
   const [newTenantDisplay, setNewTenantDisplay] = useState("")
+  const [newTenantCompany, setNewTenantCompany] = useState("")
   const [newTenantPublisher, setNewTenantPublisher] = useState("Investor Ensights")
   const [newTenantAuthor, setNewTenantAuthor] = useState("Investor Ensights")
   const [pwById, setPwById] = useState<Record<string, string>>({})
@@ -68,6 +69,7 @@ export default function AdminUsersPage() {
         payload.newTenant = {
           slug: newTenantSlug.trim().toLowerCase(),
           personaDisplayName: newTenantDisplay.trim(),
+          companyName: newTenantCompany.trim(),
           publisherName: newTenantPublisher.trim(),
           authorName: newTenantAuthor.trim(),
         }
@@ -79,7 +81,7 @@ export default function AdminUsersPage() {
     onSuccess: () => {
       toast({ title: "User created" })
       setNewEmail(""); setNewPassword(""); setNewDisplay("")
-      setTenantChoice(""); setNewTenantSlug(""); setNewTenantDisplay("")
+      setTenantChoice(""); setNewTenantSlug(""); setNewTenantDisplay(""); setNewTenantCompany("")
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] })
       queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants"] })
     },
@@ -118,7 +120,8 @@ export default function AdminUsersPage() {
     if (!newEmail.includes("@") || newPassword.length < 12) return false
     if (isNewTenant) {
       return /^[a-z][a-z0-9_]{0,62}$/.test(newTenantSlug.trim()) &&
-        newTenantDisplay.trim().length > 0 && newTenantPublisher.trim().length > 0 && newTenantAuthor.trim().length > 0
+        newTenantDisplay.trim().length > 0 && newTenantCompany.trim().length > 0 &&
+        newTenantPublisher.trim().length > 0 && newTenantAuthor.trim().length > 0
     }
     return tenantChoice.length > 0
   })()
@@ -221,6 +224,18 @@ export default function AdminUsersPage() {
                       placeholder="Persona Two"
                       data-testid="input-new-tenant-display"
                     />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="nt-company">Company Name</Label>
+                    <Input
+                      id="nt-company" value={newTenantCompany}
+                      onChange={(e) => setNewTenantCompany(e.target.value)}
+                      placeholder="Persona Two Inc."
+                      data-testid="input-new-tenant-company"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Legal/marketing brand name. Persists with the tenant; used for slug swaps and brand text in body copy.
+                    </p>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="nt-publisher">Publisher name</Label>
