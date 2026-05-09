@@ -166,3 +166,40 @@ After Conductor reviewed reference screenshots (`attached_assets/Capture_177831*
 - Architect: initial review flagged the hazard + LOC; both addressed before close.
 
 **Next:** MT-3 (data move) — pre-gate dump `John/Dump_MT3_Pre.dump` required. Awaiting Conductor "go MT-3" signal.
+
+### MT-3 CLOSED ON DEV 2026-05-09 — with 3-blocker hardening cycle
+**Shipped:**
+- `scripts/mt3-move-tableicity.ts` (172 lines): one-transaction move with all 6 safety rails (advisory lock, statement_timeout, lock_timeout, EXCLUSIVE write-freeze, in-tx provisioning, composite-FK guard, strict registry, idempotency gate). Default = dry-run; `--confirm` = real commit.
+- `scripts/mt3-verify.ts` (103 lines): read-only DoD harness (5 checks).
+- `lib/tenant/provisioner.ts` (+14 lines): added `provisionTenantSchemaWithClient(client, slug)` so MT-3 provisioning rides inside the move's transaction.
+- Pre-gate dump `John/Dump_MT3_Pre.dump` (1.8MB PROD baseline).
+
+**Dev results:**
+- 568 rows mirrored across all 24 per-tenant tables (per-table count verified during the transaction).
+- 14 foreign keys reconstructed in `tenant_tableicity` (discovered dynamically from public's information_schema).
+- 18 city slugs claimed by `tableicity` in `public.city_slug_registry`.
+- `public.tenants` row: `slug='tableicity'`, `personaDisplayName='Tableicity'`, `publisherName='Investor Ensights'`, `authorName='Investor Ensights'`.
+- `public.*` per-tenant tables left untouched as rollback safety net (DoD requirement; dropped at MT-8).
+- **Dev sitemap unchanged at 18 URLs** — and critically, those URLs are now served by reading from `tenant_tableicity` via the MT-1 tenant-aware client. End-to-end routing works.
+- Verifier 5/5 PASS; independent SQL audit confirmed.
+
+**Architect cycle (this gate had two reviews, like MT-2):**
+- *First review = FAIL.* Three blockers:
+  1. Atomicity gap — provisioner ran in its own transaction, so a process kill between provision and copy would leave empty shadowing shells in PROD.
+  2. Concurrent writes during the move would land in `public` only and become invisible after cutover.
+  3. Registry insert used `ON CONFLICT DO NOTHING` — silently under-claiming on collision.
+- *Resolution:* Rolled back the dev commit (`public.*` was untouched, so reversible), added `provisionTenantSchemaWithClient`, added `LOCK TABLE public."<t>" IN EXCLUSIVE MODE` for all 24 tables at transaction start (blocks writes, allows reads), removed `ON CONFLICT DO NOTHING`. Added 3 ops-hardening items from re-review: `SET LOCAL statement_timeout='5min'`, `SET LOCAL lock_timeout='30s'`, `pg_advisory_xact_lock(5318)`, plus a composite-FK guard.
+- *Second review = PASS.* All 3 blockers closed; remaining items addressed.
+
+**PROD execution sequence (pending Conductor "go PROD" signal):**
+1. `bash scripts/push-schema-to-prod.sh` — pushes the 5 new global tables to PROD `public`.
+2. `DATABASE_URL=$PROD_DATABASE_URL npx tsx scripts/mt3-move-tableicity.ts` — dry-run on PROD; review the row-count summary (should show 80 articles, 340 cities, 182 haylo, etc.).
+3. `DATABASE_URL=$PROD_DATABASE_URL npx tsx scripts/mt3-move-tableicity.ts --confirm` — real commit.
+4. `DATABASE_URL=$PROD_DATABASE_URL npx tsx scripts/mt3-verify.ts` — confirm 5/5 PASS.
+5. Redeploy via Replit Publish.
+6. Tableicity Custodian visual check: live PROD `investorensights.com/sitemap.xml` returns 84 URLs, 5 spot-checked articles + 10 cities + 5 haylo essays load correctly.
+7. Capture post-gate dump `John/Dump_MT3_Post.dump`.
+
+The script is safe to run on PROD as-is. The advisory lock prevents accidental parallel runs, the EXCLUSIVE locks freeze writes during the few seconds of the move, and the idempotency gate refuses to re-run if `tenants[slug='tableicity']` already exists.
+
+**Next:** MT-4 (auth refactor — public self-serve tenant creation per D6 v1.1) blocked on PROD execution + Conductor sign-off.

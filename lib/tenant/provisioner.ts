@@ -13,7 +13,7 @@
 // scripts/mt2-verify.ts exercises it in a self-contained provision→check→
 // drop cycle so live state remains tenant-schema-free until MT-3.
 
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { PER_TENANT_TABLES } from "./perTenantTables";
 
 const VALID_SLUG = /^[a-z][a-z0-9_]{0,62}$/;
@@ -43,36 +43,50 @@ export interface ProvisionResult {
 // which copies columns, types, defaults, CHECK constraints, indexes,
 // comments, and storage params. NOT copied: foreign keys (PG semantics) —
 // these are reconstructed at MT-3 alongside the data move.
-export async function provisionTenantSchema(pool: Pool, slug: string): Promise<ProvisionResult> {
+//
+// Internal: emits the DDL on a caller-supplied client so MT-3 can run
+// provision + copy + FK rebuild + tenants insert + registry insert all in
+// ONE transaction. Caller owns BEGIN/COMMIT/ROLLBACK.
+export async function provisionTenantSchemaWithClient(
+  client: PoolClient | Pool,
+  slug: string
+): Promise<ProvisionResult> {
   assertValidSlug(slug);
   const schema = `tenant_${slug}`;
+  await client.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
+  const created: string[] = [];
+  const present: string[] = [];
+  for (const table of PER_TENANT_TABLES) {
+    if (!VALID_TABLE.test(table)) {
+      throw new Error(`Invalid table name "${table}" in PER_TENANT_TABLES`);
+    }
+    const exists = await client.query(
+      `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+      [schema, table]
+    );
+    if ((exists.rowCount ?? 0) > 0) { present.push(table); continue; }
+    const src = await client.query(
+      `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1`,
+      [table]
+    );
+    if ((src.rowCount ?? 0) === 0) {
+      throw new Error(`Source public."${table}" missing; run db:push first.`);
+    }
+    await client.query(`CREATE TABLE "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`);
+    created.push(table);
+  }
+  return { slug, schema, tablesCreated: created, tablesAlreadyPresent: present };
+}
+
+// Pool-level wrapper: opens its own short transaction. Used by MT-2 verifier.
+// MT-3 must use provisionTenantSchemaWithClient inside its move transaction.
+export async function provisionTenantSchema(pool: Pool, slug: string): Promise<ProvisionResult> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    await client.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
-    const created: string[] = [];
-    const present: string[] = [];
-    for (const table of PER_TENANT_TABLES) {
-      if (!VALID_TABLE.test(table)) {
-        throw new Error(`Invalid table name "${table}" in PER_TENANT_TABLES`);
-      }
-      const exists = await client.query(
-        `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-        [schema, table]
-      );
-      if ((exists.rowCount ?? 0) > 0) { present.push(table); continue; }
-      const src = await client.query(
-        `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1`,
-        [table]
-      );
-      if ((src.rowCount ?? 0) === 0) {
-        throw new Error(`Source public."${table}" missing; run db:push first.`);
-      }
-      await client.query(`CREATE TABLE "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`);
-      created.push(table);
-    }
+    const result = await provisionTenantSchemaWithClient(client, slug);
     await client.query("COMMIT");
-    return { slug, schema, tablesCreated: created, tablesAlreadyPresent: present };
+    return result;
   } catch (err) {
     await client.query("ROLLBACK");
     throw err;
