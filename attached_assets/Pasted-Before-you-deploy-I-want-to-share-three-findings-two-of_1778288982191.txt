@@ -1,0 +1,84 @@
+Before you deploy, I want to share three findings — two of which are very likely your real Google problem, and the "eventually consistent sitemap" gotcha is only one piece of it.
+
+Let me check one critical thing first against the freshly-restored PROD:
+
+
+Ran cat
+🚨 Found It — This Is Almost Certainly Why Google Isn't Indexing
+Stop. Do not redeploy yet. Your sitemap will publish with 0 cities because of how PROD's data is set up. The replit.md "eventually consistent" gotcha is a real but secondary issue. Here's the real story:
+
+Finding 1 — All 340 Cities Are Marked noindex in PROD ⚠️ CRITICAL
+CITIES
+  Total                : 340
+  Indexable (sitemap)  : 0      ← every single one excluded
+  Explicitly noindex   : 340
+
+Every city in PROD has allow_indexing = false. The sitemap code filters them out (cities.filter((c) => c.allowIndexing !== false)), and the page itself emits <meta name="robots" content="noindex"> (app/locations/[slug]/page.tsx line 73-74: robots: { index: city.allowIndexing }).
+
+So even if Google fetches /locations/austin-tx, the page tells Google "do not index me." Combined with the city URLs being absent from the sitemap, Google has no reason to index any of them.
+
+Why is this state even possible?
+Your admin dashboard has a button I found at app/admin/page.tsx line 209:
+
+"One-time switch. Flips every city and press release to noindex EXCEPT the 41 protected URLs Google currently ranks."
+
+Someone (or a previous run) hit "Apply noindex baseline" and it fired wider than intended — flipping all 340 cities to noindex instead of "all except the 41 protected." Either:
+
+The protected list was empty/missing when the button was clicked, or
+The "restore index" recovery action was never used after, or
+The pre-multitenant snapshot you just restored from was taken after the noindex sweep was applied.
+I'd bet on the third option — your snapshot bakes in the noindex state.
+
+Finding 2 — /sitemap.xml Currently Lists Just 82 URLs Total
+=> URLs that will appear in /sitemap.xml: 82
+
+That's: 78 published articles + 4 static pages (home/terms/privacy/site-map) + 0 cities + 0 custom pages. If Google was expecting 340 city URLs and finding none in your sitemap, you've effectively told it "those pages don't exist."
+
+Finding 3 — Sitemap Caching Is Real, But Worse Than the Gotcha Says
+Your app/sitemap.xml/route.ts:
+
+export const revalidate = 300
+export const dynamic = "force-static"
+
+This means:
+
+The sitemap is statically generated at build time.
+After deploy, it only refreshes on a request and after 5 minutes have passed.
+Between deploys, if Google pulls once and gets a stale snapshot, the next refresh requires actual user/bot traffic to trigger.
+The replit.md advice ("redeploy forces a fresh sitemap") is true, but the gotcha understates the issue. With 0 indexable cities baked into PROD, even a fresh deploy produces an empty city sitemap.
+
+Bonus Finding — The Sitemap URL Itself Sends X-Robots-Tag: noindex (line 129)
+This is correct — Google explicitly recommends noindex on the sitemap file itself so the XML doesn't show up in search results. Not a bug. But it does mean if you accidentally test "is this URL indexable?" by checking the sitemap URL with a tool, it will say noindex and confuse you.
+
+What I Recommend (Take No Action Until You Confirm)
+You have three honest options. I won't touch anything until you pick:
+
+Option A — Flip everything back to indexable (full reversal)
+A single SQL update against PROD:
+
+UPDATE city_locations SET allow_indexing = true;
+
+Pro: Simple. All 340 cities re-enter the sitemap and stop emitting noindex meta.
+Con: If the original noindex baseline was deliberate (e.g., Google had thin-content penalties on most cities), this re-exposes that risk.
+
+Option B — Use the admin "Restore from protected list" feature
+Your admin page has a counterpart action ("Flips every URL on the protected list back to index"). Run that through the UI so the protected-list logic is honored. Safer if there's a curated list of "ready" cities. We'd need to confirm the protected list isn't empty first.
+
+Option C — Investigate why the noindex baseline ran
+Before reversing, check admin_audit_log for the apply-noindex-baseline action — when, by whom, what the protected list was at the time. This tells you whether the snapshot is in a known state or whether something went sideways. I'd suggest doing this regardless of A or B.
+
+Plus, Regardless of A/B/C — Two Sitemap Hardening Changes Worth Considering
+These are code changes, not data:
+
+Drop force-static on the sitemap and switch to dynamic = "force-dynamic" with a short cache header. Sitemap regenerates on every request (cheap — one DB query) and is always current. Removes the "needs traffic to refresh" trap.
+Add a deploy-time sitemap warmer — curl https://investorensights.com/sitemap.xml after deploy in your publish flow, so the first hit isn't from Googlebot getting stale build-time data.
+I would not batch these with the data fix. Do the data fix first, verify, then decide on the code hardening as a follow-up.
+
+My Honest Read
+The replit.md gotcha was written with the right intent but pointed at the wrong root cause. Your real Google misfire is almost certainly Finding 1 — 340/340 cities marked noindex. That's not a sitemap caching problem; that's the database telling Google "no thank you" on every city page. Fix that first, then the sitemap caching nuance becomes a minor optimization.
+
+Three questions before I do anything:
+
+Do you want me to query admin_audit_log for when/who ran the noindex baseline (read-only, safe)?
+Reversal posture: Option A (flip all 340 back, blanket), Option B (protected-list aware), or hold while you investigate?
+Update the replit.md Gotchas section to reflect the actual root cause once we resolve this, so the next person isn't misled?
