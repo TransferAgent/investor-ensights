@@ -140,3 +140,10 @@ These are locked forever per Architect directive:
 - **Architect review:** PASS with two non-blocking caveats (search_path race; slug injection). Both fixed in-gate rather than deferred to MT-3 (the dangerous gate).
 - **Pending:** Tableicity Custodian visual spot-check on the live admin UI before MT-2 begins.
 - **Next:** MT-2 (Platform Tables + `tenant_tableicity` Schema Provisioned) is OPEN, awaiting Conductor "go" signal. Pre-gate dump `John/Dump_MT2_Pre.dump` required first.
+
+### Decisions doc bumped to v1.1 (2026-05-09)
+After Conductor reviewed reference screenshots (`attached_assets/Capture_177831*.PNG`), D6 and D7 revised:
+- **D6 reverses to public self-serve.** Anyone on `/login` clicks "Create one" → atomic users + tenants + schema + tenant_members create. No OAuth (no Apple / Google / LinkedIn). MFA delivery is log-based for MVP — codes written via `logger.info('mfa.code.issued', ...)` and surfaced on `/login/verify` in a Lab Mode display box. AWS SES integration is explicitly deferred to a post-MT-9 sub-gate.
+- **D7 simplified.** Dropped Layout A/B framing. One auth layout: form LEFT (white panel) + brand RIGHT (black panel with `iE` wordmark). Three pages, two flows (2-page returning, 3-page new), both end at `/login/verify`. Landing page unaffected.
+- **MT-4 and MT-5 DoDs updated to match v1.1.** MT-0 and MT-1 already closed under v1.0 — not re-opened (the v1.1 changes flow into gates that haven't started yet).
+- **Open/deferred (non-blocking for MT-2):** brand tagline, footer wording (ToS/Privacy/Sitemap/address), AWS SES wiring.
