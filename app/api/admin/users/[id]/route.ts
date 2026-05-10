@@ -17,6 +17,7 @@ function hashPassword(password: string): string {
 
 const patchSchema = z.object({
   password: z.string().min(12, "Password must be at least 12 characters").optional(),
+  displayName: z.string().max(120).nullable().optional(),
 });
 
 export async function DELETE(
@@ -108,6 +109,20 @@ export async function PATCH(
           entityType: "user",
           entityId: id,
           details: { field: "password", email: target.email },
+        })
+      );
+    }
+
+    if (parsed.displayName !== undefined) {
+      const next = parsed.displayName?.trim() || null;
+      await db.update(users).set({ displayName: next }).where(eq(users.id, id));
+      await withTenantAsync(session.tenantSlug, () =>
+        logAuditEvent({
+          username: session.email,
+          action: "update",
+          entityType: "user",
+          entityId: id,
+          details: { field: "displayName", email: target.email, value: next },
         })
       );
     }

@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { apiRequest, queryClient } from "@/lib/queryClient"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { ShieldCheck, Trash2, KeyRound, Plus, UserCircle, Building2 } from "lucide-react"
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog"
+import { ShieldCheck, Trash2, KeyRound, Plus, UserCircle, Building2, Pencil } from "lucide-react"
 
 interface AdminRow {
   id: string
@@ -112,6 +115,82 @@ export default function AdminUsersPage() {
     },
     onError: (e: any) => {
       toast({ title: "Could not update password", description: e?.message || "Try again", variant: "destructive" })
+    },
+  })
+
+  // ---- Edit dialog state ----
+  const [editing, setEditing] = useState<AdminRow | null>(null)
+  const [editDisplayName, setEditDisplayName] = useState("")
+  const [editTenantDisplay, setEditTenantDisplay] = useState("")
+  const [editTenantPublisher, setEditTenantPublisher] = useState("")
+  const [editTenantAuthor, setEditTenantAuthor] = useState("")
+  const [editTenantCompany, setEditTenantCompany] = useState("")
+  const [editTenantBrandUrl, setEditTenantBrandUrl] = useState("")
+
+  const openEdit = (row: AdminRow) => {
+    setEditing(row)
+    setEditDisplayName(row.displayName ?? "")
+    // Tenant fields hydrate from /api/admin/tenants/[slug] below.
+    setEditTenantDisplay(row.tenantDisplayName ?? "")
+    setEditTenantPublisher("")
+    setEditTenantAuthor("")
+    setEditTenantCompany("")
+    setEditTenantBrandUrl("")
+  }
+
+  const editingSlug = editing?.tenantSlug ?? null
+  const { data: editingTenant } = useQuery<{
+    tenant: {
+      slug: string; personaDisplayName: string; publisherName: string;
+      authorName: string; companyName: string; brandHomeUrl: string | null;
+    }
+  }>({
+    queryKey: ["/api/admin/tenants", editingSlug],
+    enabled: !!editingSlug,
+  })
+
+  // Hydrate tenant fields once when the tenant data arrives for the open dialog.
+  useEffect(() => {
+    if (!editing || !editingTenant?.tenant) return
+    if (editingTenant.tenant.slug !== editingSlug) return
+    setEditTenantDisplay(editingTenant.tenant.personaDisplayName)
+    setEditTenantPublisher(editingTenant.tenant.publisherName)
+    setEditTenantAuthor(editingTenant.tenant.authorName)
+    setEditTenantCompany(editingTenant.tenant.companyName)
+    setEditTenantBrandUrl(editingTenant.tenant.brandHomeUrl ?? "")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingTenant?.tenant?.slug, editingSlug])
+
+  const saveUserMutation = useMutation({
+    mutationFn: async () => {
+      if (!editing) return
+      // PATCH user (displayName) and tenant (4 brand fields) in parallel.
+      const tasks: Promise<any>[] = []
+      if ((editDisplayName.trim() || null) !== editing.displayName) {
+        tasks.push(apiRequest("PATCH", `/api/admin/users/${editing.id}`, {
+          displayName: editDisplayName.trim() || null,
+        }))
+      }
+      if (editing.tenantSlug) {
+        tasks.push(apiRequest("PATCH", `/api/admin/tenants/${editing.tenantSlug}`, {
+          personaDisplayName: editTenantDisplay.trim(),
+          publisherName: editTenantPublisher.trim(),
+          authorName: editTenantAuthor.trim(),
+          companyName: editTenantCompany.trim(),
+          brandHomeUrl: editTenantBrandUrl.trim() || null,
+        }))
+      }
+      await Promise.all(tasks)
+    },
+    onSuccess: () => {
+      toast({ title: "Saved" })
+      setEditing(null)
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants"] })
+      if (editingSlug) queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants", editingSlug] })
+    },
+    onError: (e: any) => {
+      toast({ title: "Could not save", description: e?.message || "Try again", variant: "destructive" })
     },
   })
 
@@ -319,6 +398,14 @@ export default function AdminUsersPage() {
                           </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline" size="sm"
+                          onClick={() => openEdit(a)}
+                          data-testid={`button-edit-user-${a.id}`}
+                        >
+                          <Pencil className="h-4 w-4 mr-1" /> Edit
+                        </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -348,6 +435,7 @@ export default function AdminUsersPage() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                      </div>
                     </div>
 
                     <div className="flex items-end gap-2 pl-11">
@@ -379,6 +467,97 @@ export default function AdminUsersPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null) }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit user & tenant</DialogTitle>
+            <DialogDescription>
+              {editing?.username} · tenant <span className="font-medium">{editing?.tenantSlug || "(none)"}</span>.
+              Tenant fields apply to every user in this tenant and to all published content.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-display">User display name</Label>
+              <Input
+                id="edit-display" value={editDisplayName}
+                onChange={(e) => setEditDisplayName(e.target.value)}
+                placeholder="Jane Doe"
+                data-testid="input-edit-display"
+              />
+            </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <div className="text-sm font-medium flex items-center gap-1">
+                <Building2 className="h-3.5 w-3.5" /> Tenant settings
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-tenant-display">Persona display name</Label>
+                  <Input
+                    id="edit-tenant-display" value={editTenantDisplay}
+                    onChange={(e) => setEditTenantDisplay(e.target.value)}
+                    data-testid="input-edit-tenant-display"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-tenant-company">Company name</Label>
+                  <Input
+                    id="edit-tenant-company" value={editTenantCompany}
+                    onChange={(e) => setEditTenantCompany(e.target.value)}
+                    data-testid="input-edit-tenant-company"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-tenant-publisher">Publisher name</Label>
+                  <Input
+                    id="edit-tenant-publisher" value={editTenantPublisher}
+                    onChange={(e) => setEditTenantPublisher(e.target.value)}
+                    data-testid="input-edit-tenant-publisher"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-tenant-author">Author name</Label>
+                  <Input
+                    id="edit-tenant-author" value={editTenantAuthor}
+                    onChange={(e) => setEditTenantAuthor(e.target.value)}
+                    data-testid="input-edit-tenant-author"
+                  />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="edit-tenant-brand-url">Brand link template (optional)</Label>
+                  <Input
+                    id="edit-tenant-brand-url" value={editTenantBrandUrl}
+                    onChange={(e) => setEditTenantBrandUrl(e.target.value)}
+                    placeholder="https://www.example.com/locations/{city}"
+                    data-testid="input-edit-tenant-brand-url"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    First mention of the persona display name in any published article body links here.
+                    Use <code>{"{city}"}</code> as a placeholder for the article's city slug. Leave blank to keep brand mentions unlinked.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)} data-testid="button-cancel-edit">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => saveUserMutation.mutate()}
+              disabled={saveUserMutation.isPending}
+              data-testid="button-save-edit"
+            >
+              {saveUserMutation.isPending ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
