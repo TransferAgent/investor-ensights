@@ -47,6 +47,11 @@ export const tenants = pgTable(
     // and brand interactions in body copy. Nullable to keep existing tenants
     // valid; surfaced in the homepage tenant picker as the human-readable label.
     companyName: varchar("company_name", { length: 200 }),
+    // MT-4.6: link template used when the brand name is mentioned in published
+    // article body. Supports the placeholder `{city}` which is replaced with
+    // the city slug at render time. Example: "https://www.tableicity.com/locations/{city}".
+    // Null = no link (brand name shown as plain text).
+    brandHomeUrl: varchar("brand_home_url", { length: 500 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("tenants_slug_idx").on(table.slug)]

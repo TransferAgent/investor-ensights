@@ -3,15 +3,29 @@ import type { Metadata } from "next";
 import { storage } from "@/lib/storage";
 import { withTenantAsync } from "@/lib/tenant/context";
 import { resolveTenantFromArticleSlug } from "@/lib/tenant/resolve-from-slug";
+import { getTenantBranding, resolveBrandHref } from "@/lib/tenant/branding";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com";
 
-function highlightBrandInBody(html: string, citySlug?: string | null): string {
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// MT-4.6: per-tenant brand mention. First case-insensitive occurrence of the
+// tenant's persona display name in the body becomes a link to the configured
+// brand URL (with `{city}` swapped for the article's city slug). Subsequent
+// mentions stay plain text. If no brand URL is configured for the tenant,
+// the brand name is left untouched.
+function highlightBrandInBody(
+  html: string,
+  citySlug: string | null | undefined,
+  brandName: string,
+  brandHref: string | null,
+): string {
+  if (!brandName || !brandHref) return html;
   let firstReplaced = false;
   let inAnchor = false;
-  const href = citySlug
-    ? `https://www.tableicity.com/locations/${citySlug}`
-    : "https://www.tableicity.com";
+  const re = new RegExp(`\\b${escapeRegex(brandName)}\\b`, "gi");
   const tokens = html.split(/(<[^>]*>)/);
   return tokens
     .map((token) => {
@@ -21,12 +35,12 @@ function highlightBrandInBody(html: string, citySlug?: string | null): string {
         return token;
       }
       if (inAnchor) return token;
-      return token.replace(/\bTableicity\b/g, () => {
+      return token.replace(re, (match) => {
         if (!firstReplaced) {
           firstReplaced = true;
-          return `<a href="${href}" class="text-blue-400 hover:underline">Tableicity</a>`;
+          return `<a href="${brandHref}" class="text-blue-400 hover:underline">${match}</a>`;
         }
-        return "Tableicity";
+        return match;
       });
     })
     .join("");
@@ -328,13 +342,17 @@ function rechunkParagraphs(html: string): string {
 
 function transformBodyForRender(
   html: string,
-  subheadline?: string | null,
-  citySlug?: string | null,
+  subheadline: string | null | undefined,
+  citySlug: string | null | undefined,
+  brandName: string,
+  brandHref: string | null,
 ): string {
   return markFirstAnswerBlock(
     highlightBrandInBody(
       rechunkParagraphs(removeDuplicateLeadParagraph(html, subheadline)),
       citySlug,
+      brandName,
+      brandHref,
     ),
   );
 }
@@ -401,6 +419,11 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
   if (!article || article.status === "archived") {
     notFound();
   }
+
+  // MT-4.6: per-tenant brand link in body (first mention -> brand site).
+  const branding = await getTenantBranding(tenantSlug);
+  const brandName = branding?.personaDisplayName || "";
+  const brandHref = resolveBrandHref(branding?.brandHomeUrl ?? null, article.citySlug);
 
   const isPreview = article.status === "pending";
 
@@ -546,6 +569,8 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
               article.bodyHtml,
               article.metaDescription || article.subheadline,
               article.citySlug,
+              brandName,
+              brandHref,
             ),
           }}
           data-testid="article-body"

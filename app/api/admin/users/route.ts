@@ -33,6 +33,9 @@ const createSchema = z.object({
       publisherName: z.string().min(1).max(100),
       authorName: z.string().min(1).max(100),
       companyName: z.string().min(1).max(200),
+      // MT-4.6: optional. Brand link template; supports `{city}` placeholder.
+      // e.g. "https://www.tableicity.com/locations/{city}". Null = no brand link.
+      brandHomeUrl: z.string().url().max(500).optional().nullable(),
     })
     .optional(),
 });
@@ -126,8 +129,8 @@ export async function POST(request: NextRequest) {
         // Provision tenant schema in this same transaction.
         await provisionTenantSchemaWithClient(client, t.slug);
         await client.query(
-          `INSERT INTO public.tenants (slug, persona_display_name, publisher_name, author_name, company_name) VALUES ($1, $2, $3, $4, $5)`,
-          [t.slug, t.personaDisplayName, t.publisherName, t.authorName, t.companyName]
+          `INSERT INTO public.tenants (slug, persona_display_name, publisher_name, author_name, company_name, brand_home_url) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [t.slug, t.personaDisplayName, t.publisherName, t.authorName, t.companyName, t.brandHomeUrl ?? null]
         );
         createdTenantSlug = t.slug;
       } else {

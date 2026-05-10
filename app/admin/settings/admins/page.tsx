@@ -50,6 +50,7 @@ export default function AdminUsersPage() {
   const [newTenantCompany, setNewTenantCompany] = useState("")
   const [newTenantPublisher, setNewTenantPublisher] = useState("Investor Ensights")
   const [newTenantAuthor, setNewTenantAuthor] = useState("Investor Ensights")
+  const [newTenantBrandUrl, setNewTenantBrandUrl] = useState("")
   const [pwById, setPwById] = useState<Record<string, string>>({})
 
   const { data, isLoading } = useQuery<ListResponse>({ queryKey: ["/api/admin/users"] })
@@ -72,6 +73,7 @@ export default function AdminUsersPage() {
           companyName: newTenantCompany.trim(),
           publisherName: newTenantPublisher.trim(),
           authorName: newTenantAuthor.trim(),
+          brandHomeUrl: newTenantBrandUrl.trim() || null,
         }
       } else {
         payload.tenantSlug = tenantChoice
@@ -81,7 +83,7 @@ export default function AdminUsersPage() {
     onSuccess: () => {
       toast({ title: "User created" })
       setNewEmail(""); setNewPassword(""); setNewDisplay("")
-      setTenantChoice(""); setNewTenantSlug(""); setNewTenantDisplay(""); setNewTenantCompany("")
+      setTenantChoice(""); setNewTenantSlug(""); setNewTenantDisplay(""); setNewTenantCompany(""); setNewTenantBrandUrl("")
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] })
       queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants"] })
     },
@@ -252,6 +254,18 @@ export default function AdminUsersPage() {
                       onChange={(e) => setNewTenantAuthor(e.target.value)}
                       data-testid="input-new-tenant-author"
                     />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="nt-brand-url">Brand link template (optional)</Label>
+                    <Input
+                      id="nt-brand-url" value={newTenantBrandUrl}
+                      onChange={(e) => setNewTenantBrandUrl(e.target.value)}
+                      placeholder="https://www.example.com/locations/{city}"
+                      data-testid="input-new-tenant-brand-url"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      First mention of the display name in any published article body links here. Use <code>{"{city}"}</code> as a placeholder for the article's city slug. Leave blank to keep brand mentions unlinked.
+                    </p>
                   </div>
                 </div>
               </CardContent>
