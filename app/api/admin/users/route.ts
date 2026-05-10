@@ -55,6 +55,10 @@ export async function GET() {
       createdAt: users.createdAt,
       tenantSlug: tenantMembers.tenantSlug,
       tenantDisplayName: tenants.personaDisplayName,
+      tenantCompanyName: tenants.companyName,
+      tenantPublisherName: tenants.publisherName,
+      tenantAuthorName: tenants.authorName,
+      tenantBrandHomeUrl: tenants.brandHomeUrl,
     })
     .from(users)
     .leftJoin(tenantMembers, eq(tenantMembers.userId, users.id))

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users } from "@shared/schema";
+import { users, tenants, tenantMembers } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { withTenantAsync } from "@/lib/tenant/context";
+import { invalidateTenantBranding } from "@/lib/tenant/branding";
 import { scryptSync, randomBytes } from "crypto";
 import { z } from "zod";
 
@@ -15,8 +16,26 @@ function hashPassword(password: string): string {
   return `${salt}:${hash}`;
 }
 
+const tenantPatchSchema = z
+  .object({
+    personaDisplayName: z.string().min(1).max(100).optional(),
+    publisherName: z.string().min(1).max(100).optional(),
+    authorName: z.string().min(1).max(100).optional(),
+    companyName: z.string().min(1).max(200).optional(),
+    brandHomeUrl: z
+      .string()
+      .max(500)
+      .url("Brand home URL must be a valid URL")
+      .nullable()
+      .optional()
+      .or(z.literal("").transform(() => null)),
+  })
+  .strict();
+
 const patchSchema = z.object({
   password: z.string().min(12, "Password must be at least 12 characters").optional(),
+  displayName: z.string().max(100).nullable().optional(),
+  tenant: tenantPatchSchema.optional(),
 });
 
 export async function DELETE(
@@ -99,20 +118,60 @@ export async function PATCH(
     const [target] = await db.select().from(users).where(eq(users.id, id)).limit(1);
     if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+    const [member] = await db
+      .select({ tenantSlug: tenantMembers.tenantSlug })
+      .from(tenantMembers)
+      .where(eq(tenantMembers.userId, id))
+      .limit(1);
+
+    const updatedFields: string[] = [];
+
     if (parsed.password) {
       await db.update(users).set({ passwordHash: hashPassword(parsed.password) }).where(eq(users.id, id));
-      await withTenantAsync(session.tenantSlug, () =>
-        logAuditEvent({
-          username: session.email,
-          action: "update",
-          entityType: "user",
-          entityId: id,
-          details: { field: "password", email: target.email },
-        })
-      );
+      updatedFields.push("password");
     }
 
-    return NextResponse.json({ success: true });
+    if (parsed.displayName !== undefined) {
+      await db.update(users).set({ displayName: parsed.displayName }).where(eq(users.id, id));
+      updatedFields.push("displayName");
+    }
+
+    if (parsed.tenant && Object.keys(parsed.tenant).length > 0) {
+      if (!member) {
+        return NextResponse.json(
+          { error: "User has no tenant binding; cannot update tenant fields." },
+          { status: 400 },
+        );
+      }
+      const tenantUpdate: Record<string, any> = {};
+      if (parsed.tenant.personaDisplayName !== undefined) tenantUpdate.personaDisplayName = parsed.tenant.personaDisplayName;
+      if (parsed.tenant.publisherName !== undefined) tenantUpdate.publisherName = parsed.tenant.publisherName;
+      if (parsed.tenant.authorName !== undefined) tenantUpdate.authorName = parsed.tenant.authorName;
+      if (parsed.tenant.companyName !== undefined) tenantUpdate.companyName = parsed.tenant.companyName;
+      if (parsed.tenant.brandHomeUrl !== undefined) tenantUpdate.brandHomeUrl = parsed.tenant.brandHomeUrl;
+
+      if (Object.keys(tenantUpdate).length > 0) {
+        await db.update(tenants).set(tenantUpdate).where(eq(tenants.slug, member.tenantSlug));
+        invalidateTenantBranding(member.tenantSlug);
+        updatedFields.push(...Object.keys(tenantUpdate).map((k) => `tenant.${k}`));
+      }
+    }
+
+    if (updatedFields.length === 0) {
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    }
+
+    await withTenantAsync(session.tenantSlug, () =>
+      logAuditEvent({
+        username: session.email,
+        action: "update",
+        entityType: "user",
+        entityId: id,
+        details: { email: target.email, fields: updatedFields, tenantSlug: member?.tenantSlug ?? null },
+      })
+    );
+
+    return NextResponse.json({ success: true, updated: updatedFields });
   } catch (e: any) {
     if (e?.issues) {
       return NextResponse.json({ error: e.issues[0]?.message || "Invalid input" }, { status: 400 });
