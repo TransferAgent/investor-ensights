@@ -4,7 +4,6 @@ import { newsroomPipelineJobs } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
-import { withTenantAsync } from "@/lib/tenant/context";
 
 export async function POST(
   _req: Request,
@@ -12,8 +11,6 @@ export async function POST(
 ) {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
 
   const { id } = await params;
   const [updated] = await db
@@ -41,5 +38,4 @@ export async function POST(
   });
 
   return NextResponse.json(updated);
-  });
 }

@@ -3,13 +3,10 @@ import { db } from "@/lib/db";
 import { newsroomReviewQueue } from "@shared/schema";
 import { desc, eq } from "drizzle-orm";
 import { verifySession } from "@/lib/auth";
-import { withTenantAsync } from "@/lib/tenant/context";
 
 export async function GET(req: Request) {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
   const url = new URL(req.url);
   const status = url.searchParams.get("status") || "pending";
   const rows = await db
@@ -19,5 +16,4 @@ export async function GET(req: Request) {
     .orderBy(desc(newsroomReviewQueue.createdAt))
     .limit(100);
   return NextResponse.json(rows);
-  });
 }

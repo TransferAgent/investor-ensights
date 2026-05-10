@@ -4,7 +4,6 @@ import { logAuditEvent } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { knowledgeArticles, knowledgeArticleVersions, knowledgeTemplates, cityLocations } from "@shared/schema";
 import { eq, ne, sql } from "drizzle-orm";
-import { withTenantAsync } from "@/lib/tenant/context";
 
 function replacePlaceholders(pattern: string, city: Record<string, any>): string {
   return pattern
@@ -20,8 +19,6 @@ function replacePlaceholders(pattern: string, city: Record<string, any>): string
 export async function POST(req: NextRequest) {
   const session = await verifySession(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
 
   const body = await req.json().catch(() => ({}));
   const { archiveExisting = true, autoPublish = true } = body;
@@ -134,6 +131,5 @@ export async function POST(req: NextRequest) {
     generated: generatedCount,
     templateName: activeTemplate.name,
     totalCities: realCities.length,
-  });
   });
 }

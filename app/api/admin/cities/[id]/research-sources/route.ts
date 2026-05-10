@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import { cityLocations, cityResearchSources } from "@shared/schema";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { withTenantAsync } from "@/lib/tenant/context";
 
 const addSourceSchema = z.object({
   url: z.string().url().max(2000),
@@ -26,8 +25,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  return withTenantAsync(session.tenantSlug, async () => {
-
   const { id } = await ctx.params;
   const city = await loadCityById(id);
   if (!city) return NextResponse.json({ error: "city not found" }, { status: 404 });
@@ -38,14 +35,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     .where(eq(cityResearchSources.cityId, city.id));
 
   return NextResponse.json({ city, sources: rows });
-  });
 }
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
 
   const { id } = await ctx.params;
   const city = await loadCityById(id);
@@ -84,14 +78,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     console.error("[research-sources POST] failed:", err);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
-  });
 }
 
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
 
   const { id } = await ctx.params;
   const url = new URL(req.url);
@@ -116,5 +107,4 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
   });
 
   return NextResponse.json({ deleted: deleted[0] });
-  });
 }

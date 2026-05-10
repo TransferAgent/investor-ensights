@@ -9,13 +9,10 @@ import {
   PROTECTED_ARTICLE_SLUGS,
   INDEX_ROBOTS,
 } from "@/config/protectedSlugs";
-import { withTenantAsync } from "@/lib/tenant/context";
 
 export async function GET() {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
 
   const protectedCities = [...PROTECTED_CITY_SLUGS];
   const protectedArticles = [...PROTECTED_ARTICLE_SLUGS];
@@ -51,14 +48,11 @@ export async function GET() {
     willFlipToIndex: { cities: citiesToFlip, articles: articlesToFlip },
     missingFromDatabase: { cities: missingCities, articles: missingArticles },
   });
-  });
 }
 
 export async function POST() {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
 
   const protectedCities = [...PROTECTED_CITY_SLUGS];
   const protectedArticles = [...PROTECTED_ARTICLE_SLUGS];
@@ -111,6 +105,5 @@ export async function POST() {
       cities: flippedCities.slice(0, 5).map((r) => r.slug),
       articles: flippedArticles.slice(0, 5).map((r) => r.slug),
     },
-  });
   });
 }

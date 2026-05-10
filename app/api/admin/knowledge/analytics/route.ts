@@ -3,13 +3,10 @@ import { verifySession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { knowledgeArticles } from "@shared/schema";
 import { sql, eq, gte, and } from "drizzle-orm";
-import { withTenantAsync } from "@/lib/tenant/context";
 
 export async function GET(req: NextRequest) {
   const session = await verifySession(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
 
   const now = new Date();
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -54,6 +51,5 @@ export async function GET(req: NextRequest) {
     discoverEligible: Number(discoverEligibleResult.count),
     avgFreshnessScore,
     pendingCount: Number(pendingResult.count),
-  });
   });
 }

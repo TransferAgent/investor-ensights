@@ -11,7 +11,6 @@ import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { z } from "zod";
 import { newsroomDraftPayloadV1Schema } from "@/lib/newsroom/draftPayload";
-import { withTenantAsync } from "@/lib/tenant/context";
 
 const patchSchema = z.object({
   status: z.enum(["approved", "rejected"]),
@@ -29,8 +28,6 @@ export async function PATCH(
 ) {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
 
   const { id } = await params;
   const body = patchSchema.parse(await req.json());
@@ -209,6 +206,5 @@ export async function PATCH(
   return NextResponse.json({
     review: result.review,
     publishedArticle: result.article,
-  });
   });
 }
