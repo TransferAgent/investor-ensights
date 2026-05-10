@@ -3,10 +3,13 @@ import { db } from "@/lib/db";
 import { newsroomAgentRuns } from "@shared/schema";
 import { desc, eq, and } from "drizzle-orm";
 import { verifySession } from "@/lib/auth";
+import { withTenantAsync } from "@/lib/tenant/context";
 
 export async function GET(req: Request) {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  return withTenantAsync(session.tenantSlug, async () => {
   const url = new URL(req.url);
   const agentId = url.searchParams.get("agentId");
   const jobId = url.searchParams.get("jobId");
@@ -30,4 +33,5 @@ export async function GET(req: Request) {
           .orderBy(desc(newsroomAgentRuns.createdAt))
           .limit(limit);
   return NextResponse.json(rows);
+  });
 }

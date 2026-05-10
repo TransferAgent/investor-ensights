@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/auth";
 import { sql } from "drizzle-orm";
+import { withTenantAsync } from "@/lib/tenant/context";
 
 export async function GET() {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  return withTenantAsync(session.tenantSlug, async () => {
 
   const [totals] = (await db.execute(sql`
     SELECT
@@ -43,4 +46,5 @@ export async function GET() {
   `)).rows;
 
   return NextResponse.json({ totals, byJob, byAgent });
+  });
 }
