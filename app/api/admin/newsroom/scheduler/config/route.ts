@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { newsroomSchedulerConfig } from "@shared/schema";
 import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
+import { withTenantAsync } from "@/lib/tenant/context";
 
 export const dynamic = "force-dynamic";
 
@@ -29,13 +30,18 @@ async function ensureConfig() {
 export async function GET() {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  return withTenantAsync(session.tenantSlug, async () => {
   const config = await ensureConfig();
   return NextResponse.json({ config, cronSecretSet: Boolean(process.env.CRON_SECRET) });
+  });
 }
 
 export async function PATCH(req: Request) {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  return withTenantAsync(session.tenantSlug, async () => {
 
   let parsed;
   try {
@@ -67,4 +73,5 @@ export async function PATCH(req: Request) {
   });
 
   return NextResponse.json({ config: updated });
+  });
 }

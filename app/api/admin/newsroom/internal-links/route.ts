@@ -3,10 +3,13 @@ import { db } from "@/lib/db";
 import { newsroomInternalLinkSuggestions } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import { verifySession } from "@/lib/auth";
+import { withTenantAsync } from "@/lib/tenant/context";
 
 export async function GET(req: Request) {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  return withTenantAsync(session.tenantSlug, async () => {
   const url = new URL(req.url);
   const reviewQueueId = url.searchParams.get("reviewQueueId");
   const articleId = url.searchParams.get("articleId");
@@ -33,4 +36,5 @@ export async function GET(req: Request) {
   }
 
   return NextResponse.json(rows);
+  });
 }

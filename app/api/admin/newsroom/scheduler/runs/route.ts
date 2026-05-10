@@ -4,12 +4,15 @@ import { sql, desc, gte, and } from "drizzle-orm";
 import { newsroomSchedulerRuns } from "@shared/schema";
 import { verifySession } from "@/lib/auth";
 import { countEligiblePairs } from "@/lib/newsroom/schedulerPicker";
+import { withTenantAsync } from "@/lib/tenant/context";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  return withTenantAsync(session.tenantSlug, async () => {
 
   const url = new URL(req.url);
   const limit = Math.min(Number(url.searchParams.get("limit") ?? "20"), 100);
@@ -50,5 +53,6 @@ export async function GET(req: Request) {
       tokens: Number(today?.tokens ?? "0"),
     },
     eligiblePairs,
+  });
   });
 }

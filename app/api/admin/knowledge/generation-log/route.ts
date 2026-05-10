@@ -3,10 +3,13 @@ import { verifySession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { knowledgeGenerationLog } from "@shared/schema";
 import { desc, gte, eq, sql } from "drizzle-orm";
+import { withTenantAsync } from "@/lib/tenant/context";
 
 export async function GET(req: NextRequest) {
   const session = await verifySession(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  return withTenantAsync(session.tenantSlug, async () => {
 
   const { searchParams } = new URL(req.url);
   const parsed = parseInt(searchParams.get("limit") || "50");
@@ -27,5 +30,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     logs,
     callsToday: Number(todayCount.count),
+  });
   });
 }
