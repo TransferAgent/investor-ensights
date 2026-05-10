@@ -2841,6 +2841,11 @@ body {
   border-color: #eab30833;
 }
 
+.border-red-500 {
+  --tw-border-opacity: 1;
+  border-color: rgb(239 68 68 / var(--tw-border-opacity, 1));
+}
+
 .border-l-transparent {
   border-left-color: #0000;
 }
@@ -4782,6 +4787,11 @@ input[type="search"]::-webkit-search-cancel-button {
 .focus-visible\:ring-ring:focus-visible {
   --tw-ring-opacity: 1;
   --tw-ring-color: hsl(var(--ring) / var(--tw-ring-opacity, 1));
+}
+
+.focus-visible\:ring-red-500:focus-visible {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(239 68 68 / var(--tw-ring-opacity, 1));
 }
 
 .focus-visible\:ring-offset-1:focus-visible {

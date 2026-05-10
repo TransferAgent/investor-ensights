@@ -55,6 +55,8 @@ export default function AdminUsersPage() {
   const [newTenantAuthor, setNewTenantAuthor] = useState("Investor Ensights")
   const [newTenantBrandUrl, setNewTenantBrandUrl] = useState("")
   const [pwById, setPwById] = useState<Record<string, string>>({})
+  const [createAttempted, setCreateAttempted] = useState(false)
+  const [editAttempted, setEditAttempted] = useState(false)
 
   const { data, isLoading } = useQuery<ListResponse>({ queryKey: ["/api/admin/users"] })
   const { data: tenantsData } = useQuery<{ tenants: TenantRow[] }>({ queryKey: ["/api/admin/tenants"] })
@@ -87,6 +89,7 @@ export default function AdminUsersPage() {
       toast({ title: "User created" })
       setNewEmail(""); setNewPassword(""); setNewDisplay("")
       setTenantChoice(""); setNewTenantSlug(""); setNewTenantDisplay(""); setNewTenantCompany(""); setNewTenantBrandUrl("")
+      setCreateAttempted(false)
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] })
       queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants"] })
     },
@@ -94,6 +97,21 @@ export default function AdminUsersPage() {
       toast({ title: "Could not create user", description: e?.message || "Try again", variant: "destructive" })
     },
   })
+
+  // ---- Per-field required validation (Add User) ----
+  const createMissing = {
+    email: !newEmail.includes("@"),
+    password: newPassword.length < 12,
+    tenantChoice: tenantChoice.length === 0,
+    ntSlug: isNewTenant && !/^[a-z][a-z0-9_]{0,62}$/.test(newTenantSlug.trim()),
+    ntDisplay: isNewTenant && newTenantDisplay.trim().length === 0,
+    ntCompany: isNewTenant && newTenantCompany.trim().length === 0,
+    ntPublisher: isNewTenant && newTenantPublisher.trim().length === 0,
+    ntAuthor: isNewTenant && newTenantAuthor.trim().length === 0,
+    ntBrandUrl: isNewTenant && newTenantBrandUrl.trim().length === 0,
+  }
+  const createHasErrors = Object.values(createMissing).some(Boolean)
+  const errBorder = (cond: boolean) => (cond ? " border-red-500 focus-visible:ring-red-500" : "")
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => apiRequest("DELETE", `/api/admin/users/${id}`),
@@ -129,6 +147,7 @@ export default function AdminUsersPage() {
 
   const openEdit = (row: AdminRow) => {
     setEditing(row)
+    setEditAttempted(false)
     setEditDisplayName(row.displayName ?? "")
     // Tenant fields hydrate from /api/admin/tenants/[slug] below.
     setEditTenantDisplay(row.tenantDisplayName ?? "")
@@ -161,6 +180,16 @@ export default function AdminUsersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingTenant?.tenant?.slug, editingSlug])
 
+  // ---- Per-field required validation (Edit) ----
+  const editMissing = {
+    tenantDisplay: !!editing?.tenantSlug && editTenantDisplay.trim().length === 0,
+    tenantCompany: !!editing?.tenantSlug && editTenantCompany.trim().length === 0,
+    tenantPublisher: !!editing?.tenantSlug && editTenantPublisher.trim().length === 0,
+    tenantAuthor: !!editing?.tenantSlug && editTenantAuthor.trim().length === 0,
+    tenantBrandUrl: !!editing?.tenantSlug && editTenantBrandUrl.trim().length === 0,
+  }
+  const editHasErrors = Object.values(editMissing).some(Boolean)
+
   const saveUserMutation = useMutation({
     mutationFn: async () => {
       if (!editing) return
@@ -185,6 +214,7 @@ export default function AdminUsersPage() {
     onSuccess: () => {
       toast({ title: "Saved" })
       setEditing(null)
+      setEditAttempted(false)
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] })
       queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants"] })
       if (editingSlug) queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants", editingSlug] })
@@ -197,15 +227,7 @@ export default function AdminUsersPage() {
   const admins = data?.admins ?? []
   const currentUsername = data?.currentUsername
 
-  const canSubmit = (() => {
-    if (!newEmail.includes("@") || newPassword.length < 12) return false
-    if (isNewTenant) {
-      return /^[a-z][a-z0-9_]{0,62}$/.test(newTenantSlug.trim()) &&
-        newTenantDisplay.trim().length > 0 && newTenantCompany.trim().length > 0 &&
-        newTenantPublisher.trim().length > 0 && newTenantAuthor.trim().length > 0
-    }
-    return tenantChoice.length > 0
-  })()
+  const canSubmit = !createHasErrors
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -237,6 +259,7 @@ export default function AdminUsersPage() {
                 onChange={(e) => setNewEmail(e.target.value)}
                 placeholder="you@example.com"
                 autoComplete="off" data-testid="input-new-email"
+                className={errBorder(createAttempted && createMissing.email)}
               />
             </div>
             <div className="space-y-1.5">
@@ -257,6 +280,7 @@ export default function AdminUsersPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Minimum 12 characters"
               autoComplete="new-password" data-testid="input-new-password"
+              className={errBorder(createAttempted && createMissing.password)}
             />
           </div>
 
@@ -265,7 +289,10 @@ export default function AdminUsersPage() {
               <Building2 className="h-3.5 w-3.5" /> Tenant
             </Label>
             <Select value={tenantChoice} onValueChange={setTenantChoice}>
-              <SelectTrigger id="tenant-picker" data-testid="select-tenant">
+              <SelectTrigger
+                id="tenant-picker" data-testid="select-tenant"
+                className={errBorder(createAttempted && createMissing.tenantChoice)}
+              >
                 <SelectValue placeholder="Pick a tenant…" />
               </SelectTrigger>
               <SelectContent>
@@ -292,6 +319,7 @@ export default function AdminUsersPage() {
                       onChange={(e) => setNewTenantSlug(e.target.value)}
                       placeholder="persona2"
                       data-testid="input-new-tenant-slug"
+                      className={errBorder(createAttempted && createMissing.ntSlug)}
                     />
                     <p className="text-xs text-muted-foreground">
                       lowercase, letters/numbers/underscores. Becomes the schema name and the article URL prefix.
@@ -304,6 +332,7 @@ export default function AdminUsersPage() {
                       onChange={(e) => setNewTenantDisplay(e.target.value)}
                       placeholder="Persona Two"
                       data-testid="input-new-tenant-display"
+                      className={errBorder(createAttempted && createMissing.ntDisplay)}
                     />
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
@@ -313,6 +342,7 @@ export default function AdminUsersPage() {
                       onChange={(e) => setNewTenantCompany(e.target.value)}
                       placeholder="Persona Two Inc."
                       data-testid="input-new-tenant-company"
+                      className={errBorder(createAttempted && createMissing.ntCompany)}
                     />
                     <p className="text-xs text-muted-foreground">
                       Legal/marketing brand name. Persists with the tenant; used for slug swaps and brand text in body copy.
@@ -324,6 +354,7 @@ export default function AdminUsersPage() {
                       id="nt-publisher" value={newTenantPublisher}
                       onChange={(e) => setNewTenantPublisher(e.target.value)}
                       data-testid="input-new-tenant-publisher"
+                      className={errBorder(createAttempted && createMissing.ntPublisher)}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -332,18 +363,20 @@ export default function AdminUsersPage() {
                       id="nt-author" value={newTenantAuthor}
                       onChange={(e) => setNewTenantAuthor(e.target.value)}
                       data-testid="input-new-tenant-author"
+                      className={errBorder(createAttempted && createMissing.ntAuthor)}
                     />
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="nt-brand-url">Brand link template (optional)</Label>
+                    <Label htmlFor="nt-brand-url">Brand link template (Mandatory)</Label>
                     <Input
                       id="nt-brand-url" value={newTenantBrandUrl}
                       onChange={(e) => setNewTenantBrandUrl(e.target.value)}
                       placeholder="https://www.example.com/locations/{cityCore}"
                       data-testid="input-new-tenant-brand-url"
+                      className={errBorder(createAttempted && createMissing.ntBrandUrl)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      First mention of the display name in any published article body links here. Placeholders: <code>{"{cityCore}"}</code> = city slug with the tenant suffix stripped (recommended for external sites), <code>{"{city}"}</code> = full registry slug. Leave blank to keep brand mentions unlinked.
+                      First mention of the display name in any published article body links here. Placeholders: <code>{"{cityCore}"}</code> = city slug with the tenant suffix stripped (recommended for external sites), <code>{"{city}"}</code> = full registry slug.
                     </p>
                   </div>
                 </div>
@@ -352,8 +385,15 @@ export default function AdminUsersPage() {
           )}
 
           <Button
-            onClick={() => createMutation.mutate()}
-            disabled={createMutation.isPending || !canSubmit}
+            onClick={() => {
+              setCreateAttempted(true)
+              if (createHasErrors) {
+                toast({ title: "Please complete the required fields highlighted in red.", variant: "destructive" })
+                return
+              }
+              createMutation.mutate()
+            }}
+            disabled={createMutation.isPending}
             data-testid="button-create-user"
           >
             {createMutation.isPending ? "Creating…" : "Create user"}
@@ -501,6 +541,7 @@ export default function AdminUsersPage() {
                     id="edit-tenant-display" value={editTenantDisplay}
                     onChange={(e) => setEditTenantDisplay(e.target.value)}
                     data-testid="input-edit-tenant-display"
+                    className={errBorder(editAttempted && editMissing.tenantDisplay)}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -509,6 +550,7 @@ export default function AdminUsersPage() {
                     id="edit-tenant-company" value={editTenantCompany}
                     onChange={(e) => setEditTenantCompany(e.target.value)}
                     data-testid="input-edit-tenant-company"
+                    className={errBorder(editAttempted && editMissing.tenantCompany)}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -517,6 +559,7 @@ export default function AdminUsersPage() {
                     id="edit-tenant-publisher" value={editTenantPublisher}
                     onChange={(e) => setEditTenantPublisher(e.target.value)}
                     data-testid="input-edit-tenant-publisher"
+                    className={errBorder(editAttempted && editMissing.tenantPublisher)}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -525,18 +568,20 @@ export default function AdminUsersPage() {
                     id="edit-tenant-author" value={editTenantAuthor}
                     onChange={(e) => setEditTenantAuthor(e.target.value)}
                     data-testid="input-edit-tenant-author"
+                    className={errBorder(editAttempted && editMissing.tenantAuthor)}
                   />
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="edit-tenant-brand-url">Brand link template (optional)</Label>
+                  <Label htmlFor="edit-tenant-brand-url">Brand link template (Mandatory)</Label>
                   <Input
                     id="edit-tenant-brand-url" value={editTenantBrandUrl}
                     onChange={(e) => setEditTenantBrandUrl(e.target.value)}
                     placeholder="https://www.example.com/locations/{cityCore}"
                     data-testid="input-edit-tenant-brand-url"
+                    className={errBorder(editAttempted && editMissing.tenantBrandUrl)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    First mention of the persona display name in any published article body links here. Placeholders: <code>{"{cityCore}"}</code> = city slug with the tenant suffix stripped (recommended for external sites), <code>{"{city}"}</code> = full registry slug. Leave blank to keep brand mentions unlinked.
+                    First mention of the persona display name in any published article body links here. Placeholders: <code>{"{cityCore}"}</code> = city slug with the tenant suffix stripped (recommended for external sites), <code>{"{city}"}</code> = full registry slug.
                   </p>
                 </div>
               </div>
@@ -548,7 +593,14 @@ export default function AdminUsersPage() {
               Cancel
             </Button>
             <Button
-              onClick={() => saveUserMutation.mutate()}
+              onClick={() => {
+                setEditAttempted(true)
+                if (editHasErrors) {
+                  toast({ title: "Please complete the required fields highlighted in red.", variant: "destructive" })
+                  return
+                }
+                saveUserMutation.mutate()
+              }}
               disabled={saveUserMutation.isPending}
               data-testid="button-save-edit"
             >
