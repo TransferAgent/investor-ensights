@@ -25,6 +25,13 @@ function highlightBrandInBody(
   if (!brandName || !brandHref) return html;
   let firstReplaced = false;
   let inAnchor = false;
+  // Skip text inside <p class="answer-block"> blocks. The first such block is
+  // shown as the "QUICK ANSWER" callout, every subsequent one is visually
+  // hidden by the .answer-block:not(.answer-block-first) CSS rule below. If
+  // the brand name's first occurrence sits inside a hidden answer-block, the
+  // resulting link is invisible to the user. Skipping all answer-blocks pushes
+  // the link to the first occurrence in the regular body text instead.
+  let answerBlockDepth = 0;
   const re = new RegExp(`\\b${escapeRegex(brandName)}\\b`, "gi");
   const tokens = html.split(/(<[^>]*>)/);
   return tokens
@@ -32,9 +39,11 @@ function highlightBrandInBody(
       if (token.startsWith("<")) {
         if (/^<a[\s>]/i.test(token)) inAnchor = true;
         else if (/^<\/a>/i.test(token)) inAnchor = false;
+        else if (/^<p\b[^>]*\bclass=["'][^"']*\banswer-block\b/i.test(token)) answerBlockDepth++;
+        else if (/^<\/p>/i.test(token) && answerBlockDepth > 0) answerBlockDepth--;
         return token;
       }
-      if (inAnchor) return token;
+      if (inAnchor || answerBlockDepth > 0) return token;
       return token.replace(re, (match) => {
         if (!firstReplaced) {
           firstReplaced = true;
