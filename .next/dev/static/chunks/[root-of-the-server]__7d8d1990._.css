@@ -3779,6 +3779,11 @@ body {
   color: currentColor;
 }
 
+.text-cyan-300 {
+  --tw-text-opacity: 1;
+  color: rgb(103 232 249 / var(--tw-text-opacity, 1));
+}
+
 .text-destructive {
   --tw-text-opacity: 1;
   color: hsl(var(--destructive) / var(--tw-text-opacity, 1));
@@ -4015,6 +4020,14 @@ body {
 
 .underline {
   text-decoration-line: underline;
+}
+
+.decoration-cyan-400\/70 {
+  text-decoration-color: #22d3eeb3;
+}
+
+.decoration-2 {
+  text-decoration-thickness: 2px;
 }
 
 .underline-offset-2 {
@@ -4760,6 +4773,11 @@ input[type="search"]::-webkit-search-cancel-button {
   color: rgb(147 197 253 / var(--tw-text-opacity, 1));
 }
 
+.hover\:text-cyan-200:hover {
+  --tw-text-opacity: 1;
+  color: rgb(165 243 252 / var(--tw-text-opacity, 1));
+}
+
 .hover\:text-foreground:hover {
   --tw-text-opacity: 1;
   color: hsl(var(--foreground) / var(--tw-text-opacity, 1));
@@ -4797,6 +4815,10 @@ input[type="search"]::-webkit-search-cancel-button {
 
 .hover\:underline:hover {
   text-decoration-line: underline;
+}
+
+.hover\:decoration-cyan-200:hover {
+  text-decoration-color: #a5f3fc;
 }
 
 .hover\:opacity-100:hover {

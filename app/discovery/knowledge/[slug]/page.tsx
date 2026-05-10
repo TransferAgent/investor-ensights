@@ -38,7 +38,7 @@ function highlightBrandInBody(
       return token.replace(re, (match) => {
         if (!firstReplaced) {
           firstReplaced = true;
-          return `<a href="${brandHref}" class="text-blue-400 hover:underline">${match}</a>`;
+          return `<a href="${brandHref}" class="text-cyan-300 font-semibold underline decoration-cyan-400/70 decoration-2 underline-offset-2 hover:text-cyan-200 hover:decoration-cyan-200">${match}</a>`;
         }
         return match;
       });
