@@ -12,6 +12,7 @@ A programmatic-SEO publishing platform providing financial insights on local com
 *   **Push schema to dev DB**: `npm run db:push`
 *   **Push schema to prod DB**: `bash scripts/push-schema-to-prod.sh`
 *   **Sync Dev to Prod data**: `npx tsx scripts/sync-dev-to-prod.ts --confirm` (use `--confirm` for actual writes)
+*   **Clean up an orphaned tenant in PROD**: `npx tsx scripts/cleanup-tenant.ts --slug=<slug> --confirm` (drops `tenant_<slug>` schema + clears `tenants`, `tenant_members`, `city_slug_registry` rows in one transaction; refuses `tableicity`; default mode is dry-run)
 
 **Required Environment Variables**: `DATABASE_URL`, `PROD_DATABASE_URL`, `SESSION_SECRET`, `NEXT_PUBLIC_BASE_URL`, `OPENAI_API_KEY`, `OPENCAGE_API_KEY`, `CRON_SECRET`, `NEWSROOM_WORKER_SECRET`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_DISPLAY`, `ADMIN_PURGE_OTHERS`.
 
