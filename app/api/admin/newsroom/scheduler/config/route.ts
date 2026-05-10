@@ -3,8 +3,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { newsroomSchedulerConfig } from "@shared/schema";
+import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
-import { withAdminAuth } from "@/lib/auth-middleware";
 
 export const dynamic = "force-dynamic";
 
@@ -27,14 +27,15 @@ async function ensureConfig() {
 }
 
 export async function GET() {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const config = await ensureConfig();
   return NextResponse.json({ config, cronSecretSet: Boolean(process.env.CRON_SECRET) });
-  });
 }
 
 export async function PATCH(req: Request) {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   let parsed;
   try {
@@ -66,5 +67,4 @@ export async function PATCH(req: Request) {
   });
 
   return NextResponse.json({ config: updated });
-  });
 }

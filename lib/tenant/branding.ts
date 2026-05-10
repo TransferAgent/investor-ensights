@@ -41,15 +41,6 @@ export async function getTenantBranding(slug: string): Promise<TenantBranding | 
 }
 
 /**
- * Bust the in-memory branding cache for a tenant. Call after any write that
- * changes persona_display_name or brand_home_url so the next page render reads
- * fresh data instead of waiting up to 60s.
- */
-export function invalidateTenantBranding(slug: string): void {
-  cache.delete(slug);
-}
-
-/**
  * Resolve `{city}` placeholder in a brand URL template.
  * If template is null or empty, returns null (caller should render plain text).
  */

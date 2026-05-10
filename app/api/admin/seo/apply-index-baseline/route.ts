@@ -2,16 +2,17 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cityLocations, knowledgeArticles } from "@shared/schema";
 import { and, inArray, eq, or, isNull, sql } from "drizzle-orm";
+import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import {
   PROTECTED_CITY_SLUGS,
   PROTECTED_ARTICLE_SLUGS,
   INDEX_ROBOTS,
 } from "@/config/protectedSlugs";
-import { withAdminAuth } from "@/lib/auth-middleware";
 
 export async function GET() {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const protectedCities = [...PROTECTED_CITY_SLUGS];
   const protectedArticles = [...PROTECTED_ARTICLE_SLUGS];
@@ -47,11 +48,11 @@ export async function GET() {
     willFlipToIndex: { cities: citiesToFlip, articles: articlesToFlip },
     missingFromDatabase: { cities: missingCities, articles: missingArticles },
   });
-  });
 }
 
 export async function POST() {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const protectedCities = [...PROTECTED_CITY_SLUGS];
   const protectedArticles = [...PROTECTED_ARTICLE_SLUGS];
@@ -104,6 +105,5 @@ export async function POST() {
       cities: flippedCities.slice(0, 5).map((r) => r.slug),
       articles: flippedArticles.slice(0, 5).map((r) => r.slug),
     },
-  });
   });
 }

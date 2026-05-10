@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { verifySession } from "@/lib/auth";
 import { sql } from "drizzle-orm";
-import { withAdminAuth } from "@/lib/auth-middleware";
 
 export async function GET() {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const [totals] = (await db.execute(sql`
     SELECT
@@ -42,5 +43,4 @@ export async function GET() {
   `)).rows;
 
   return NextResponse.json({ totals, byJob, byAgent });
-  });
 }

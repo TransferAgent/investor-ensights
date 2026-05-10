@@ -13,11 +13,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter,
-  DialogHeader, DialogTitle,
-} from "@/components/ui/dialog"
-import { ShieldCheck, Trash2, KeyRound, Plus, UserCircle, Building2, Pencil } from "lucide-react"
+import { ShieldCheck, Trash2, KeyRound, Plus, UserCircle, Building2 } from "lucide-react"
 
 interface AdminRow {
   id: string
@@ -26,10 +22,6 @@ interface AdminRow {
   createdAt: string
   tenantSlug: string | null
   tenantDisplayName: string | null
-  tenantCompanyName: string | null
-  tenantPublisherName: string | null
-  tenantAuthorName: string | null
-  tenantBrandHomeUrl: string | null
 }
 
 interface ListResponse {
@@ -60,23 +52,6 @@ export default function AdminUsersPage() {
   const [newTenantAuthor, setNewTenantAuthor] = useState("Investor Ensights")
   const [newTenantBrandUrl, setNewTenantBrandUrl] = useState("")
   const [pwById, setPwById] = useState<Record<string, string>>({})
-  const [editing, setEditing] = useState<AdminRow | null>(null)
-  const [editDisplay, setEditDisplay] = useState("")
-  const [editPersona, setEditPersona] = useState("")
-  const [editCompany, setEditCompany] = useState("")
-  const [editPublisher, setEditPublisher] = useState("")
-  const [editAuthor, setEditAuthor] = useState("")
-  const [editBrandUrl, setEditBrandUrl] = useState("")
-
-  function openEdit(a: AdminRow) {
-    setEditing(a)
-    setEditDisplay(a.displayName ?? "")
-    setEditPersona(a.tenantDisplayName ?? "")
-    setEditCompany(a.tenantCompanyName ?? "")
-    setEditPublisher(a.tenantPublisherName ?? "")
-    setEditAuthor(a.tenantAuthorName ?? "")
-    setEditBrandUrl(a.tenantBrandHomeUrl ?? "")
-  }
 
   const { data, isLoading } = useQuery<ListResponse>({ queryKey: ["/api/admin/users"] })
   const { data: tenantsData } = useQuery<{ tenants: TenantRow[] }>({ queryKey: ["/api/admin/tenants"] })
@@ -125,32 +100,6 @@ export default function AdminUsersPage() {
     },
     onError: (e: any) => {
       toast({ title: "Could not delete", description: e?.message || "Try again", variant: "destructive" })
-    },
-  })
-
-  const editMutation = useMutation({
-    mutationFn: async () => {
-      if (!editing) throw new Error("No user selected")
-      const tenant: Record<string, string | null> = {}
-      if (editing.tenantSlug) {
-        tenant.personaDisplayName = editPersona.trim()
-        tenant.companyName = editCompany.trim()
-        tenant.publisherName = editPublisher.trim()
-        tenant.authorName = editAuthor.trim()
-        tenant.brandHomeUrl = editBrandUrl.trim() || null
-      }
-      const payload: any = { displayName: editDisplay.trim() || null }
-      if (Object.keys(tenant).length > 0) payload.tenant = tenant
-      return apiRequest("PATCH", `/api/admin/users/${editing.id}`, payload)
-    },
-    onSuccess: () => {
-      toast({ title: "User updated" })
-      setEditing(null)
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] })
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants"] })
-    },
-    onError: (e: any) => {
-      toast({ title: "Could not update", description: e?.message || "Try again", variant: "destructive" })
     },
   })
 
@@ -370,24 +319,16 @@ export default function AdminUsersPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline" size="sm"
-                          onClick={() => openEdit(a)}
-                          data-testid={`button-edit-user-${a.id}`}
-                        >
-                          <Pencil className="h-4 w-4 mr-1" /> Edit
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="destructive" size="sm"
-                              disabled={isSelf || isLast || deleteMutation.isPending}
-                              data-testid={`button-delete-user-${a.id}`}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" /> Delete
-                            </Button>
-                          </AlertDialogTrigger>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive" size="sm"
+                            disabled={isSelf || isLast || deleteMutation.isPending}
+                            data-testid={`button-delete-user-${a.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" /> Delete
+                          </Button>
+                        </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete {a.username}?</AlertDialogTitle>
@@ -407,7 +348,6 @@ export default function AdminUsersPage() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
-                      </div>
                     </div>
 
                     <div className="flex items-end gap-2 pl-11">
@@ -439,102 +379,6 @@ export default function AdminUsersPage() {
           )}
         </CardContent>
       </Card>
-
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit {editing?.username}</DialogTitle>
-            <DialogDescription>
-              Update this user's display name and the brand fields for their tenant
-              {editing?.tenantSlug && <> (<span className="font-medium">{editing.tenantSlug}</span>)</>}.
-              Tenant slug cannot be changed.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-display">Display name</Label>
-              <Input
-                id="edit-display" value={editDisplay}
-                onChange={(e) => setEditDisplay(e.target.value)}
-                placeholder="Jane Doe"
-                data-testid="input-edit-display"
-              />
-            </div>
-
-            {editing?.tenantSlug && (
-              <>
-                <div className="border-t pt-4 space-y-4">
-                  <div className="text-sm font-medium flex items-center gap-1.5">
-                    <Building2 className="h-4 w-4" /> Tenant: {editing.tenantSlug}
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="edit-persona">Display name</Label>
-                      <Input
-                        id="edit-persona" value={editPersona}
-                        onChange={(e) => setEditPersona(e.target.value)}
-                        data-testid="input-edit-persona"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="edit-company">Company name</Label>
-                      <Input
-                        id="edit-company" value={editCompany}
-                        onChange={(e) => setEditCompany(e.target.value)}
-                        data-testid="input-edit-company"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="edit-publisher">Publisher name</Label>
-                      <Input
-                        id="edit-publisher" value={editPublisher}
-                        onChange={(e) => setEditPublisher(e.target.value)}
-                        data-testid="input-edit-publisher"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="edit-author">Author name</Label>
-                      <Input
-                        id="edit-author" value={editAuthor}
-                        onChange={(e) => setEditAuthor(e.target.value)}
-                        data-testid="input-edit-author"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="edit-brand-url">Brand link template</Label>
-                    <Input
-                      id="edit-brand-url" value={editBrandUrl}
-                      onChange={(e) => setEditBrandUrl(e.target.value)}
-                      placeholder="https://www.example.com/locations/{city}"
-                      data-testid="input-edit-brand-url"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      First mention of the display name in any published article body links here. Use <code>{"{city}"}</code> as a placeholder for the article's city slug. Leave blank to keep brand mentions unlinked.
-                    </p>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)} data-testid="button-cancel-edit">
-              Cancel
-            </Button>
-            <Button
-              onClick={() => editMutation.mutate()}
-              disabled={editMutation.isPending}
-              data-testid="button-save-edit"
-            >
-              {editMutation.isPending ? "Saving…" : "Save changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

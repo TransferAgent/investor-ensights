@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
+import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { cityLocations, cityResearchSources } from "@shared/schema";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { withAdminAuth } from "@/lib/auth-middleware";
 
 const addSourceSchema = z.object({
   url: z.string().url().max(2000),
@@ -22,7 +22,8 @@ async function loadCityById(id: string) {
 }
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const { id } = await ctx.params;
   const city = await loadCityById(id);
@@ -34,11 +35,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     .where(eq(cityResearchSources.cityId, city.id));
 
   return NextResponse.json({ city, sources: rows });
-  });
 }
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const { id } = await ctx.params;
   const city = await loadCityById(id);
@@ -77,11 +78,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     console.error("[research-sources POST] failed:", err);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
-  });
 }
 
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const { id } = await ctx.params;
   const url = new URL(req.url);
@@ -106,5 +107,4 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
   });
 
   return NextResponse.json({ deleted: deleted[0] });
-  });
 }

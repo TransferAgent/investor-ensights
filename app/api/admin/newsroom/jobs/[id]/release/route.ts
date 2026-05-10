@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { newsroomPipelineJobs } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
-import { withAdminAuth } from "@/lib/auth-middleware";
 
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const { id } = await params;
   const [updated] = await db
@@ -37,5 +38,4 @@ export async function POST(
   });
 
   return NextResponse.json(updated);
-  });
 }

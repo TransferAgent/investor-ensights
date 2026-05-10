@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { knowledgeArticles } from "@shared/schema";
-import { withAdminAuth } from "@/lib/auth-middleware";
+import { verifySession } from "@/lib/auth";
 
 export async function GET() {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const rows = await db
     .select({
@@ -21,5 +24,4 @@ export async function GET() {
     if (r.citySlug) counts[r.citySlug] = Number(r.count) || 0;
   }
   return NextResponse.json(counts);
-  });
 }

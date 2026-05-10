@@ -2,26 +2,21 @@ import { NextResponse } from "next/server";
 import { verifySession, type AdminSession } from "./auth";
 import { withTenantAsync } from "./tenant/context";
 
-// MT-4 / MT-4.8: shared admin auth wrapper. Verifies the session cookie,
-// returns 401 if missing/invalid, otherwise runs the handler inside the
-// session's tenant context (so every `db` access inside resolves to the
-// user's tenant schema).
-//
-// THIS IS THE ONLY APPROVED PATTERN for admin routes. Direct
-// `verifySession + withTenantAsync` is a code smell — use this helper instead.
+// MT-4: shared admin auth wrapper. Verifies the session cookie, returns 401
+// if missing/invalid, otherwise runs the handler inside the session's tenant
+// context (so all storage calls inside resolve to the user's tenant schema).
 //
 // Usage:
-//   export async function GET(req: Request) {
+//   export async function GET() {
 //     return withAdminAuth(async (session) => {
-//       const rows = await db.select().from(...);  // tenant-scoped automatically
-//       return NextResponse.json(rows);
+//       const cities = await storage.getCities(false);
+//       return NextResponse.json(cities);
 //     });
 //   }
 //
-// IMPORTANT: the `db` Proxy in lib/db.ts falls back to TENANT_DEFAULT_SLUG
-// ("tableicity") when no ALS context is set — so a missing wrap silently
-// reads the wrong schema instead of failing loudly. That's why we centralize
-// the wrap here. lib/db.ts emits a dev-mode warning when this fallback is hit.
+// NOTE: storage methods also auto-enter tenant context via the session-aware
+// Proxy in lib/storage.ts, so wrapping with withAdminAuth is redundant for
+// storage-only routes. It IS required for routes that talk to `db` directly.
 export async function withAdminAuth(
   handler: (session: AdminSession) => Promise<NextResponse>
 ): Promise<NextResponse> {

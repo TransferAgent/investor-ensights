@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifySession } from "@/lib/auth";
 import { storage } from "@/lib/storage";
 import { logAuditEvent } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { knowledgeArticles, knowledgeGenerationLog } from "@shared/schema";
 import { eq, inArray } from "drizzle-orm";
-import { withAdminAuth } from "@/lib/auth-middleware";
 
 function replacePlaceholders(pattern: string, city: Record<string, any>): string {
   return pattern
@@ -18,7 +18,8 @@ function replacePlaceholders(pattern: string, city: Record<string, any>): string
 }
 
 export async function POST(req: NextRequest) {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession(req);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { articleIds, templateId } = await req.json();
   if (!templateId) return NextResponse.json({ error: "templateId required" }, { status: 400 });
@@ -106,5 +107,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ updated, skipped, errors, results });
-  });
 }

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifySession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { cityLocations, knowledgeArticles } from "@shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
-import { withAdminAuth } from "@/lib/auth-middleware";
 
 export async function GET(req: NextRequest) {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession(req);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const cities = await db.select({
     citySlug: cityLocations.slug,
@@ -52,5 +53,4 @@ export async function GET(req: NextRequest) {
   coverage.sort((a, b) => a.state.localeCompare(b.state) || a.cityName.localeCompare(b.cityName));
 
   return NextResponse.json(coverage);
-  });
 }

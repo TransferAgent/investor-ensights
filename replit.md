@@ -12,7 +12,6 @@ A programmatic-SEO publishing platform providing financial insights on local com
 *   **Push schema to dev DB**: `npm run db:push`
 *   **Push schema to prod DB**: `bash scripts/push-schema-to-prod.sh`
 *   **Sync Dev to Prod data**: `npx tsx scripts/sync-dev-to-prod.ts --confirm` (use `--confirm` for actual writes)
-*   **Clean up an orphaned tenant in PROD**: `npx tsx scripts/cleanup-tenant.ts --slug=<slug> --confirm` (drops `tenant_<slug>` schema + clears `tenants`, `tenant_members`, `city_slug_registry` rows in one transaction; refuses `tableicity`; default mode is dry-run)
 
 **Required Environment Variables**: `DATABASE_URL`, `PROD_DATABASE_URL`, `SESSION_SECRET`, `NEXT_PUBLIC_BASE_URL`, `OPENAI_API_KEY`, `OPENCAGE_API_KEY`, `CRON_SECRET`, `NEWSROOM_WORKER_SECRET`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_DISPLAY`, `ADMIN_PURGE_OTHERS`.
 
@@ -86,8 +85,6 @@ Preferred communication style: Simple, everyday language.
 
 ## Gotchas
 
-*   **Tenant-safe admin routes — use `withAdminAuth`**: All admin API routes that touch `db` MUST be wrapped with `withAdminAuth(async (session) => { ... })` from `lib/auth-middleware.ts`. The helper bundles `verifySession` + tenant context in one call. Direct `verifySession + withTenantAsync` is a code smell. The `db` Proxy in `lib/db.ts` silently falls back to the default tenant (`tableicity`) when no ALS context is set — a missed wrap reads the wrong schema instead of failing loudly. In dev a `[tenant-fallback]` console warning fires per uncovered call site as a safety net.
-*   **Cron + worker tenant gap (open)**: `app/api/cron/newsroom-scheduler/route.ts` and `app/api/newsroom/worker/*` currently run **without** any tenant context — they all resolve to `tableicity` by the proxy default. `newsroom_pipeline_jobs` has no `tenant_slug` column so the worker can't route by tenant either. This is a known architectural gap that needs a future gate (per-job tenant tracking + per-tenant cron loop). Today it means: scheduled cron + worker pipeline are Tableicity-only.
 *   **Forward-only deletes**: Standing rule from the recovery era and carried into multi-tenant. No retroactive deletes of slugs, audit rows, or content without Conductor sign-off. `apply-noindex-baseline` and `seo-visibility` routes were removed for this reason; do not reintroduce park-everything-to-noindex sweepers.
 *   **Never touch article slugs**: All 80 published article slugs contain intentional `tableicity-` persona tokens (verified). These are SEO-protected. Multi-tenant build preserves them by construction (D5 in the gate table).
 *   **Sitemap-as-canary**: Live PROD `investorensights.com/sitemap.xml` should return 84 URLs (80 articles + 4 static) at every multi-tenant gate close until intentionally changed. Divergence = stop work and investigate.

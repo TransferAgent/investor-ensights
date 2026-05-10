@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { newsroomAgentRuns } from "@shared/schema";
 import { desc, eq, and } from "drizzle-orm";
-import { withAdminAuth } from "@/lib/auth-middleware";
+import { verifySession } from "@/lib/auth";
 
 export async function GET(req: Request) {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const url = new URL(req.url);
   const agentId = url.searchParams.get("agentId");
   const jobId = url.searchParams.get("jobId");
@@ -29,5 +30,4 @@ export async function GET(req: Request) {
           .orderBy(desc(newsroomAgentRuns.createdAt))
           .limit(limit);
   return NextResponse.json(rows);
-  });
 }

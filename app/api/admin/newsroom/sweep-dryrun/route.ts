@@ -6,8 +6,8 @@ import {
   newsroomReviewQueue,
 } from "@shared/schema";
 import { eq, inArray } from "drizzle-orm";
+import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
-import { withAdminAuth } from "@/lib/auth-middleware";
 
 /**
  * GET = preview counts. POST = delete.
@@ -25,7 +25,8 @@ import { withAdminAuth } from "@/lib/auth-middleware";
  */
 
 export async function GET() {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const dryJobs = await db
     .select({ id: newsroomPipelineJobs.id })
@@ -55,11 +56,11 @@ export async function GET() {
       reviewQueue: reviewRows.length,
     },
   });
-  });
 }
 
 export async function POST() {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const dryJobs = await db
     .select({ id: newsroomPipelineJobs.id })
@@ -105,6 +106,5 @@ export async function POST() {
       agentRuns: deletedRuns.length,
       reviewQueue: deletedReview,
     },
-  });
   });
 }

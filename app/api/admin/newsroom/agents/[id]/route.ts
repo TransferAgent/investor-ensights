@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { newsroomAgents } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { verifySession } from "@/lib/auth";
 import { z } from "zod";
-import { withAdminAuth } from "@/lib/auth-middleware";
 
 const patchSchema = z.object({
   displayName: z.string().optional(),
@@ -18,7 +18,8 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  return withAdminAuth(async (session) => {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await params;
   const body = patchSchema.parse(await req.json());
   const [updated] = await db
@@ -27,5 +28,4 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .where(eq(newsroomAgents.id, id))
     .returning();
   return NextResponse.json(updated);
-  });
 }
