@@ -1,0 +1,35 @@
+Issue Brief — for the Parent Replit to Action
+Summary
+Prod DB restore from Dump_Four_1778395542865.dump succeeded. User abc17@gmail.com signed into the workspace and saw no data. Root cause: they were signed into the wrong environment. The data is in prod; the preview they were looking at runs against dev.
+
+What's true right now
+Prod DB (Neon, ep-summer-rain-am9t8q3o…neon.tech) — fully restored:
+
+5 users (incl. abc17@gmail.com → tableicity, tenant_admin)
+5 tenants (tableicity, texitie, veltroy, haylo, payrol)
+tenant_tableicity: 84 knowledge_articles, 240 versions, 340 city_locations, 182 haylo_articles, 1,093 audit rows, full newsroom pipeline (5 agents, 43 review_queue, etc.)
+public.city_slug_registry: 1,688 rows
+All other tenant schemas restored at their dump-faithful counts
+Dev DB (Replit helium) — intentionally untouched:
+
+1 user, 1 tenant, 18 cities, 1 haylo, 0 articles (original sparse dev state)
+Why the user saw "nothing"
+The app code reads only process.env.DATABASE_URL (verified across lib/db.ts, lib/tenant/pools.ts, app/api/admin/users/route.ts, app/api/public/tenants/route.ts). It never reads PROD_DATABASE_URL at runtime — that var is used solely by maintenance scripts (scripts/push-schema-to-prod.sh, scripts/sync-dev-to-prod.ts).
+
+In the Replit preview pane, the Start application workflow runs npm run dev, which binds DATABASE_URL to the dev Neon-like instance (helium). So signing in as abc17@gmail.com in the preview hits dev, where that account doesn't exist and that content was never loaded.
+
+In the deployed app (.replit.app / custom domain), DATABASE_URL should be bound to the prod connection string, and the same login will see the full 84/340/182 dataset.
+
+What the Parent needs to decide
+Verify the deployed URL (custom domain investorensights.com did not resolve from this sandbox — could be DNS, could be that the latest deploy hasn't propagated, could be the Replit .replit.app URL is what's live). Sign in there as abc17@gmail.com to confirm the restored data renders.
+Decide whether dev should also be restored. Two postures:
+Keep divergent (current state): dev stays sparse, prod has the real corpus. Safer; matches "Forward-only deletes" gotcha and avoids any chance of the next dev → prod sync clobbering prod.
+Mirror prod into dev: lets the preview pane reflect reality, but introduces the risk you just flagged — particularly because scripts/sync-dev-to-prod.ts exists and a future routine sync could push dev's state back into prod.
+Sitemap canary update. Prod's tenant_tableicity now has 84 published-eligible articles, not the 80 documented in replit.md. Once redeployed, the sitemap should emit ~88 URLs. The "84 URLs" canary line in replit.md is now stale.
+session table not touched. User UUIDs were preserved across the restore, so existing sessions for abc17@gmail.com (if any pre-existed in prod) remain valid.
+What I will not do without parent sign-off
+Will not touch dev DB.
+Will not run scripts/sync-dev-to-prod.ts in either direction.
+Will not redeploy.
+Will not modify replit.md canary numbers.
+Standing by.
