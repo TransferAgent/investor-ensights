@@ -2,16 +2,10 @@ import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { knowledgeArticles } from "@shared/schema";
-import { verifySession } from "@/lib/auth";
-import { withTenantAsync } from "@/lib/tenant/context";
+import { withAdminAuth } from "@/lib/auth-middleware";
 
 export async function GET() {
-  const session = await verifySession();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
 
   const rows = await db
     .select({

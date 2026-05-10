@@ -3,9 +3,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { newsroomSchedulerConfig } from "@shared/schema";
-import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
-import { withTenantAsync } from "@/lib/tenant/context";
+import { withAdminAuth } from "@/lib/auth-middleware";
 
 export const dynamic = "force-dynamic";
 
@@ -28,20 +27,14 @@ async function ensureConfig() {
 }
 
 export async function GET() {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
   const config = await ensureConfig();
   return NextResponse.json({ config, cronSecretSet: Boolean(process.env.CRON_SECRET) });
   });
 }
 
 export async function PATCH(req: Request) {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
 
   let parsed;
   try {

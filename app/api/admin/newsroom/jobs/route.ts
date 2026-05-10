@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { newsroomPipelineJobs } from "@shared/schema";
 import { desc, eq } from "drizzle-orm";
-import { verifySession } from "@/lib/auth";
 import { z } from "zod";
-import { withTenantAsync } from "@/lib/tenant/context";
+import { withAdminAuth } from "@/lib/auth-middleware";
 
 const createSchema = z.object({
   citySlug: z.string().min(1),
@@ -13,10 +12,7 @@ const createSchema = z.object({
 });
 
 export async function GET(req: Request) {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
   const url = new URL(req.url);
   const status = url.searchParams.get("status");
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "50", 10), 200);
@@ -37,10 +33,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
   const body = createSchema.parse(await req.json());
   const [job] = await db
     .insert(newsroomPipelineJobs)

@@ -2,20 +2,16 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cityLocations, knowledgeArticles } from "@shared/schema";
 import { and, inArray, eq, or, isNull, sql } from "drizzle-orm";
-import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import {
   PROTECTED_CITY_SLUGS,
   PROTECTED_ARTICLE_SLUGS,
   INDEX_ROBOTS,
 } from "@/config/protectedSlugs";
-import { withTenantAsync } from "@/lib/tenant/context";
+import { withAdminAuth } from "@/lib/auth-middleware";
 
 export async function GET() {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
 
   const protectedCities = [...PROTECTED_CITY_SLUGS];
   const protectedArticles = [...PROTECTED_ARTICLE_SLUGS];
@@ -55,10 +51,7 @@ export async function GET() {
 }
 
 export async function POST() {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
 
   const protectedCities = [...PROTECTED_CITY_SLUGS];
   const protectedArticles = [...PROTECTED_ARTICLE_SLUGS];

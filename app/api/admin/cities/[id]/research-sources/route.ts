@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { cityLocations, cityResearchSources } from "@shared/schema";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { withTenantAsync } from "@/lib/tenant/context";
+import { withAdminAuth } from "@/lib/auth-middleware";
 
 const addSourceSchema = z.object({
   url: z.string().url().max(2000),
@@ -23,10 +22,7 @@ async function loadCityById(id: string) {
 }
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
 
   const { id } = await ctx.params;
   const city = await loadCityById(id);
@@ -42,10 +38,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 }
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
 
   const { id } = await ctx.params;
   const city = await loadCityById(id);
@@ -88,10 +81,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 }
 
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
 
   const { id } = await ctx.params;
   const url = new URL(req.url);

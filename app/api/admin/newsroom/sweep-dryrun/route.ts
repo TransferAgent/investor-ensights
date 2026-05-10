@@ -6,9 +6,8 @@ import {
   newsroomReviewQueue,
 } from "@shared/schema";
 import { eq, inArray } from "drizzle-orm";
-import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
-import { withTenantAsync } from "@/lib/tenant/context";
+import { withAdminAuth } from "@/lib/auth-middleware";
 
 /**
  * GET = preview counts. POST = delete.
@@ -26,10 +25,7 @@ import { withTenantAsync } from "@/lib/tenant/context";
  */
 
 export async function GET() {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
 
   const dryJobs = await db
     .select({ id: newsroomPipelineJobs.id })
@@ -63,10 +59,7 @@ export async function GET() {
 }
 
 export async function POST() {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
 
   const dryJobs = await db
     .select({ id: newsroomPipelineJobs.id })

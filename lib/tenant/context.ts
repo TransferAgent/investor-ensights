@@ -17,6 +17,13 @@ export function getCurrentTenantSlug(): string | null {
   return als.getStore()?.slug ?? getDefaultSlug();
 }
 
+// MT-4.8: lets callers (e.g. lib/db.ts dev warning) tell apart
+// "explicit ALS tenant context is set" from "no context, falling back to default".
+// Returns true only when withTenant/withTenantAsync is on the call stack.
+export function hasTenantContext(): boolean {
+  return als.getStore() !== undefined;
+}
+
 export function requireCurrentTenantSlug(): string {
   const slug = getCurrentTenantSlug();
   if (!slug) {

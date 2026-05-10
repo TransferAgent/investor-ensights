@@ -7,11 +7,10 @@ import {
   hayloArticles,
 } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { z } from "zod";
 import { newsroomDraftPayloadV1Schema } from "@/lib/newsroom/draftPayload";
-import { withTenantAsync } from "@/lib/tenant/context";
+import { withAdminAuth } from "@/lib/auth-middleware";
 
 const patchSchema = z.object({
   status: z.enum(["approved", "rejected"]),
@@ -27,10 +26,7 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
 
   const { id } = await params;
   const body = patchSchema.parse(await req.json());

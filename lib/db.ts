@@ -19,9 +19,35 @@ if (!process.env.DATABASE_URL) {
 
 type TenantDb = ReturnType<typeof getTenantDb>;
 
+// MT-4.8: dev-mode guard. When `db` is accessed outside any ALS tenant
+// context, the proxy falls back to TENANT_DEFAULT_SLUG (tableicity). That's
+// intentional for cron/worker/seed paths — but it's also a silent footgun
+// for admin routes that forgot to wrap with withAdminAuth. Log a one-shot
+// stack trace per call site in non-production so missed wraps are visible.
+// Uses hasTenantContext() so users genuinely on the tableicity tenant don't
+// trigger false positives.
+import { hasTenantContext } from "./tenant/context";
+import { DEFAULT_TENANT_SLUG } from "./tenant/context";
+const warnedCallSites = new Set<string>();
+function warnIfFallback(): void {
+  if (process.env.NODE_ENV === "production") return;
+  if (hasTenantContext()) return;  // explicit context — never a fallback
+  const stack = new Error().stack ?? "";
+  // Skip frames: Error, warnIfFallback, Proxy.get, drizzle-internal call.
+  const frame = stack.split("\n").slice(4, 5).join("") || "<unknown>";
+  if (warnedCallSites.has(frame)) return;
+  warnedCallSites.add(frame);
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[tenant-fallback] db accessed outside any tenant context — using default "${DEFAULT_TENANT_SLUG}". ` +
+    `If this is an admin route, wrap it with withAdminAuth(). Frame:${frame}`
+  );
+}
+
 function proxyForTenantResource<T extends object>(resolve: (slug: string) => T): T {
   return new Proxy({} as T, {
     get(_target, prop) {
+      warnIfFallback();
       const slug = requireCurrentTenantSlug();
       const real = resolve(slug) as Record<string | symbol, unknown>;
       const value = real[prop];

@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
-import { withTenantAsync } from "@/lib/tenant/context";
+import { withAdminAuth } from "@/lib/auth-middleware";
 
 export async function POST(req: NextRequest) {
-  const session = await verifySession(req);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
 
   const result1 = await db.execute(sql`
     UPDATE knowledge_articles 

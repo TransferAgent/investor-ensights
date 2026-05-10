@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { knowledgeGenerationLog } from "@shared/schema";
 import { desc, gte, eq, sql } from "drizzle-orm";
-import { withTenantAsync } from "@/lib/tenant/context";
+import { withAdminAuth } from "@/lib/auth-middleware";
 
 export async function GET(req: NextRequest) {
-  const session = await verifySession(req);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
 
   const { searchParams } = new URL(req.url);
   const parsed = parseInt(searchParams.get("limit") || "50");

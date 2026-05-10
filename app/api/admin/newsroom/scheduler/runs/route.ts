@@ -2,17 +2,13 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sql, desc, gte, and } from "drizzle-orm";
 import { newsroomSchedulerRuns } from "@shared/schema";
-import { verifySession } from "@/lib/auth";
 import { countEligiblePairs } from "@/lib/newsroom/schedulerPicker";
-import { withTenantAsync } from "@/lib/tenant/context";
+import { withAdminAuth } from "@/lib/auth-middleware";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  return withTenantAsync(session.tenantSlug, async () => {
+  return withAdminAuth(async (session) => {
 
   const url = new URL(req.url);
   const limit = Math.min(Number(url.searchParams.get("limit") ?? "20"), 100);
