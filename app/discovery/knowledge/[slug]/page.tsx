@@ -423,7 +423,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
   // MT-4.6: per-tenant brand link in body (first mention -> brand site).
   const branding = await getTenantBranding(tenantSlug);
   const brandName = branding?.personaDisplayName || "";
-  const brandHref = resolveBrandHref(branding?.brandHomeUrl ?? null, article.citySlug);
+  const brandHref = resolveBrandHref(branding?.brandHomeUrl ?? null, article.citySlug, tenantSlug);
 
   const isPreview = article.status === "pending";
 

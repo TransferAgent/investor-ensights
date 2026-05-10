@@ -41,10 +41,28 @@ export async function getTenantBranding(slug: string): Promise<TenantBranding | 
 }
 
 /**
- * Resolve `{city}` placeholder in a brand URL template.
- * If template is null or empty, returns null (caller should render plain text).
+ * Resolve placeholders in a brand URL template:
+ *   {city}     → article's full citySlug as stored in city_slug_registry
+ *                (may include a `-<tenant>` suffix from global slug uniqueness)
+ *   {cityCore} → citySlug with a trailing `-<tenantSlug>` suffix stripped, so
+ *                external destination sites that use the un-suffixed city slug
+ *                (e.g. tenant's own domain) get the right path.
+ *                Falls back to the full citySlug if no suffix is present.
+ *
+ * If template is null or empty, returns null (caller renders plain text).
  */
-export function resolveBrandHref(template: string | null, citySlug?: string | null): string | null {
+export function resolveBrandHref(
+  template: string | null,
+  citySlug?: string | null,
+  tenantSlug?: string | null,
+): string | null {
   if (!template) return null;
-  return template.replace(/\{city\}/g, citySlug ?? "");
+  const full = citySlug ?? "";
+  let core = full;
+  if (tenantSlug && full.endsWith(`-${tenantSlug}`)) {
+    core = full.slice(0, full.length - tenantSlug.length - 1);
+  }
+  return template
+    .replace(/\{cityCore\}/g, core)
+    .replace(/\{city\}/g, full);
 }

@@ -339,11 +339,11 @@ export default function AdminUsersPage() {
                     <Input
                       id="nt-brand-url" value={newTenantBrandUrl}
                       onChange={(e) => setNewTenantBrandUrl(e.target.value)}
-                      placeholder="https://www.example.com/locations/{city}"
+                      placeholder="https://www.example.com/locations/{cityCore}"
                       data-testid="input-new-tenant-brand-url"
                     />
                     <p className="text-xs text-muted-foreground">
-                      First mention of the display name in any published article body links here. Use <code>{"{city}"}</code> as a placeholder for the article's city slug. Leave blank to keep brand mentions unlinked.
+                      First mention of the display name in any published article body links here. Placeholders: <code>{"{cityCore}"}</code> = city slug with the tenant suffix stripped (recommended for external sites), <code>{"{city}"}</code> = full registry slug. Leave blank to keep brand mentions unlinked.
                     </p>
                   </div>
                 </div>
@@ -532,12 +532,11 @@ export default function AdminUsersPage() {
                   <Input
                     id="edit-tenant-brand-url" value={editTenantBrandUrl}
                     onChange={(e) => setEditTenantBrandUrl(e.target.value)}
-                    placeholder="https://www.example.com/locations/{city}"
+                    placeholder="https://www.example.com/locations/{cityCore}"
                     data-testid="input-edit-tenant-brand-url"
                   />
                   <p className="text-xs text-muted-foreground">
-                    First mention of the persona display name in any published article body links here.
-                    Use <code>{"{city}"}</code> as a placeholder for the article's city slug. Leave blank to keep brand mentions unlinked.
+                    First mention of the persona display name in any published article body links here. Placeholders: <code>{"{cityCore}"}</code> = city slug with the tenant suffix stripped (recommended for external sites), <code>{"{city}"}</code> = full registry slug. Leave blank to keep brand mentions unlinked.
                   </p>
                 </div>
               </div>
