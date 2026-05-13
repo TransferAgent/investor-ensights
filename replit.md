@@ -60,13 +60,13 @@ A programmatic-SEO publishing platform providing financial insights on local com
 *   New Conductor-only `/admin/personas` list + `/admin/personas/new` 3-step Wizard (Identity & Brand → City Batch → Haylo essays). Adding a persona no longer requires SQL access.
 *   Atomic create — `POST /api/admin/personas` runs `INSERT public.tenants` + `provisionTenantSchemaWithClient` inside a single pg transaction; failure leaves the system byte-identical.
 *   Slug is a one-way door: client + server both require a re-typed `confirmSlug` before the tx runs.
-*   Server-driven readiness gates — `GET /api/admin/personas/[slug]/readiness` returns brand-complete bool, city count, haylo count, and `cities.groundingGateOpen` (≥1 enabled `city_research_sources`). Wizard "Continue" / "Finish" buttons disable on the live readiness payload, not client state. `publishReady = brand && cities ≥ 1 && haylo ≥ 1`; the research-source grounding gate is a soft warning until MT-4.13.1 wires the per-city auto-seeder into the Wizard.
+*   Server-driven readiness gates — `GET /api/admin/personas/[slug]/readiness` returns brand-complete bool, city count, haylo count, and `cities.groundingGateOpen` (≥1 enabled `city_research_sources`). Wizard "Continue" / "Finish" buttons disable on the live readiness payload, not client state. `publishReady = brand && cities ≥ 1 && haylo ≥ 1`; the research-source grounding gate remains a soft warning (per-city auto-seeder still pending; MT-4.13.1 instead pivoted to LLM-derived brand voice).
 *   Live SEO preview at the brand step uses the SAME `buildMetaTitle` / `buildMetaDescription` builders the live pair pipeline uses (`POST /api/admin/personas/preview-meta`).
 *   Cross-tenant Wizard endpoints (`POST /api/admin/personas/[slug]/cities/bulk-csv`, `POST /api/admin/personas/[slug]/haylo`) wrap the same `storage` interface inside `withTenantAsync(targetSlug, …)` so the Conductor seeds without a session swap.
 *   Conductor gate (`lib/conductor-guard.ts`): membership check against `CONDUCTOR_TENANT_SLUG` (env, default `tableicity`). Every persona endpoint calls `requireConductor()` → 403 for non-Conductor. `/api/admin/me` now returns `isConductor`; sidebar "Personas" entry conditionally renders.
 *   Cross-tenant `PATCH /api/admin/tenants/[slug]` is now Conductor-gated (same-tenant edits unchanged) and exposes `brandVertical` / `brandTagline` / `brandFeatureCta`.
 *   Every Wizard write logs via `logAuditEvent` into the actor's tenant log (`persona.create`, `persona.upload.cities`, `persona.upload.haylo`).
-*   "Auto-lock SEO meta on publish" checkbox is a deliberate disabled stub on the brand step; wires up in MT-4.14.
+*   "Auto-lock SEO meta on publish" checkbox was a deliberate disabled stub on the original brand step; **removed in MT-4.13.1** (no longer in the wizard) and will be re-introduced on a tenant settings page when MT-4.14 wires it up.
 
 **Locked decisions (MT-0):**
 
