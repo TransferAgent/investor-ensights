@@ -45,6 +45,14 @@ A programmatic-SEO publishing platform providing financial insights on local com
 
 **Project model:** Investor Ensights is the Conductor's private internal Newsroom workshop, not a public SaaS. Each Persona/Tenant = one of the Conductor's brands publishing through the same domain. Tableicity is the first tenant; existing 80 articles + 340 cities + 182 haylo + all newsroom state migrate **untouched** into `tenant_tableicity` schema.
 
+**MT-4.13.2 SHIPPED (brand-mention guard in newsroom pipeline):**
+
+*   Single systemic fix for a render-time gap: the public article renderer (`app/discovery/knowledge/[slug]/page.tsx::highlightBrandInBody`) wraps the *first* occurrence of `tenants.persona_display_name` in `bodyHtml` with the brand-home backlink (`tenants.brand_home_url`, `{cityCore}` swapped for the article's city slug). If the LLM body never mentions the persona name, that backlink silently disappears.
+*   Two May-2026 Tableicity articles shipped this way (`tableicity-conroe-tx-uk-startup-…-emi-schemes-…` and `tableicity-coral-springs-fl-benefits-of-the-emi-share-option-scheme-…`). 74 / 76 published articles have the mention; both gap articles came through the Pair flow with Haylo essays that never said "Tableicity".
+*   Guard added in `lib/newsroom/pipelineWorker.ts::runPipeline` immediately after the copywriter sanitization, BEFORE `composeDraftFromOutputs`. Word-boundary, case-insensitive `\bpersonaDisplayName\b` test on `prior.copywriter.bodyHtml`. On miss, the run throws → existing catch marks the job `failed` → no review-queue / `knowledge_articles` insert.
+*   Covers both pipeline entry points (`runLivePipeline` direct + Pair-agent orchestrator), since both call `runPipeline`. Headline / subheadline mentions are NOT counted (renderer only links body matches). Falls open if `brand.personaDisplayName` is empty (defensive only — `resolveBrandContext` always populates it).
+*   The two existing brand-less articles are unfixed by this change (forward-only deletes rule). Conductor will re-run them through the pipeline or hand-edit body in admin to add the brand mention.
+
 **MT-4.13.1 SHIPPED (Haylo-first wizard, LLM-derived brand voice):**
 
 *   **Wizard restructured to 4 steps**: Identity → Haylo + Brand → Cities → Finish. Brand voice is no longer hand-typed at create time — it's *derived* from a pasted Haylo essay by an LLM, then human-reviewed in an editable form. Mirrors the real Conductor workflow (log in → paste Haylo → everything else flows from it).

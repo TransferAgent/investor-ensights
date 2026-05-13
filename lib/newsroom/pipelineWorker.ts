@@ -146,6 +146,30 @@ async function runStageWithBookkeeping(args: {
   };
 }
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * MT-4.13.2: brand-mention guard. The public article renderer
+ * (`app/discovery/knowledge/[slug]/page.tsx`) wraps the FIRST occurrence of
+ * the tenant's `personaDisplayName` in the body with the brand-home backlink
+ * (`tenants.brand_home_url`, with `{cityCore}` swapped for the article's city
+ * slug). If the LLM never weaves the persona name into the body, that link
+ * silently disappears — which is exactly how the two May-2026 Tableicity
+ * articles shipped without a back-link to tableicity.com/locations/<city>.
+ *
+ * This guard is the single systemic fix: the pipeline fails the run BEFORE
+ * the draft is composed and persisted, so we never ship a brand-less article
+ * again. Word-boundary, case-insensitive, scans only the body (the renderer
+ * only links body matches — headline mentions do not count).
+ */
+function bodyMentionsBrand(html: string, brandName: string): boolean {
+  if (!brandName) return true;
+  const re = new RegExp(`\\b${escapeRegex(brandName)}\\b`, "i");
+  return re.test(html);
+}
+
 function titleCaseFromSlug(slug: string): string {
   const parts = slug.split("-");
   if (parts.length === 0) return slug;
@@ -389,6 +413,18 @@ export async function runPipeline(opts: RunPipelineOpts): Promise<PipelineRunRes
         bodyHtml: sanitizeNewsroomHtml(cw.bodyHtml),
       };
       prior.copywriter = sanitized;
+    }
+
+    // MT-4.13.2: brand-mention guard (see bodyMentionsBrand above).
+    if (prior.copywriter && brand?.personaDisplayName) {
+      if (!bodyMentionsBrand(prior.copywriter.bodyHtml, brand.personaDisplayName)) {
+        throw new Error(
+          `Brand-mention guard: body does not contain "${brand.personaDisplayName}" — ` +
+          `the public renderer would ship without the brand backlink. ` +
+          `Re-run the pipeline (the LLM weaves the brand name on most attempts) ` +
+          `or revise the source Haylo essay to mention the brand once.`
+        );
+      }
     }
 
     const draft: NewsroomDraftPayloadV1 = composeDraftFromOutputs({
