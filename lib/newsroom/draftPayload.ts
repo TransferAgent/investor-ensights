@@ -24,7 +24,7 @@ export const newsroomDraftPayloadV1Schema = z.object({
   // MT-4.12: provenance for the meta fields above. 'llm' = produced by the
   // copywriter agent and validated to contain brand+city; 'fallback' =
   // deterministic Tier-2 prefix; 'manual' = reviewer-edited.
-  metaSource: z.enum(["llm", "fallback", "manual"]).optional(),
+  metaSource: z.enum(["llm", "naturalized", "fallback", "manual"]).optional(),
   headline: z.string().min(10),
   subheadline: z.string().optional(),
   dateline: z.string().max(120).optional(),

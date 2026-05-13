@@ -41,6 +41,7 @@
 import pg from "pg";
 import { buildMetaTitle, buildMetaDescription } from "../lib/newsroom/pairProcessor";
 import type { BrandContext } from "../lib/newsroom/brandContext";
+import { naturalizeMeta, hayloBodyExcerptFromHtml } from "../lib/newsroom/metaNaturalizer";
 
 const TENANT_SLUG = "tableicity";
 const TENANT_SCHEMA = `tenant_${TENANT_SLUG}`;
@@ -58,6 +59,7 @@ const KV = new Map<string, string>(
 const IS_PROD = FLAGS.has("--prod");
 const CONFIRM = FLAGS.has("--confirm");
 const FORCE = FLAGS.has("--force");
+const NATURALIZE = FLAGS.has("--naturalize");
 const EXPECTED = Number(KV.get("--expected") ?? DEFAULT_EXPECTED);
 
 const DEV_URL = process.env.DATABASE_URL;
@@ -129,6 +131,7 @@ async function main(): Promise<void> {
   console.log(`Schema: ${TENANT_SCHEMA}`);
   console.log(`Mode:   ${CONFIRM ? "WRITE (--confirm)" : "DRY RUN"}`);
   console.log(`Force:  ${FORCE ? "YES (re-stamp locked rows)" : "no (skip locked)"}`);
+  console.log(`Polish: ${NATURALIZE ? "YES (--naturalize: Tier-2.5 LLM polish; meta_source='naturalized' on success)" : "no (pure Tier-2 formula; meta_source='fallback')"}`);
   console.log(`Canary: expect ${EXPECTED} candidate rows (override with --expected=N)`);
   console.log("");
 
@@ -196,21 +199,24 @@ async function main(): Promise<void> {
       reason: "backfill" | "force-relock" | "skip-locked" | "skip-no-city" | "skip-already-set";
       newMetaTitle: string | null;
       newMetaDescription: string | null;
+      newMetaSource: "fallback" | "naturalized" | null;
+      naturalizerCostUsd: number;
+      naturalizerRejection: string | null;
     }
     const plans: Plan[] = [];
 
     for (const a of articles) {
       if (a.meta_locked_at && !FORCE) {
-        plans.push({ id: a.id, slug: a.slug, reason: "skip-locked", newMetaTitle: null, newMetaDescription: null });
+        plans.push({ id: a.id, slug: a.slug, reason: "skip-locked", newMetaTitle: null, newMetaDescription: null, newMetaSource: null, naturalizerCostUsd: 0, naturalizerRejection: null });
         continue;
       }
       if (!a.city_slug) {
-        plans.push({ id: a.id, slug: a.slug, reason: "skip-no-city", newMetaTitle: null, newMetaDescription: null });
+        plans.push({ id: a.id, slug: a.slug, reason: "skip-no-city", newMetaTitle: null, newMetaDescription: null, newMetaSource: null, naturalizerCostUsd: 0, naturalizerRejection: null });
         continue;
       }
       const city = cityMap.get(a.city_slug);
       if (!city) {
-        plans.push({ id: a.id, slug: a.slug, reason: "skip-no-city", newMetaTitle: null, newMetaDescription: null });
+        plans.push({ id: a.id, slug: a.slug, reason: "skip-no-city", newMetaTitle: null, newMetaDescription: null, newMetaSource: null, naturalizerCostUsd: 0, naturalizerRejection: null });
         continue;
       }
       const haylo = a.haylo_article_id ? hayloMap.get(a.haylo_article_id) : null;
@@ -219,8 +225,40 @@ async function main(): Promise<void> {
       const hayloTitle = haylo?.title ?? a.title ?? "";
       const hayloBody = haylo?.body_html;
 
-      const newMetaTitle = buildMetaTitle(brand, city.city_name, city.state_code, hayloTitle);
-      const newMetaDescription = buildMetaDescription(brand, city.city_name, city.state_code, hayloTitle, hayloBody);
+      const fallbackTitle = buildMetaTitle(brand, city.city_name, city.state_code, hayloTitle);
+      const fallbackDescription = buildMetaDescription(brand, city.city_name, city.state_code, hayloTitle, hayloBody);
+
+      let newMetaTitle = fallbackTitle;
+      let newMetaDescription = fallbackDescription;
+      let newMetaSource: "fallback" | "naturalized" = "fallback";
+      let naturalizerCostUsd = 0;
+      let naturalizerRejection: string | null = null;
+
+      if (NATURALIZE) {
+        // MT-4.13.3 — Tier-2.5 LLM polish. Same naturalizer the live
+        // pipeline uses; same guards (brand+city in both, length bounds, no
+        // formula-prefix echo). Silent degrade to the formula on any
+        // failure — backfill never aborts on a single naturalizer rejection.
+        const polished = await naturalizeMeta({
+          brand,
+          cityName: city.city_name,
+          stateCode: city.state_code,
+          hayloTitle,
+          hayloBodyExcerpt: hayloBodyExcerptFromHtml(hayloBody),
+          fallbackTitle,
+          fallbackDescription,
+        });
+        newMetaTitle = polished.title;
+        newMetaDescription = polished.description;
+        newMetaSource = polished.source === "naturalized" ? "naturalized" : "fallback";
+        naturalizerCostUsd = polished.costUsd;
+        naturalizerRejection = polished.rejectionReason;
+        if (polished.source === "naturalized") {
+          console.log(`  naturalized: ${a.slug}  ($${polished.costUsd}, ${polished.tokensUsed} tok)`);
+        } else {
+          console.log(`  fallback:    ${a.slug}  (rejected=${polished.rejectionReason})`);
+        }
+      }
 
       plans.push({
         id: a.id,
@@ -228,6 +266,9 @@ async function main(): Promise<void> {
         reason: a.meta_locked_at ? "force-relock" : "backfill",
         newMetaTitle,
         newMetaDescription,
+        newMetaSource,
+        naturalizerCostUsd,
+        naturalizerRejection,
       });
     }
 
@@ -243,10 +284,17 @@ async function main(): Promise<void> {
     const writable = plans.filter((p) => p.reason === "backfill" || p.reason === "force-relock");
     console.log(`\nWritable rows: ${writable.length}`);
 
+    if (NATURALIZE) {
+      const naturalizedCount = writable.filter((p) => p.newMetaSource === "naturalized").length;
+      const fallbackCount = writable.filter((p) => p.newMetaSource === "fallback").length;
+      const totalCost = writable.reduce((acc, p) => acc + p.naturalizerCostUsd, 0);
+      console.log(`Naturalizer summary: ${naturalizedCount} naturalized, ${fallbackCount} fell back to formula. Total OpenAI cost: $${totalCost.toFixed(4)}`);
+    }
+
     if (writable.length > 0) {
       console.log("\nSample (first 5):");
       for (const p of writable.slice(0, 5)) {
-        console.log(`  - ${p.slug}`);
+        console.log(`  - ${p.slug}  [${p.newMetaSource}]`);
         console.log(`      title (${p.newMetaTitle?.length}): ${p.newMetaTitle}`);
         console.log(`      desc  (${p.newMetaDescription?.length}): ${p.newMetaDescription}`);
       }
@@ -278,12 +326,12 @@ async function main(): Promise<void> {
           `UPDATE ${TENANT_SCHEMA}.knowledge_articles
            SET meta_title = $1,
                meta_description = $2,
-               meta_source = 'fallback',
+               meta_source = $6,
                meta_generated_at = $3,
                meta_locked_at = $3
            WHERE id = $4
              AND ($5::boolean OR meta_locked_at IS NULL)`,
-          [p.newMetaTitle, p.newMetaDescription, now, p.id, FORCE],
+          [p.newMetaTitle, p.newMetaDescription, now, p.id, FORCE, p.newMetaSource ?? "fallback"],
         );
         written += rowCount ?? 0;
       }

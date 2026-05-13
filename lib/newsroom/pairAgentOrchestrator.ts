@@ -17,6 +17,7 @@ import {
   metaContainsBrandAndCity,
   resolveBrandContext,
 } from "./brandContext";
+import { naturalizeMeta, hayloBodyExcerptFromHtml } from "./metaNaturalizer";
 import { getCurrentTenantSlug, DEFAULT_TENANT_SLUG } from "@/lib/tenant/context";
 
 /**
@@ -155,7 +156,7 @@ export async function runPairAgentPipeline(input: RunPairAgentInput): Promise<Pa
 
   let metaTitle: string;
   let metaDescription: string;
-  let metaSource: "llm" | "fallback";
+  let metaSource: "llm" | "fallback" | "naturalized";
 
   if (llmMetaTitleOk && llmMetaDescOk) {
     metaTitle = agentDraft.metaTitle!;
@@ -174,20 +175,50 @@ export async function runPairAgentPipeline(input: RunPairAgentInput): Promise<Pa
         { citySlug: input.city.slug, length: agentDraft.metaDescription?.length ?? 0 },
       );
     }
-    metaTitle = buildMetaTitle(
+    // Tier-2: deterministic formula. Always computed so we have a guaranteed
+    // safety-net string with the correct brand+city tokens.
+    const fallbackTitle = buildMetaTitle(
       brand,
       input.city.cityName,
       input.city.stateCode,
       input.hayloArticle.title,
     );
-    metaDescription = buildMetaDescription(
+    const fallbackDescription = buildMetaDescription(
       brand,
       input.city.cityName,
       input.city.stateCode,
       input.hayloArticle.title,
       input.hayloArticle.bodyHtml,
     );
-    metaSource = "fallback";
+
+    // MT-4.13.3 — Tier-2.5: in-line LLM "polish" pass over the formula. If
+    // the naturalizer produces a string that contains brand+city, sits
+    // inside the length bounds, and doesn't echo the formula's colon-prefix,
+    // we ship the naturalized version. Otherwise we ship the formula
+    // unchanged (silent degrade — naturalizer never throws).
+    const polished = await naturalizeMeta({
+      brand,
+      cityName: input.city.cityName,
+      stateCode: input.city.stateCode,
+      hayloTitle: input.hayloArticle.title,
+      hayloBodyExcerpt: hayloBodyExcerptFromHtml(input.hayloArticle.bodyHtml),
+      fallbackTitle,
+      fallbackDescription,
+    });
+    if (polished.source === "naturalized") {
+      console.info(
+        `[pairAgentOrchestrator] Tier-2.5 naturalizer applied (cost=$${polished.costUsd}, tokens=${polished.tokensUsed}).`,
+        { citySlug: input.city.slug },
+      );
+    } else if (polished.rejectionReason) {
+      console.warn(
+        `[pairAgentOrchestrator] Tier-2.5 naturalizer rejected (${polished.rejectionReason}); shipping Tier-2 formula.`,
+        { citySlug: input.city.slug },
+      );
+    }
+    metaTitle = polished.title;
+    metaDescription = polished.description;
+    metaSource = polished.source === "naturalized" ? "naturalized" : "fallback";
   }
 
   const draftPayload: NewsroomDraftPayloadV1 = {

@@ -425,8 +425,13 @@ export const knowledgeArticles = pgTable(
     // Soft target 50-60 chars, hard cap 90.
     metaTitle: text("meta_title"),
     metaDescription: text("meta_description"),
-    // MT-4.12: provenance + lifecycle for the meta fields.
-    //   meta_source: 'llm' | 'fallback' | 'manual'
+    // MT-4.12 / MT-4.13.3: provenance + lifecycle for the meta fields.
+    //   meta_source: 'llm' | 'naturalized' | 'fallback' | 'manual'
+    //     - 'llm':         copywriter-emitted meta passed brand+city check (Tier-1)
+    //     - 'naturalized': Tier-2.5 LLM polish over the deterministic formula
+    //                      (gpt-4.1-mini in `lib/newsroom/metaNaturalizer.ts`)
+    //     - 'fallback':    pure deterministic Tier-2 "${persona} in ${city}, ${ST}: ..."
+    //     - 'manual':      Conductor edited via admin (locks the row)
     //   meta_generated_at: when the current meta was produced (any source)
     //   meta_locked_at: non-null = frozen (set on publish; never re-generated)
     metaSource: varchar("meta_source", { length: 16 }),
