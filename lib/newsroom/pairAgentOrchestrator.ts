@@ -4,6 +4,7 @@ import type { HayloArticle, CityLocation } from "@shared/schema";
 import type { NewsroomDraftPayloadV1 } from "./draftPayload";
 import {
   buildMetaDescription,
+  buildMetaTitle,
   buildSuggestedSlug,
   processPair,
   type PairInput,
@@ -12,6 +13,11 @@ import {
 import { runPipeline } from "./pipelineWorker";
 import { makeOpenAIGenerator } from "./openaiGenerator";
 import { ensureCitySources } from "./cityResearchAutoSeeder";
+import {
+  metaContainsBrandAndCity,
+  resolveBrandContext,
+} from "./brandContext";
+import { getCurrentTenantSlug, DEFAULT_TENANT_SLUG } from "@/lib/tenant/context";
 
 /**
  * PASS / WARN / FAIL thresholds for the multi-agent Pair flow. These mirror
@@ -21,16 +27,14 @@ import { ensureCitySources } from "./cityResearchAutoSeeder";
 const PASS_THRESHOLD = 75;
 const WARN_THRESHOLD = 50;
 
+const META_DESCRIPTION_MIN = 40;
+
 function verdictFromScore(score: number): AuditVerdict {
   if (score >= PASS_THRESHOLD) return "pass";
   if (score >= WARN_THRESHOLD) return "warn";
   return "fail";
 }
 
-/**
- * Convert SEO-QC issue strings into AuditorIssue objects so they round-trip
- * through the same review queue / draft payload schema.
- */
 function qcIssuesToAuditorIssues(qcIssues: string[]): AuditorIssue[] {
   return qcIssues.slice(0, 12).map((message): AuditorIssue => {
     const lower = message.toLowerCase();
@@ -66,19 +70,16 @@ export interface RunPairAgentInput extends PairInput {
   username: string;
 }
 
-/**
- * Pair-flow entrypoint. Routes to the slim mock for dry-run, or to the full
- * 5-agent (Researcher → Analyst → Copywriter → SEO QC → Linker) pipeline
- * with the Haylo essay seeded in v4 polish-mode otherwise.
- *
- * Returns a `PairResult` shape so the existing enqueue-pairs route saving
- * logic (PASS → knowledge_articles, WARN → newsroom_review_queue, FAIL →
- * knowledge_generation_log) keeps working unchanged.
- */
 export async function runPairAgentPipeline(input: RunPairAgentInput): Promise<PairResult> {
   if (input.dryRun) {
     return processPair(input);
   }
+
+  // MT-4.12: resolve brand once for the entire run (used by ctx, meta tier
+  // selection, and final author/publisher attribution).
+  const brand = await resolveBrandContext(
+    getCurrentTenantSlug() ?? DEFAULT_TENANT_SLUG,
+  );
 
   const composeInput: ComposeInput = {
     hayloTitle: input.hayloArticle.title,
@@ -88,7 +89,7 @@ export async function runPairAgentPipeline(input: RunPairAgentInput): Promise<Pa
     stateName: input.city.stateName ?? null,
     localVibe: input.localVibe ?? null,
     vibeSourceUrl: input.vibeSourceUrl ?? null,
-    topicSlug: input.hayloArticle.topicSlug,
+    topicSlug: input.hayloArticle.topicSlug ?? undefined,
   };
   const composed: ComposeResult = composePressRelease(composeInput);
 
@@ -109,10 +110,8 @@ export async function runPairAgentPipeline(input: RunPairAgentInput): Promise<Pa
     dryRun: false,
     source: `pair-agent/${input.hayloArticle.slug}`,
     skipReviewQueue: true,
+    brand,
     hayloSeed: {
-      // Use composer's cleaned title (handles truncated-sentence Haylo titles),
-      // not the raw DB title — otherwise the Copywriter sees garbage and tends
-      // to echo it back as the final headline.
       title: composed.title,
       bodyHtml: input.hayloArticle.bodyHtml,
       topicSlug: input.hayloArticle.topicSlug ?? null,
@@ -135,24 +134,72 @@ export async function runPairAgentPipeline(input: RunPairAgentInput): Promise<Pa
 
   const agentDraft = pipelineResult.draftPayload;
   const suggestedSlug = buildSuggestedSlug(input.city.slug, input.hayloArticle.slug);
-  const metaDescription =
-    agentDraft.metaDescription && agentDraft.metaDescription.length >= 40
-      ? agentDraft.metaDescription
-      : buildMetaDescription(
-          input.city.cityName,
-          input.city.stateCode,
-          input.hayloArticle.title,
-          input.hayloArticle.bodyHtml,
-        );
+
+  // MT-4.12: tiered meta selection.
+  //   Tier-1 (LLM): use the copywriter's metaTitle/metaDescription IF it
+  //                 contains BOTH the brand persona display name AND the city
+  //                 name (case-insensitive). This is the "natural placement"
+  //                 path the Conductor specified.
+  //   Tier-2 (deterministic): otherwise use the locked
+  //                 "${brand} in ${city}, ${state}: …" prefix.
+  // metaSource is recorded so the admin UI can show provenance per article.
+  const llmMetaTitleOk = metaContainsBrandAndCity(
+    agentDraft.metaTitle,
+    brand,
+    input.city.cityName,
+  );
+  const llmMetaDescOk =
+    !!agentDraft.metaDescription &&
+    agentDraft.metaDescription.length >= META_DESCRIPTION_MIN &&
+    metaContainsBrandAndCity(agentDraft.metaDescription, brand, input.city.cityName);
+
+  let metaTitle: string;
+  let metaDescription: string;
+  let metaSource: "llm" | "fallback";
+
+  if (llmMetaTitleOk && llmMetaDescOk) {
+    metaTitle = agentDraft.metaTitle!;
+    metaDescription = agentDraft.metaDescription!;
+    metaSource = "llm";
+  } else {
+    if (!llmMetaTitleOk) {
+      console.warn(
+        `[pairAgentOrchestrator] LLM metaTitle missing brand or city; falling back to Tier-2 prefix.`,
+        { citySlug: input.city.slug, raw: agentDraft.metaTitle ?? null },
+      );
+    }
+    if (!llmMetaDescOk) {
+      console.warn(
+        `[pairAgentOrchestrator] LLM metaDescription missing brand or city (or too short); falling back to Tier-2 prefix.`,
+        { citySlug: input.city.slug, length: agentDraft.metaDescription?.length ?? 0 },
+      );
+    }
+    metaTitle = buildMetaTitle(
+      brand,
+      input.city.cityName,
+      input.city.stateCode,
+      input.hayloArticle.title,
+    );
+    metaDescription = buildMetaDescription(
+      brand,
+      input.city.cityName,
+      input.city.stateCode,
+      input.hayloArticle.title,
+      input.hayloArticle.bodyHtml,
+    );
+    metaSource = "fallback";
+  }
 
   const draftPayload: NewsroomDraftPayloadV1 = {
     ...agentDraft,
     citySlug: input.city.slug,
     suggestedSlug,
+    metaTitle,
     metaDescription,
+    metaSource,
     dateline: agentDraft.dateline ?? composed.dateline,
-    authorName: agentDraft.authorName ?? "Investor Ensights Newsroom",
-    publisherName: agentDraft.publisherName ?? "Investor Ensights",
+    authorName: agentDraft.authorName ?? brand.authorName,
+    publisherName: agentDraft.publisherName ?? brand.publisherName,
     hayloArticleId: input.hayloArticle.id,
     auditVerdict: verdict,
     auditFlowScore: qcScore,

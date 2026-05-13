@@ -1,4 +1,5 @@
 import type { NewsroomDraftPayloadV1 } from "@/lib/newsroom/draftPayload";
+import type { BrandContext } from "@/lib/newsroom/brandContext";
 
 export type StageRole =
   | "researcher"
@@ -24,6 +25,13 @@ export interface StageContext {
     bodyHtml: string;
     topicSlug?: string | null;
   };
+  /**
+   * MT-4.12: per-tenant brand voice. Threaded into prompt builders so titles,
+   * meta, CTAs, and boilerplate render in the active persona's voice instead
+   * of hardcoded "Tableicity" / "Investor Ensights" strings. Optional only so
+   * the fixture generator and legacy callers compile; live runs always set it.
+   */
+  brand?: BrandContext;
 }
 
 export interface ResearcherOutput {
@@ -44,6 +52,8 @@ export interface AnalystOutput {
 
 export interface CopywriterOutput {
   title: string;
+  /** MT-4.12: SEO `<title>` (SERP). Optional from older fixtures. */
+  metaTitle?: string;
   metaDescription?: string;
   headline: string;
   subheadline?: string;
@@ -108,8 +118,9 @@ export function composeDraftFromOutputs(opts: {
   citySlug: string;
   prior: PriorOutputs;
   links: LinkerOutput["links"];
+  brand?: BrandContext;
 }): NewsroomDraftPayloadV1 {
-  const { citySlug, prior, links } = opts;
+  const { citySlug, prior, links, brand } = opts;
   const cw = prior.copywriter;
   if (!cw) throw new Error("composeDraftFromOutputs: copywriter output missing");
 
@@ -117,19 +128,27 @@ export function composeDraftFromOutputs(opts: {
   const slugBase = slugify(cw.title || citySlug);
   const suggestedSlug = `${slugBase}-${today}`.slice(0, 120);
 
+  // MT-4.12: brand-aware boilerplate / attribution. Falls back to neutral
+  // strings when brand context is missing (legacy callers / fixture mode).
+  const personaDisplay = brand?.personaDisplayName ?? "Investor Ensights";
+  const tagline = brand?.brandTagline ?? "Local company formation and equity insights for investors.";
+  const author = brand?.authorName ?? `${personaDisplay} Newsroom`;
+  const publisher = brand?.publisherName ?? personaDisplay;
+
   return {
     version: "v1",
     citySlug,
     suggestedSlug,
     title: cw.title,
+    metaTitle: cw.metaTitle,
     metaDescription: cw.metaDescription,
     headline: cw.headline,
     subheadline: cw.subheadline,
     dateline: cw.dateline,
     bodyHtml: cw.bodyHtml,
-    boilerplateHtml: `<p>About Investor Ensights — Investor Ensights publishes ground-truth data on local company formation and equity activity for institutional and retail investors. <a href="https://investorensights.com">investorensights.com</a></p>`,
-    authorName: "Investor Ensights Newsroom",
-    publisherName: "Investor Ensights",
+    boilerplateHtml: `<p>About ${personaDisplay} — ${tagline}</p>`,
+    authorName: author,
+    publisherName: publisher,
     internalLinks: links,
   };
 }

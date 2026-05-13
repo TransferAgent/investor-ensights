@@ -17,7 +17,14 @@ export const newsroomDraftPayloadV1Schema = z.object({
     .max(120)
     .regex(/^[a-z0-9-]+$/, "lowercase letters, digits, hyphens only"),
   title: z.string().min(10).max(120),
+  // MT-4.12: SEO `<title>` (SERP) — distinct from H1 `title`. Soft target 50-60,
+  // hard cap 90.
+  metaTitle: z.string().min(10).max(90).optional(),
   metaDescription: z.string().min(40).max(300).optional(),
+  // MT-4.12: provenance for the meta fields above. 'llm' = produced by the
+  // copywriter agent and validated to contain brand+city; 'fallback' =
+  // deterministic Tier-2 prefix; 'manual' = reviewer-edited.
+  metaSource: z.enum(["llm", "fallback", "manual"]).optional(),
   headline: z.string().min(10),
   subheadline: z.string().optional(),
   dateline: z.string().max(120).optional(),

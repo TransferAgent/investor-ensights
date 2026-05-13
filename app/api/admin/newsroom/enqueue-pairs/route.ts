@@ -11,6 +11,7 @@ import { runPairAgentPipeline } from "@/lib/newsroom/pairAgentOrchestrator";
 import { newsroomDraftPayloadV1Schema } from "@/lib/newsroom/draftPayload";
 import { sanitizeNewsroomHtml } from "@/lib/newsroom/htmlSanitizer";
 import { withTenantAsync } from "@/lib/tenant/context";
+import { resolveBrandContext } from "@/lib/newsroom/brandContext";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -33,7 +34,10 @@ interface PerCityResult {
   reason?: string;
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://www.tableicity.com";
+// MT-4.12: BASE_URL is the iE platform host used for canonical URLs across
+// every tenant. Fallback is the iE production domain — never a per-tenant
+// brand domain (those live in `tenants.brand_home_url`).
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://www.investorensights.com";
 
 export async function POST(req: NextRequest) {
   const session = await verifySession();
@@ -72,6 +76,11 @@ async function handlePost(
       { status: 412 }
     );
   }
+
+  // MT-4.12: brand resolved once for the entire enqueue batch (all pairs in
+  // this request belong to one tenant). Used as the author/publisher fallback
+  // when a draft payload omits them.
+  const brand = await resolveBrandContext(session.tenantSlug);
 
   const allCities = await storage.getCities(false);
   const slugSet = new Set(citySlugs);
@@ -145,14 +154,20 @@ async function handlePost(
               hayloArticleId: haylo.id,
               status: "pending",
               title: draft.title,
+              // MT-4.12: persist SEO meta + provenance. meta_locked_at is left
+              // null here — locking happens on publish (separate gate).
+              metaTitle: draft.metaTitle ?? null,
               metaDescription: draft.metaDescription ?? null,
+              metaSource: draft.metaSource ?? null,
+              metaGeneratedAt: draft.metaTitle || draft.metaDescription ? new Date() : null,
               canonicalUrl: `${BASE_URL}/discovery/knowledge/${draft.suggestedSlug}`,
               headline: draft.headline,
               subheadline: draft.subheadline ?? null,
               dateline: null,
               bodyHtml: draft.bodyHtml,
-              authorName: draft.authorName ?? "Tableicity",
-              publisherName: draft.publisherName ?? "Tableicity",
+              // MT-4.12: brand-resolved fallback (no hardcoded persona).
+              authorName: draft.authorName ?? brand.authorName,
+              publisherName: draft.publisherName ?? brand.publisherName,
             })
             .returning();
           const bumpResult = await tx

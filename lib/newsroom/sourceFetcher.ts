@@ -252,13 +252,19 @@ export async function fetchCitySources(citySlug: string): Promise<CitySourcesRes
   const combined = sources
     .filter((s) => s.ok && s.markdown)
     .map((s, i) => {
+      // MT-4.12: brand-neutral marker name (`pse_source_*` = persona-source).
+      // Also defang both the new marker and the legacy `tableicity_source_*`
+      // marker if it appears inside fetched content, so authors of source
+      // pages can't smuggle in fake source headers.
       const safeMd = s.markdown
+        .replace(/<\|pse_source_/gi, "<|sanitized_")
+        .replace(/<\|END_PSE_SOURCE\|>/gi, "<|sanitized_end|>")
         .replace(/<\|tableicity_source_/gi, "<|sanitized_")
         .replace(/<\|END_TABLEICITY_SOURCE\|>/gi, "<|sanitized_end|>");
       return [
-        `<|tableicity_source_${i + 1}_begin url="${s.url}"${s.label ? ` label="${s.label}"` : ""}|>`,
+        `<|pse_source_${i + 1}_begin url="${s.url}"${s.label ? ` label="${s.label}"` : ""}|>`,
         safeMd,
-        `<|END_TABLEICITY_SOURCE|>`,
+        `<|END_PSE_SOURCE|>`,
       ].join("\n");
     })
     .join("\n\n");

@@ -225,6 +225,7 @@ function asOptionalString(v: unknown, max: number): string | undefined {
 
 interface CopywriterRaw {
   title?: unknown;
+  metaTitle?: unknown;
   metaDescription?: unknown;
   headline?: unknown;
   subheadline?: unknown;
@@ -238,14 +239,18 @@ function shapeCopywriterOutput(
   dateString: string
 ): {
   title: string;
+  metaTitle?: string;
   metaDescription?: string;
   headline: string;
   subheadline?: string;
   dateline: string;
   bodyHtml: string;
 } {
-  const fallbackTitle = `${ctx.cityName}, ${ctx.stateCode}: Cap-Table Activity Snapshot`;
-  const fallbackHeadline = `${ctx.cityName} Cap-Table Activity Snapshot`;
+  // MT-4.12: brand-aware fallback title (kept generic enough that any persona's
+  // unfilled brandVertical still produces a readable string).
+  const persona = ctx.brand?.personaDisplayName ?? "Newsroom";
+  const fallbackTitle = `${ctx.cityName}, ${ctx.stateCode}: ${persona} Activity Snapshot`;
+  const fallbackHeadline = `${ctx.cityName} ${persona} Activity Snapshot`;
 
   let bodyHtml = asString(parsed.bodyHtml, 8000, "");
   if (bodyHtml.length < 200) {
@@ -254,6 +259,7 @@ function shapeCopywriterOutput(
 
   return {
     title: asString(parsed.title, 120, fallbackTitle),
+    metaTitle: asOptionalString(parsed.metaTitle, 90),
     metaDescription: asOptionalString(parsed.metaDescription, 300),
     headline: asString(parsed.headline, 200, fallbackHeadline),
     subheadline: asOptionalString(parsed.subheadline, 300),
@@ -474,6 +480,7 @@ export function makeOpenAIGenerator(
         model: MODEL,
         promptVersion: versionTag,
         title: finalShape.title,
+        metaTitle: finalShape.metaTitle,
         metaDescription: finalShape.metaDescription,
         headline: finalShape.headline,
         subheadline: finalShape.subheadline,
@@ -525,11 +532,18 @@ export function makeOpenAIGenerator(
     candidates: CandidateCity[]
   ): Promise<StageRunResult> {
     if (candidates.length === 0) {
+      const persona = ctx.brand?.personaDisplayName ?? "all";
       return {
         output: {
           model: MODEL,
           promptVersion: versionTag,
-          links: [{ targetSlug: "locations", anchorText: "all Investor Ensights city pages", position: 0 }],
+          links: [
+            {
+              targetSlug: "locations",
+              anchorText: `${persona} city pages`.slice(0, 60),
+              position: 0,
+            },
+          ],
           note: "No candidate cities available; emitted /locations index link.",
         },
         tokensUsed: 0,

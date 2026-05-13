@@ -11,6 +11,8 @@ import { verifySession } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { z } from "zod";
 import { newsroomDraftPayloadV1Schema } from "@/lib/newsroom/draftPayload";
+import { withTenantAsync } from "@/lib/tenant/context";
+import { resolveBrandContext } from "@/lib/newsroom/brandContext";
 
 const patchSchema = z.object({
   status: z.enum(["approved", "rejected"]),
@@ -19,19 +21,22 @@ const patchSchema = z.object({
 
 const SAFE_DEFAULT_ROBOTS =
   "noindex, nofollow, max-snippet:-1, max-image-preview:large, max-video-preview:-1";
+// MT-4.12: BASE_URL is the iE platform host (used for canonical URLs across
+// every tenant). Fallback is the iE production domain — never a per-tenant
+// brand domain (those live in `tenants.brand_home_url`).
 const BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL || "https://www.tableicity.com";
+  process.env.NEXT_PUBLIC_BASE_URL || "https://www.investorensights.com";
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
+interface SessionShape {
+  username: string;
+  tenantSlug: string;
+}
+
+async function handlePatch(
+  session: SessionShape,
+  id: string,
+  body: z.infer<typeof patchSchema>,
 ) {
-  const session = await verifySession();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  const { id } = await params;
-  const body = patchSchema.parse(await req.json());
-
   const [review] = await db
     .select()
     .from(newsroomReviewQueue)
@@ -92,6 +97,11 @@ export async function PATCH(
     );
   }
 
+  // MT-4.12: brand resolved against the active tenant (set by withTenantAsync
+  // wrapper below). Used to fill in author/publisher when the draft payload
+  // omits them — never falls back to a hardcoded persona name.
+  const brand = await resolveBrandContext(session.tenantSlug);
+
   let result;
   try {
     result = await db.transaction(async (tx) => {
@@ -115,7 +125,12 @@ export async function PATCH(
         hayloArticleId: draft.hayloArticleId ?? null,
         status: "pending",
         title: draft.title,
+        // MT-4.12: persist SEO meta + provenance from the approved draft payload.
+        // meta_locked_at stays null until publish (separate gate).
+        metaTitle: draft.metaTitle ?? null,
         metaDescription: draft.metaDescription ?? null,
+        metaSource: draft.metaSource ?? null,
+        metaGeneratedAt: draft.metaTitle || draft.metaDescription ? now : null,
         headline: draft.headline,
         subheadline: draft.subheadline ?? null,
         dateline: null,
@@ -124,8 +139,8 @@ export async function PATCH(
         ogImageUrl: draft.ogImageUrl ?? null,
         robots: SAFE_DEFAULT_ROBOTS,
         canonicalUrl: `${BASE_URL}/discovery/knowledge/${draft.suggestedSlug}`,
-        authorName: draft.authorName ?? "Tableicity",
-        publisherName: draft.publisherName ?? "Tableicity",
+        authorName: draft.authorName ?? brand.authorName,
+        publisherName: draft.publisherName ?? brand.publisherName,
         datePublished: null,
         dateModified: now,
       })
@@ -207,4 +222,22 @@ export async function PATCH(
     review: result.review,
     publishedArticle: result.article,
   });
+}
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await verifySession();
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const body = patchSchema.parse(await req.json());
+
+  // MT-4.12: bind every DB call in the publish flow to the reviewer's tenant
+  // schema. Without this wrapper, db.* would land on the platform default
+  // tenant — a multi-tenant data-bleed bug.
+  return withTenantAsync(session.tenantSlug, () =>
+    handlePatch(session as SessionShape, id, body),
+  );
 }

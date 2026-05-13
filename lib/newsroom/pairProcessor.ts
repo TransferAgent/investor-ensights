@@ -4,8 +4,17 @@ import { auditPressRelease, type AuditorInput, type AuditorResult, type AuditVer
 import { normalizeHayloBody } from "./hayloBodyNormalizer";
 import type { HayloArticle, CityLocation } from "@shared/schema";
 import type { NewsroomDraftPayloadV1 } from "./draftPayload";
+import { resolveBrandContext, type BrandContext } from "./brandContext";
+import { getCurrentTenantSlug, DEFAULT_TENANT_SLUG } from "@/lib/tenant/context";
 
-const META_DESCRIPTION_TARGET_CHARS = 300;
+// MT-4.12: meta-field shape constants.
+//   Title: SERP `<title>`. Soft target ≤60, hard cap 90.
+//   Description: Soft warn >200 (logged, NOT blocked per Conductor decision),
+//   hard cap 300.
+const META_TITLE_TARGET_CHARS = 60;
+const META_TITLE_HARD_MAX = 90;
+const META_DESCRIPTION_SOFT_WARN_CHARS = 200;
+const META_DESCRIPTION_TARGET_CHARS = 200;
 const META_DESCRIPTION_HARD_MAX = 300;
 
 export interface PairInput {
@@ -89,22 +98,86 @@ function buildMetaDescriptionFromBody(bodyHtml: string, maxChars: number): strin
   return acc || null;
 }
 
+/**
+ * Trim to a maximum length without cutting a word in half. Adds a single
+ * trailing period (so meta strings always end on a sentence boundary) when
+ * truncation drops a word.
+ */
+function truncateAtWordBoundary(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const slice = s.slice(0, max - 1);
+  const lastSpace = slice.lastIndexOf(" ");
+  const cut = lastSpace > Math.floor(max * 0.5) ? slice.slice(0, lastSpace) : slice;
+  const stripped = cut.replace(/[\s,;:—\-–]+$/, "");
+  return /[.!?]$/.test(stripped) ? stripped : `${stripped}.`;
+}
+
+/**
+ * MT-4.12: deterministic Tier-2 SEO `<title>` (SERP). Format is the locked
+ * "${brand} in ${city}, ${state}: ${suffix}" prefix the Conductor approved.
+ * Suffix derives from the Haylo article's title (or a generic fallback).
+ *
+ * Used:
+ *   - by `processPair` (dry-run path) where there is no LLM output
+ *   - by `pairAgentOrchestrator` Tier-2 fallback when the LLM-emitted
+ *     metaTitle fails the brand+city contains-check (see `metaContainsBrandAndCity`)
+ *   - by the Tableicity 84-article backfill script
+ */
+export function buildMetaTitle(
+  brand: BrandContext,
+  cityName: string,
+  stateCode: string,
+  hayloTitle?: string | null,
+): string {
+  const persona = brand.personaDisplayName;
+  const prefix = `${persona} in ${cityName}, ${stateCode}: `;
+  const remaining = META_TITLE_HARD_MAX - prefix.length;
+  const rawSuffix = (hayloTitle ?? "").trim();
+  const suffix = rawSuffix
+    ? truncateAtWordBoundary(rawSuffix, Math.max(10, remaining)).replace(/\.$/, "")
+    : `${brand.brandFeatureCta}`.replace(/\.$/, "");
+  const out = `${prefix}${suffix}`.slice(0, META_TITLE_HARD_MAX);
+  if (out.length > META_TITLE_TARGET_CHARS) {
+    console.warn(
+      `[buildMetaTitle] soft-warn: meta_title is ${out.length} chars (>${META_TITLE_TARGET_CHARS} target) for ${persona}/${cityName}.`,
+    );
+  }
+  return out;
+}
+
+/**
+ * MT-4.12: deterministic Tier-2 SEO meta description. Always begins with the
+ * "${brand} in ${city}, ${state}: " prefix so each city/persona pair gets a
+ * unique opening (fixes the duplicate-content bug in the legacy Tier-3 string).
+ *
+ * Body of the description is derived from the Haylo essay's first sentences;
+ * if no body is supplied, falls back to the Haylo title + brand tagline.
+ */
 export function buildMetaDescription(
+  brand: BrandContext,
   cityName: string,
   stateCode: string,
   hayloTitle: string,
   hayloBodyHtml?: string,
 ): string {
+  const prefix = `${brand.personaDisplayName} in ${cityName}, ${stateCode}: `;
+  const remaining = META_DESCRIPTION_HARD_MAX - prefix.length;
+
+  let suffix: string | null = null;
   if (hayloBodyHtml) {
-    const fromBody = buildMetaDescriptionFromBody(hayloBodyHtml, META_DESCRIPTION_TARGET_CHARS);
-    if (fromBody) return fromBody.slice(0, META_DESCRIPTION_HARD_MAX);
+    suffix = buildMetaDescriptionFromBody(hayloBodyHtml, remaining);
   }
-  const sentence = `${hayloTitle} — Investor Ensights insights for founders in ${cityName}, ${stateCode}.`;
-  if (sentence.length >= 40) return sentence.slice(0, META_DESCRIPTION_HARD_MAX);
-  return `${sentence} Cap table, equity, and 409A guidance for the ${cityName} startup community.`.slice(
-    0,
-    META_DESCRIPTION_HARD_MAX,
-  );
+  if (!suffix) {
+    suffix = `${hayloTitle.trim()} — ${brand.brandTagline}.`;
+  }
+
+  const out = truncateAtWordBoundary(`${prefix}${suffix}`, META_DESCRIPTION_HARD_MAX);
+  if (out.length > META_DESCRIPTION_SOFT_WARN_CHARS) {
+    console.warn(
+      `[buildMetaDescription] soft-warn: meta_description is ${out.length} chars (>${META_DESCRIPTION_SOFT_WARN_CHARS} target) for ${brand.personaDisplayName}/${cityName}.`,
+    );
+  }
+  return out;
 }
 
 function mockAudit(input: { citySlug: string; hayloArticleId: string; localVibeWasInjected: boolean; warnings: string[] }): AuditorResult {
@@ -143,7 +216,7 @@ export async function processPair(input: PairInput): Promise<PairResult> {
     stateName: input.city.stateName ?? null,
     localVibe: input.localVibe ?? null,
     vibeSourceUrl: input.vibeSourceUrl ?? null,
-    topicSlug: input.hayloArticle.topicSlug,
+    topicSlug: input.hayloArticle.topicSlug ?? undefined,
   };
   const composed = composePressRelease(composeInput);
 
@@ -166,7 +239,18 @@ export async function processPair(input: PairInput): Promise<PairResult> {
   }
 
   const suggestedSlug = buildSuggestedSlug(input.city.slug, input.hayloArticle.slug);
+  // MT-4.12: dry-run path has no LLM output, so meta is always Tier-2 (deterministic).
+  const brand = await resolveBrandContext(
+    getCurrentTenantSlug() ?? DEFAULT_TENANT_SLUG,
+  );
+  const metaTitle = buildMetaTitle(
+    brand,
+    input.city.cityName,
+    input.city.stateCode,
+    input.hayloArticle.title,
+  );
   const metaDescription = buildMetaDescription(
+    brand,
     input.city.cityName,
     input.city.stateCode,
     input.hayloArticle.title,
@@ -178,12 +262,14 @@ export async function processPair(input: PairInput): Promise<PairResult> {
     citySlug: input.city.slug,
     suggestedSlug,
     title: composed.title,
+    metaTitle,
     metaDescription,
+    metaSource: "fallback",
     headline: composed.title,
     dateline: composed.dateline,
     bodyHtml: composed.fullHtml,
-    authorName: "Investor Ensights",
-    publisherName: "Investor Ensights",
+    authorName: brand.authorName,
+    publisherName: brand.publisherName,
     hayloArticleId: input.hayloArticle.id,
     auditVerdict: audit.verdict,
     auditFlowScore: audit.flowScore,

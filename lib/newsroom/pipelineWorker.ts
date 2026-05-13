@@ -34,6 +34,8 @@ import { makeOpenAIGenerator, openaiGenerator } from "@/lib/newsroom/openaiGener
 import { ACTIVE_PROMPT_VERSION, PROMPTS, type PromptVersion } from "@/lib/newsroom/prompts";
 import { sanitizeNewsroomHtml, sanitizeNewsroomPlaintext } from "@/lib/newsroom/htmlSanitizer";
 import { normalizeHayloBody } from "@/lib/newsroom/hayloBodyNormalizer";
+import { resolveBrandContext, type BrandContext } from "@/lib/newsroom/brandContext";
+import { getCurrentTenantSlug, DEFAULT_TENANT_SLUG } from "@/lib/tenant/context";
 
 const STAGE_ORDER: StageRole[] = [
   "researcher",
@@ -201,6 +203,13 @@ export interface RunPipelineOpts {
     topicSlug?: string | null;
   };
   /**
+   * MT-4.12: brand context for the active tenant. Optional; if omitted,
+   * runPipeline resolves it from the current AsyncLocalStorage tenant slug
+   * (falling back to DEFAULT_TENANT_SLUG). Threaded into StageContext so
+   * every prompt and the final compose step renders in the persona's voice.
+   */
+  brand?: BrandContext;
+  /**
    * When true, runPipeline skips inserting into newsroom_review_queue (and the
    * link-suggestions table). The caller is then responsible for persisting the
    * draft (e.g. into knowledge_articles) using the draftPayload returned in the
@@ -213,6 +222,10 @@ export interface RunPipelineOpts {
 export async function runPipeline(opts: RunPipelineOpts): Promise<PipelineRunResult> {
   const startMs = Date.now();
   const { citySlug, username, generator, dryRun, source, hayloSeed, skipReviewQueue } = opts;
+  // MT-4.12: resolve brand once per run; passed into ctx and the final compose step.
+  const brand =
+    opts.brand ??
+    (await resolveBrandContext(getCurrentTenantSlug() ?? DEFAULT_TENANT_SLUG));
 
   const agents = await ensureDefaultAgents();
   const agentByRole = new Map<string, NewsroomAgent>(agents.map((a) => [a.role, a]));
@@ -276,6 +289,7 @@ export async function runPipeline(opts: RunPipelineOpts): Promise<PipelineRunRes
     stateCode,
     jobId: job.id,
     hayloSeed,
+    brand,
   };
 
   const prior: PriorOutputs = {};
@@ -368,6 +382,8 @@ export async function runPipeline(opts: RunPipelineOpts): Promise<PipelineRunRes
         title: sanitizeNewsroomPlaintext(cw.title),
         headline: sanitizeNewsroomPlaintext(cw.headline),
         subheadline: cw.subheadline ? sanitizeNewsroomPlaintext(cw.subheadline) : undefined,
+        // MT-4.12: sanitize the SERP <title> too.
+        metaTitle: cw.metaTitle ? sanitizeNewsroomPlaintext(cw.metaTitle) : undefined,
         metaDescription: cw.metaDescription ? sanitizeNewsroomPlaintext(cw.metaDescription) : undefined,
         dateline: cw.dateline ? sanitizeNewsroomPlaintext(cw.dateline) : undefined,
         bodyHtml: sanitizeNewsroomHtml(cw.bodyHtml),
@@ -379,6 +395,7 @@ export async function runPipeline(opts: RunPipelineOpts): Promise<PipelineRunRes
       citySlug,
       prior,
       links: linksFromStage,
+      brand,
     });
 
     const validated = newsroomDraftPayloadV1Schema.safeParse(draft);
