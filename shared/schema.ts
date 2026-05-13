@@ -62,6 +62,12 @@ export const tenants = pgTable(
     // Last successful pull timestamp (informational, mirrors Halo's own
     // "Last Pulled" column on their Distribution page).
     haloLastPulledAt: timestamp("halo_last_pulled_at", { withTimezone: true }),
+    // MT-4.12: brand voice fields used by the meta-title/description LLM
+    // pipeline and the deterministic Tier-2/Tier-3 fallbacks. Nullable to keep
+    // legacy tenant rows valid; resolveBrandContext() supplies safe defaults.
+    brandVertical: varchar("brand_vertical", { length: 200 }),
+    brandTagline: varchar("brand_tagline", { length: 300 }),
+    brandFeatureCta: varchar("brand_feature_cta", { length: 200 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("tenants_slug_idx").on(table.slug)]
@@ -414,7 +420,18 @@ export const knowledgeArticles = pgTable(
     hayloArticleId: uuid("haylo_article_id"),
     status: text("status").notNull().default("pending"),
     title: text("title").notNull(),
+    // MT-4.12: SEO `<title>` for the SERP. Distinct from `title` (the H1) so
+    // we can shorten and inject the city without altering on-page headline.
+    // Soft target 50-60 chars, hard cap 90.
+    metaTitle: text("meta_title"),
     metaDescription: text("meta_description"),
+    // MT-4.12: provenance + lifecycle for the meta fields.
+    //   meta_source: 'llm' | 'fallback' | 'manual'
+    //   meta_generated_at: when the current meta was produced (any source)
+    //   meta_locked_at: non-null = frozen (set on publish; never re-generated)
+    metaSource: varchar("meta_source", { length: 16 }),
+    metaGeneratedAt: timestamp("meta_generated_at", { withTimezone: true }),
+    metaLockedAt: timestamp("meta_locked_at", { withTimezone: true }),
     canonicalUrl: text("canonical_url"),
     robots: text("robots").notNull().default("index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"),
     ogImageUrl: text("og_image_url"),
