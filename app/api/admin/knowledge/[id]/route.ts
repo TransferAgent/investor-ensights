@@ -4,15 +4,18 @@ import { storage } from "@/lib/storage";
 import { logAuditEvent } from "@/lib/audit";
 import { sanitizeString } from "@/lib/sanitize";
 import { sanitizeNewsroomHtml } from "@/lib/newsroom/htmlSanitizer";
+import { withTenantAsync } from "@/lib/tenant/context";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await verifySession(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const article = await storage.getKnowledgeArticleById(id);
-  if (!article) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(article);
+  return withTenantAsync(session.tenantSlug, async () => {
+    const article = await storage.getKnowledgeArticleById(id);
+    if (!article) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(article);
+  });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -21,13 +24,37 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params;
   const body = await req.json();
+  return withTenantAsync(session.tenantSlug, () => handlePatch(id, body, session.username));
+}
+
+async function handlePatch(id: string, body: any, username: string) {
   const data: any = {};
 
   if (body.title !== undefined) data.title = sanitizeString(body.title);
   if (body.headline !== undefined) data.headline = body.headline;
   if (body.subheadline !== undefined) data.subheadline = body.subheadline || null;
   if (body.dateline !== undefined) data.dateline = body.dateline ? sanitizeString(body.dateline) : null;
-  if (body.metaDescription !== undefined) data.metaDescription = body.metaDescription ? sanitizeString(body.metaDescription) : null;
+
+  // MT-4.12: meta_title + meta_description are version-locked once published.
+  // Refuse to mutate either when meta_locked_at is set; otherwise stamp
+  // provenance as 'manual' and bump meta_generated_at on any meta change.
+  const wantsMetaTitle = body.metaTitle !== undefined;
+  const wantsMetaDesc = body.metaDescription !== undefined;
+  if (wantsMetaTitle || wantsMetaDesc) {
+    const current = await storage.getKnowledgeArticleById(id);
+    if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (current.metaLockedAt) {
+      return NextResponse.json(
+        { error: "Meta title/description are locked for this article and cannot be edited." },
+        { status: 409 }
+      );
+    }
+    if (wantsMetaTitle) data.metaTitle = body.metaTitle ? sanitizeString(body.metaTitle) : null;
+    if (wantsMetaDesc) data.metaDescription = body.metaDescription ? sanitizeString(body.metaDescription) : null;
+    data.metaSource = "manual";
+    data.metaGeneratedAt = new Date();
+  }
+
   if (body.bodyHtml !== undefined) data.bodyHtml = sanitizeNewsroomHtml(body.bodyHtml);
   if (body.boilerplateHtml !== undefined) data.boilerplateHtml = body.boilerplateHtml || null;
   if (body.ogImageUrl !== undefined) data.ogImageUrl = body.ogImageUrl || null;
@@ -57,7 +84,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const updated = await storage.updateKnowledgeArticle(id, data);
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await logAuditEvent({ username: session.username, action: "update", entityType: "knowledge_article", entityId: id });
+  await logAuditEvent({ username: username, action: "update", entityType: "knowledge_article", entityId: id });
   return NextResponse.json(updated);
 }
 
@@ -66,7 +93,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  await storage.deleteKnowledgeArticle(id);
-  await logAuditEvent({ username: session.username, action: "delete", entityType: "knowledge_article", entityId: id });
-  return NextResponse.json({ success: true });
+  return withTenantAsync(session.tenantSlug, async () => {
+    await storage.deleteKnowledgeArticle(id);
+    await logAuditEvent({ username: session.username, action: "delete", entityType: "knowledge_article", entityId: id });
+    return NextResponse.json({ success: true });
+  });
 }

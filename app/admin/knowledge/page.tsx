@@ -84,7 +84,11 @@ interface KnowledgeArticle {
   headline: string
   subheadline: string | null
   dateline: string | null
+  metaTitle: string | null
   metaDescription: string | null
+  metaSource: string | null
+  metaGeneratedAt: string | null
+  metaLockedAt: string | null
   bodyHtml: string
   boilerplateHtml: string | null
   ogImageUrl: string | null
@@ -238,6 +242,7 @@ export default function KnowledgeAdmin() {
   const [formHeadline, setFormHeadline] = useState("")
   const [formSubheadline, setFormSubheadline] = useState("")
   const [formDateline, setFormDateline] = useState("")
+  const [formMetaTitle, setFormMetaTitle] = useState("")
   const [formMetaDesc, setFormMetaDesc] = useState("")
   const [formBody, setFormBody] = useState("")
   const [formBoilerplate, setFormBoilerplate] = useState("")
@@ -600,6 +605,7 @@ export default function KnowledgeAdmin() {
         headline: formHeadline,
         subheadline: formSubheadline || null,
         dateline: formDateline || null,
+        metaTitle: formMetaTitle || null,
         metaDescription: formMetaDesc || null,
         bodyHtml: formBody,
         boilerplateHtml: formBoilerplate || null,
@@ -622,20 +628,28 @@ export default function KnowledgeAdmin() {
   const updateMutation = useMutation({
     mutationFn: async () => {
       if (!editArticle) return
-      return apiRequest("PATCH", `/api/admin/knowledge/${editArticle.id}`, {
+      // MT-4.12: only send meta_* when unlocked AND when the user actually
+      // changed them — otherwise the API will 409 a locked article on every
+      // unrelated save (e.g., flipping the Index switch).
+      const metaLocked = !!editArticle.metaLockedAt
+      const metaTitleChanged = (editArticle.metaTitle || "") !== formMetaTitle
+      const metaDescChanged = (editArticle.metaDescription || "") !== formMetaDesc
+      const payload: Record<string, unknown> = {
         slug: formSlug,
         title: formTitle,
         headline: formHeadline,
         subheadline: formSubheadline || null,
         dateline: formDateline || null,
-        metaDescription: formMetaDesc || null,
         bodyHtml: formBody,
         boilerplateHtml: formBoilerplate || null,
         ogImageUrl: formOgImage || null,
         authorName: formAuthor,
         publisherName: formPublisher,
         robots: formAllowIndexing ? DEFAULT_ROBOTS : NOINDEX_ROBOTS,
-      })
+      }
+      if (!metaLocked && metaTitleChanged) payload.metaTitle = formMetaTitle || null
+      if (!metaLocked && metaDescChanged) payload.metaDescription = formMetaDesc || null
+      return apiRequest("PATCH", `/api/admin/knowledge/${editArticle.id}`, payload)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/knowledge"] })
@@ -847,6 +861,7 @@ export default function KnowledgeAdmin() {
     setFormHeadline("")
     setFormSubheadline("")
     setFormDateline("")
+    setFormMetaTitle("")
     setFormMetaDesc("")
     setFormBody("")
     setFormBoilerplate("")
@@ -862,6 +877,7 @@ export default function KnowledgeAdmin() {
     setFormHeadline(a.headline)
     setFormSubheadline(a.subheadline || "")
     setFormDateline(a.dateline || "")
+    setFormMetaTitle(a.metaTitle || "")
     setFormMetaDesc(a.metaDescription || "")
     setFormBody(a.bodyHtml)
     setFormBoilerplate(a.boilerplateHtml || "")
@@ -901,13 +917,107 @@ export default function KnowledgeAdmin() {
         <Textarea id="headline" value={formHeadline} onChange={(e) => setFormHeadline(e.target.value)} placeholder="Press release headline — supports <h2>, <strong>, etc." rows={2} className="font-mono text-xs" data-testid="input-headline" />
       </div>
       <div>
-        <Label htmlFor="title">Meta Title</Label>
-        <Input id="title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="SEO page title" data-testid="input-title" />
+        <Label htmlFor="title">Page Title (H1)</Label>
+        <Input id="title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="On-page H1 / fallback SEO title" data-testid="input-title" />
       </div>
-      <div>
-        <Label htmlFor="metaDesc">Meta Description</Label>
-        <Textarea id="metaDesc" value={formMetaDesc} onChange={(e) => setFormMetaDesc(e.target.value)} placeholder="SEO meta description" rows={2} data-testid="input-meta-desc" />
-      </div>
+      {(() => {
+        // MT-4.12: SEO Meta Title (SERP) + provenance + lock state. Distinct
+        // from the H1 above. When meta_locked_at is set on the editing article,
+        // both meta inputs are read-only and a lock badge is shown.
+        const metaLocked = isEdit && !!editArticle?.metaLockedAt
+        const metaSource = isEdit ? editArticle?.metaSource : null
+        const metaGeneratedAt = isEdit ? editArticle?.metaGeneratedAt : null
+        const sourceLabel =
+          metaSource === "llm" ? "LLM" :
+          metaSource === "fallback" ? "Fallback (deterministic)" :
+          metaSource === "manual" ? "Manual edit" :
+          "Not set"
+        const sourceClass =
+          metaSource === "llm" ? "bg-green-500/10 text-green-500 border-green-500/20" :
+          metaSource === "fallback" ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
+          metaSource === "manual" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
+          "bg-gray-500/10 text-gray-400 border-gray-500/20"
+        const titleCount = formMetaTitle.length
+        const descCount = formMetaDesc.length
+        const titleWarn = titleCount > 60
+        const titleHard = titleCount > 90
+        const descWarn = descCount > 200
+        const descHard = descCount > 300
+        return (
+          <div className="rounded-md border p-3 space-y-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="text-sm font-medium">SEO Meta (SERP)</div>
+              {isEdit && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full border ${sourceClass}`}
+                    data-testid="badge-meta-source"
+                  >
+                    Source: {sourceLabel}
+                  </span>
+                  {metaGeneratedAt && (
+                    <span className="text-xs text-muted-foreground" data-testid="text-meta-generated-at">
+                      Generated {new Date(metaGeneratedAt).toLocaleString()}
+                    </span>
+                  )}
+                  {metaLocked && (
+                    <span
+                      className="inline-flex items-center text-xs px-2 py-0.5 rounded-full border bg-red-500/10 text-red-500 border-red-500/20"
+                      data-testid="badge-meta-locked"
+                    >
+                      🔒 Locked {editArticle?.metaLockedAt ? new Date(editArticle.metaLockedAt).toLocaleDateString() : ""}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            {metaLocked && (
+              <p className="text-xs text-muted-foreground">
+                This article&apos;s meta title and description are frozen. They cannot be edited from this form.
+              </p>
+            )}
+            <div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="metaTitle">Meta Title</Label>
+                <span
+                  className={`text-xs ${titleHard ? "text-red-500" : titleWarn ? "text-yellow-500" : "text-muted-foreground"}`}
+                  data-testid="text-meta-title-count"
+                >
+                  {titleCount} / 60 {titleHard ? "(over 90 hard cap)" : titleWarn ? "(over 60 soft target)" : ""}
+                </span>
+              </div>
+              <Input
+                id="metaTitle"
+                value={formMetaTitle}
+                onChange={(e) => setFormMetaTitle(e.target.value)}
+                placeholder='e.g. "Tableicity in Austin, TX: …"'
+                disabled={metaLocked}
+                data-testid="input-meta-title"
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="metaDesc">Meta Description</Label>
+                <span
+                  className={`text-xs ${descHard ? "text-red-500" : descWarn ? "text-yellow-500" : "text-muted-foreground"}`}
+                  data-testid="text-meta-desc-count"
+                >
+                  {descCount} / 200 {descHard ? "(over 300 hard cap)" : descWarn ? "(over 200 soft target)" : ""}
+                </span>
+              </div>
+              <Textarea
+                id="metaDesc"
+                value={formMetaDesc}
+                onChange={(e) => setFormMetaDesc(e.target.value)}
+                placeholder="SEO meta description (must mention brand + city)"
+                rows={3}
+                disabled={metaLocked}
+                data-testid="input-meta-desc"
+              />
+            </div>
+          </div>
+        )
+      })()}
       <div>
         <Label htmlFor="subheadline">Subheadline (HTML supported)</Label>
         <Textarea id="subheadline" value={formSubheadline} onChange={(e) => setFormSubheadline(e.target.value)} placeholder="Optional subheadline — supports <h2>, <strong>, etc." rows={2} className="font-mono text-xs" data-testid="input-subheadline" />

@@ -375,9 +375,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const article = await withTenantAsync(tenantSlug, () => storage.getKnowledgeArticleBySlug(slug));
   if (!article || article.status === "archived") return { title: "Not Found" };
 
+  // MT-4.12: SERP <title> uses the dedicated meta_title (LLM- or fallback-built,
+  // brand+city aware) when present. Fall back to the H1 `title` for legacy
+  // articles that pre-date MT-4.12.
+  const seoTitle = article.metaTitle || article.title;
+
   if (article.status === "pending") {
     return {
-      title: `[PREVIEW] ${article.title}`,
+      title: `[PREVIEW] ${seoTitle}`,
       description: article.metaDescription || undefined,
       alternates: { canonical: `${BASE_URL}/discovery/knowledge/${article.slug}` },
       robots: { index: false, follow: false },
@@ -397,7 +402,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const isNofollow = robotsString.includes("nofollow");
 
   return {
-    title: article.title,
+    title: seoTitle,
     description: article.metaDescription || undefined,
     alternates: { canonical: `${BASE_URL}/discovery/knowledge/${article.slug}` },
     robots: {
