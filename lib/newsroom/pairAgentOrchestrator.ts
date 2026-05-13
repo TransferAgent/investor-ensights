@@ -14,7 +14,8 @@ import { runPipeline } from "./pipelineWorker";
 import { makeOpenAIGenerator } from "./openaiGenerator";
 import { ensureCitySources } from "./cityResearchAutoSeeder";
 import {
-  metaContainsBrandAndCity,
+  metaTitleAcceptable,
+  metaDescriptionAcceptable,
   resolveBrandContext,
 } from "./brandContext";
 import { naturalizeMeta, hayloBodyExcerptFromHtml } from "./metaNaturalizer";
@@ -136,23 +137,26 @@ export async function runPairAgentPipeline(input: RunPairAgentInput): Promise<Pa
   const agentDraft = pipelineResult.draftPayload;
   const suggestedSlug = buildSuggestedSlug(input.city.slug, input.hayloArticle.slug);
 
-  // MT-4.12: tiered meta selection.
-  //   Tier-1 (LLM): use the copywriter's metaTitle/metaDescription IF it
-  //                 contains BOTH the brand persona display name AND the city
-  //                 name (case-insensitive). This is the "natural placement"
-  //                 path the Conductor specified.
-  //   Tier-2 (deterministic): otherwise use the locked
-  //                 "${brand} in ${city}, ${state}: …" prefix.
+  // MT-4.13.4: tiered meta selection on the new contract.
+  //   Tier-1 (LLM):       copywriter's meta passes the new title+desc gates
+  //                       (city in title, brand BANNED from title; brand 1-2x
+  //                       in desc but not in the first 40 chars).
+  //   Tier-2.5 (LLM polish): Tier-1 reject → naturalizer rewrites the formula.
+  //   Tier-2 (formula):   if naturalizer also fails its guards → safety net.
+  //
   // metaSource is recorded so the admin UI can show provenance per article.
-  const llmMetaTitleOk = metaContainsBrandAndCity(
-    agentDraft.metaTitle,
+  const titleRejection = metaTitleAcceptable(
+    agentDraft.metaTitle ?? null,
     brand,
     input.city.cityName,
   );
-  const llmMetaDescOk =
-    !!agentDraft.metaDescription &&
-    agentDraft.metaDescription.length >= META_DESCRIPTION_MIN &&
-    metaContainsBrandAndCity(agentDraft.metaDescription, brand, input.city.cityName);
+  const descRejection = metaDescriptionAcceptable(
+    agentDraft.metaDescription ?? null,
+    brand,
+    input.city.cityName,
+  );
+  const llmMetaTitleOk = titleRejection === null;
+  const llmMetaDescOk = descRejection === null;
 
   let metaTitle: string;
   let metaDescription: string;
@@ -165,13 +169,13 @@ export async function runPairAgentPipeline(input: RunPairAgentInput): Promise<Pa
   } else {
     if (!llmMetaTitleOk) {
       console.warn(
-        `[pairAgentOrchestrator] LLM metaTitle missing brand or city; falling back to Tier-2 prefix.`,
+        `[pairAgentOrchestrator] LLM metaTitle rejected: ${titleRejection}; routing through Tier-2.5 naturalizer.`,
         { citySlug: input.city.slug, raw: agentDraft.metaTitle ?? null },
       );
     }
     if (!llmMetaDescOk) {
       console.warn(
-        `[pairAgentOrchestrator] LLM metaDescription missing brand or city (or too short); falling back to Tier-2 prefix.`,
+        `[pairAgentOrchestrator] LLM metaDescription rejected: ${descRejection}; routing through Tier-2.5 naturalizer.`,
         { citySlug: input.city.slug, length: agentDraft.metaDescription?.length ?? 0 },
       );
     }

@@ -7,15 +7,34 @@ import type { NewsroomDraftPayloadV1 } from "./draftPayload";
 import { resolveBrandContext, type BrandContext } from "./brandContext";
 import { getCurrentTenantSlug, DEFAULT_TENANT_SLUG } from "@/lib/tenant/context";
 
-// MT-4.12: meta-field shape constants.
-//   Title: SERP `<title>`. Soft target ≤60, hard cap 90.
-//   Description: Soft warn >200 (logged, NOT blocked per Conductor decision),
-//   hard cap 300.
-const META_TITLE_TARGET_CHARS = 60;
-const META_TITLE_HARD_MAX = 90;
-const META_DESCRIPTION_SOFT_WARN_CHARS = 200;
-const META_DESCRIPTION_TARGET_CHARS = 200;
-const META_DESCRIPTION_HARD_MAX = 300;
+// MT-4.12 / MT-4.13.4: meta-field shape constants.
+//   Title contract (MT-4.13.4 — Conductor approved):
+//     - DROP the brand from the title (Google SERP truncates ~60 chars; the
+//       brand was eating budget without adding SEO value — H1, canonical
+//       URL prefix, and description all carry the brand).
+//     - Title MUST contain the city verbatim.
+//     - Soft target ≤55, hard cap 65 (matches Google's SERP truncation).
+//   Description contract (MT-4.13.4 — "80% content, 20% brand"):
+//     - Content-first prose; brand named once (max twice), NOT in the first
+//       40 characters (so the snippet doesn't read like a door-hanger ad).
+//     - MUST contain BOTH city verbatim AND brand verbatim.
+//     - Soft target ~150, hard cap 200 (Google snippet ~155 chars desktop).
+const META_TITLE_TARGET_CHARS = 55;
+const META_TITLE_HARD_MAX = 65;
+const META_DESCRIPTION_SOFT_WARN_CHARS = 180;
+const META_DESCRIPTION_TARGET_CHARS = 150;
+const META_DESCRIPTION_HARD_MAX = 200;
+/** No brand mention permitted before this byte index in a description (80/20 rule). */
+export const META_DESCRIPTION_BRAND_LEAD_GUARD_CHARS = 40;
+/** Re-exported so the naturalizer + admin preview share the same numbers. */
+export const META_LIMITS = {
+  titleTarget: META_TITLE_TARGET_CHARS,
+  titleHardMax: META_TITLE_HARD_MAX,
+  descriptionTarget: META_DESCRIPTION_TARGET_CHARS,
+  descriptionSoftWarn: META_DESCRIPTION_SOFT_WARN_CHARS,
+  descriptionHardMax: META_DESCRIPTION_HARD_MAX,
+  descriptionBrandLeadGuard: META_DESCRIPTION_BRAND_LEAD_GUARD_CHARS,
+} as const;
 
 export interface PairInput {
   hayloArticle: Pick<HayloArticle, "id" | "slug" | "title" | "topicSlug" | "bodyHtml">;
@@ -113,15 +132,20 @@ function truncateAtWordBoundary(s: string, max: number): string {
 }
 
 /**
- * MT-4.12: deterministic Tier-2 SEO `<title>` (SERP). Format is the locked
- * "${brand} in ${city}, ${state}: ${suffix}" prefix the Conductor approved.
- * Suffix derives from the Haylo article's title (or a generic fallback).
+ * MT-4.13.4: deterministic Tier-2 SEO `<title>` (SERP).
  *
- * Used:
- *   - by `processPair` (dry-run path) where there is no LLM output
- *   - by `pairAgentOrchestrator` Tier-2 fallback when the LLM-emitted
- *     metaTitle fails the brand+city contains-check (see `metaContainsBrandAndCity`)
- *   - by the Tableicity 84-article backfill script
+ * NEW CONTRACT (replaces MT-4.12 brand-leading prefix):
+ *   - Format: "${city}, ${state}: ${haylo title trimmed}"
+ *   - Brand is INTENTIONALLY DROPPED from the title (Google truncates ~60
+ *     chars; brand presence in title adds nothing — H1, canonical URL,
+ *     and description all carry the brand).
+ *   - Hard cap 65; target 55.
+ *
+ * Used as the safety net by:
+ *   - `processPair` (dry-run path) where there is no LLM output
+ *   - `pairAgentOrchestrator` when the Tier-2.5 naturalizer also fails its
+ *     guards (rare; naturalizer almost always passes on the new contract)
+ *   - the Tableicity backfill script (`--naturalize` polishes this output)
  */
 export function buildMetaTitle(
   brand: BrandContext,
@@ -129,29 +153,29 @@ export function buildMetaTitle(
   stateCode: string,
   hayloTitle?: string | null,
 ): string {
-  const persona = brand.personaDisplayName;
-  const prefix = `${persona} in ${cityName}, ${stateCode}: `;
+  // brand kept as a parameter for signature compatibility with pre-MT-4.13.4
+  // callers; intentionally unused — see contract above.
+  void brand;
+  const prefix = `${cityName}, ${stateCode}: `;
   const remaining = META_TITLE_HARD_MAX - prefix.length;
   const rawSuffix = (hayloTitle ?? "").trim();
   const suffix = rawSuffix
     ? truncateAtWordBoundary(rawSuffix, Math.max(10, remaining)).replace(/\.$/, "")
-    : `${brand.brandFeatureCta}`.replace(/\.$/, "");
+    : "Founders' guide";
   const out = `${prefix}${suffix}`.slice(0, META_TITLE_HARD_MAX);
-  if (out.length > META_TITLE_TARGET_CHARS) {
-    console.warn(
-      `[buildMetaTitle] soft-warn: meta_title is ${out.length} chars (>${META_TITLE_TARGET_CHARS} target) for ${persona}/${cityName}.`,
-    );
-  }
   return out;
 }
 
 /**
- * MT-4.12: deterministic Tier-2 SEO meta description. Always begins with the
- * "${brand} in ${city}, ${state}: " prefix so each city/persona pair gets a
- * unique opening (fixes the duplicate-content bug in the legacy Tier-3 string).
+ * MT-4.13.4: deterministic Tier-2 SEO meta description.
  *
- * Body of the description is derived from the Haylo essay's first sentences;
- * if no body is supplied, falls back to the Haylo title + brand tagline.
+ * NEW CONTRACT (replaces MT-4.12 brand-leading prefix):
+ *   - Content-first: 1–2 sentences from the Haylo body open the snippet.
+ *   - Brand named ONCE at the end as an accent (not as the leading subject).
+ *   - MUST contain city + brand verbatim. ~150 chars target, 200 hard cap.
+ *
+ * Body sourced from the Haylo essay's first sentences (or the Haylo title
+ * when no body HTML is available, e.g. legacy unpaired articles).
  */
 export function buildMetaDescription(
   brand: BrandContext,
@@ -160,18 +184,28 @@ export function buildMetaDescription(
   hayloTitle: string,
   hayloBodyHtml?: string,
 ): string {
-  const prefix = `${brand.personaDisplayName} in ${cityName}, ${stateCode}: `;
-  const remaining = META_DESCRIPTION_HARD_MAX - prefix.length;
+  // City+brand attribution sentence appended at the end (the "20% brand"
+  // accent). Kept short and on-topic to the local market.
+  const tail = ` ${brand.personaDisplayName} helps ${cityName} founders.`;
+  const remaining = META_DESCRIPTION_HARD_MAX - tail.length;
 
-  let suffix: string | null = null;
+  let body: string | null = null;
   if (hayloBodyHtml) {
-    suffix = buildMetaDescriptionFromBody(hayloBodyHtml, remaining);
+    body = buildMetaDescriptionFromBody(hayloBodyHtml, remaining);
   }
-  if (!suffix) {
-    suffix = `${hayloTitle.trim()} — ${brand.brandTagline}.`;
+  if (!body) {
+    body = hayloTitle.trim();
   }
+  // Strip a brand mention from the leading body if the Haylo essay opened
+  // with the brand name — we re-attach it ourselves at the end.
+  const brandRe = new RegExp(`\\b${brand.personaDisplayName.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}\\b[\\s,:.-]*`, "i");
+  if (body.length > 0 && brandRe.test(body.slice(0, META_DESCRIPTION_BRAND_LEAD_GUARD_CHARS))) {
+    body = body.replace(brandRe, "").trim();
+    if (body.length > 0) body = body.charAt(0).toUpperCase() + body.slice(1);
+  }
+  void stateCode;
 
-  const out = truncateAtWordBoundary(`${prefix}${suffix}`, META_DESCRIPTION_HARD_MAX);
+  const out = truncateAtWordBoundary(`${body}${tail}`, META_DESCRIPTION_HARD_MAX);
   if (out.length > META_DESCRIPTION_SOFT_WARN_CHARS) {
     console.warn(
       `[buildMetaDescription] soft-warn: meta_description is ${out.length} chars (>${META_DESCRIPTION_SOFT_WARN_CHARS} target) for ${brand.personaDisplayName}/${cityName}.`,

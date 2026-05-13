@@ -45,6 +45,16 @@ A programmatic-SEO publishing platform providing financial insights on local com
 
 **Project model:** Investor Ensights is the Conductor's private internal Newsroom workshop, not a public SaaS. Each Persona/Tenant = one of the Conductor's brands publishing through the same domain. Tableicity is the first tenant; existing 80 articles + 340 cities + 182 haylo + all newsroom state migrate **untouched** into `tenant_tableicity` schema.
 
+**MT-4.13.4 SHIPPED (new SERP-fit meta contract: brand-out-of-title, "80/20" description):**
+
+*   **Why:** the MT-4.13.3 naturalizer produced 81-87 char titles — Google truncates SERPs at ~60. And the existing formula descriptions read like door-hangers (brand at the front). Conductor decision: drop the brand from the title entirely (H1, canonical URL, and description carry it; title doesn't need to), and shape the description as 80% content + 20% brand accent.
+*   **New title contract:** target 55, hard max 65. MUST contain city verbatim. MUST NOT contain the persona display name. Formula safety net is now `${city}, ${state}: ${haylo title trimmed}` — no brand prefix.
+*   **New description contract:** target 150, range 100-200. MUST contain city + brand verbatim. Brand mentioned 1-2 times, NEVER inside the first 40 characters (that's the "lead with content, not the brand" guard). Formula safety net puts the brand attribution at the end (`...${brand} helps ${city} founders.`).
+*   **Two new acceptance helpers in `lib/newsroom/brandContext.ts`:** `metaTitleAcceptable()` and `metaDescriptionAcceptable()` — both return null on pass, or a short reason string. Used by both the orchestrator's Tier-1 gate AND the naturalizer's Tier-2.5 validation, so the gates are guaranteed identical. Legacy `metaContainsBrandAndCity` is kept for any caller that still needs the strict pre-MT-4.13.4 check.
+*   **Naturalizer is now two-shot:** if the first attempt fails any guard, we feed the rejection reason back to the LLM with a stricter retry prompt (temperature drops 0.6 → 0.3). Worst-case cost ~$0.0006/article instead of $0.0003. Falls open to the formula if BOTH attempts fail (still never throws).
+*   **Constants exported from `pairProcessor.ts`:** `META_LIMITS` and `META_DESCRIPTION_BRAND_LEAD_GUARD_CHARS` so the admin preview route + naturalizer share one source of truth.
+*   **Backfill behavior unchanged** — running `scripts/backfill-tableicity-meta.ts --prod --naturalize --confirm --force` re-stamps every published row through the new contract. Polished output stamped `meta_source='naturalized'`; formula safety-net stamped `meta_source='fallback'`.
+
 **MT-4.13.3 SHIPPED (Tier-2.5 LLM meta naturalizer):**
 
 *   New module `lib/newsroom/metaNaturalizer.ts` — single-call gpt-4.1-mini polish that takes the deterministic Tier-2 formula output and rewrites both `metaTitle` and `metaDescription` so the persona name + city sit naturally in the sentence instead of as a bolted-on `${persona} in ${city}, ${ST}:` colon-prefix. Five guards (length bounds, brand+city in BOTH outputs, no formula-prefix echo, strict JSON parse). Silent degrade to the formula on any guard failure — never throws to the caller. Cost ~$0.0003/article.
