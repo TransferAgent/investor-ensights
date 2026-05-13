@@ -152,22 +152,46 @@ function escapeRegex(s: string): string {
 
 /**
  * MT-4.13.2: brand-mention guard. The public article renderer
- * (`app/discovery/knowledge/[slug]/page.tsx`) wraps the FIRST occurrence of
- * the tenant's `personaDisplayName` in the body with the brand-home backlink
- * (`tenants.brand_home_url`, with `{cityCore}` swapped for the article's city
- * slug). If the LLM never weaves the persona name into the body, that link
- * silently disappears — which is exactly how the two May-2026 Tableicity
- * articles shipped without a back-link to tableicity.com/locations/<city>.
+ * (`app/discovery/knowledge/[slug]/page.tsx::highlightBrandInBody`) wraps the
+ * FIRST occurrence of `tenants.persona_display_name` in the body with the
+ * brand-home backlink (`tenants.brand_home_url`, `{cityCore}` swapped for the
+ * article's city slug). If the LLM never weaves the persona name into a
+ * linkable body location, that backlink silently disappears — which is how
+ * the two May-2026 Tableicity articles shipped without a back-link to
+ * tableicity.com/locations/<city>.
  *
  * This guard is the single systemic fix: the pipeline fails the run BEFORE
  * the draft is composed and persisted, so we never ship a brand-less article
- * again. Word-boundary, case-insensitive, scans only the body (the renderer
- * only links body matches — headline mentions do not count).
+ * again.
+ *
+ * Tokenization mirrors `highlightBrandInBody` EXACTLY so a guard pass
+ * guarantees a render-time link:
+ *   - Split on `(<[^>]*>)` so tag content (attributes like
+ *     `href="https://tableicity.com"`, `title="Tableicity"`) is never
+ *     scanned — only visible text tokens are.
+ *   - Skip text inside an open `<a>` (renderer won't double-wrap an anchor).
+ *   - Skip text inside `<p class="answer-block">` blocks (renderer skips
+ *     them so the link doesn't land in the visually-hidden duplicates).
+ *   - Word-boundary, case-insensitive match on the persona name.
  */
 function bodyMentionsBrand(html: string, brandName: string): boolean {
   if (!brandName) return true;
   const re = new RegExp(`\\b${escapeRegex(brandName)}\\b`, "i");
-  return re.test(html);
+  let inAnchor = false;
+  let answerBlockDepth = 0;
+  const tokens = html.split(/(<[^>]*>)/);
+  for (const token of tokens) {
+    if (token.startsWith("<")) {
+      if (/^<a[\s>]/i.test(token)) inAnchor = true;
+      else if (/^<\/a>/i.test(token)) inAnchor = false;
+      else if (/^<p\b[^>]*\bclass=["'][^"']*\banswer-block\b/i.test(token)) answerBlockDepth++;
+      else if (/^<\/p>/i.test(token) && answerBlockDepth > 0) answerBlockDepth--;
+      continue;
+    }
+    if (inAnchor || answerBlockDepth > 0) continue;
+    if (re.test(token)) return true;
+  }
+  return false;
 }
 
 function titleCaseFromSlug(slug: string): string {
