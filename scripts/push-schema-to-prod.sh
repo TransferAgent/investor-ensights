@@ -5,6 +5,13 @@
 # database. Run this BEFORE sync-dev-to-prod.ts whenever you've added/changed
 # columns or tables in dev.
 #
+# IMPORTANT: drizzle-kit only updates the `public` schema. Because we use
+# schema-per-tenant isolation, we then run sync-tenant-schemas.mjs to
+# propagate any additive changes (new columns, relaxed NOT NULLs, new
+# indexes) into every `tenant_<slug>` schema. Without this second step,
+# tenants silently see "0 results" or "column does not exist" errors after
+# any schema push.
+#
 # Usage:
 #   bash scripts/push-schema-to-prod.sh
 #
@@ -17,6 +24,12 @@ if [ -z "${PROD_DATABASE_URL:-}" ]; then
   exit 1
 fi
 
-echo "Pushing schema to PRODUCTION database..."
+echo "Step 1/2: Pushing schema to PRODUCTION public schema..."
 DATABASE_URL="$PROD_DATABASE_URL" npx drizzle-kit push --force
-echo "✓ Schema push complete."
+
+echo ""
+echo "Step 2/2: Propagating additive changes to all tenant_<slug> schemas..."
+node scripts/sync-tenant-schemas.mjs --prod
+
+echo ""
+echo "✓ Schema push complete (public + all tenant schemas in sync)."

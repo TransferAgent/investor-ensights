@@ -10,7 +10,8 @@ A programmatic-SEO publishing platform providing financial insights on local com
 *   **Typecheck**: `npm run typecheck`
 *   **Generate Drizzle Kit types**: `npm run db:generate`
 *   **Push schema to dev DB**: `npm run db:push`
-*   **Push schema to prod DB**: `bash scripts/push-schema-to-prod.sh`
+*   **Push schema to prod DB**: `bash scripts/push-schema-to-prod.sh` (now also propagates additive changes to every `tenant_<slug>` schema via `scripts/sync-tenant-schemas.mjs --prod`)
+*   **Sync tenant schemas only (after `npm run db:push`)**: `node scripts/sync-tenant-schemas.mjs` (dev) or `--prod` (prod). Use `--dry-run` to preview.
 *   **Sync Dev to Prod data**: `npx tsx scripts/sync-dev-to-prod.ts --confirm` (use `--confirm` for actual writes)
 
 **Required Environment Variables**: `DATABASE_URL`, `PROD_DATABASE_URL`, `SESSION_SECRET`, `NEXT_PUBLIC_BASE_URL`, `OPENAI_API_KEY`, `OPENCAGE_API_KEY`, `CRON_SECRET`, `NEWSROOM_WORKER_SECRET`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_DISPLAY`, `ADMIN_PURGE_OTHERS`.
@@ -89,6 +90,7 @@ Preferred communication style: Simple, everyday language.
 *   **Never touch article slugs**: All 80 published article slugs contain intentional `tableicity-` persona tokens (verified). These are SEO-protected. Multi-tenant build preserves them by construction (D5 in the gate table).
 *   **Sitemap-as-canary**: Live PROD `investorensights.com/sitemap.xml` should return 84 URLs (80 articles + 4 static) at every multi-tenant gate close until intentionally changed. Divergence = stop work and investigate.
 *   **Dev vs. Prod DB**: Dev and Prod use separate Postgres databases. Always run the sync workflow (`scripts/sync-dev-to-prod.ts`) before publishing to propagate data changes.
+*   **Schema-per-tenant drift**: `npm run db:push` and `drizzle-kit push` only touch the `public` schema. After ANY schema change, also run `node scripts/sync-tenant-schemas.mjs` (dev) so each `tenant_<slug>` copy gets the new columns / relaxed nullability / new indexes. `bash scripts/push-schema-to-prod.sh` does this automatically for prod. Symptom of skipping it: pages quietly show "0 results" because Drizzle SELECT references a column that doesn't exist in the active tenant schema.
 *   **Sitemap Refresh**: New articles from the Newsroom scheduler are eventually consistent in the sitemap; a redeploy forces a fresh sitemap. Always resubmit the sitemap in Google Search Console after deployment.
 *   **Hardcoded URLs/Brand**: Several internal files contain hardcoded `tableicity.com` URLs or `"Tableicity"` brand strings that need manual updates for regional forks.
 *   **US-centric Schema/Seeder**: `city_locations` schema is US-centric (`state_code`) and the `cityResearchAutoSeeder` targets US-based sources; requires modification for EU or other regions.
