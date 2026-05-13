@@ -23,14 +23,19 @@ const createSchema = z.object({
   publisherName: z.string().min(1).max(100).transform((s) => s.trim()),
   authorName: z.string().min(1).max(100).transform((s) => s.trim()),
   companyName: z.string().min(1).max(200).transform((s) => s.trim()),
-  brandVertical: z.string().min(2).max(200).transform((s) => s.trim()),
-  brandTagline: z.string().min(2).max(300).transform((s) => s.trim()),
-  brandFeatureCta: z.string().min(2).max(200).transform((s) => s.trim()),
+  // MT-4.13.1: brand_* fields are now derived from the Haylo essay at Step 2,
+  // not hand-entered at create time. Allow optional placeholders so Step 1
+  // can be staff-minimal; the wizard PATCHes the real values after derive.
+  brandVertical: z.string().max(200).optional(),
+  brandTagline: z.string().max(300).optional(),
+  brandFeatureCta: z.string().max(200).optional(),
   brandHomeUrl: z.string().url().max(500).nullable().optional(),
   // Confirmation guard from the Wizard — staffer must retype the slug
   // verbatim to flip the irreversible "create" switch (one-way door).
   confirmSlug: z.string(),
 });
+
+const BRAND_PLACEHOLDER = "(pending Haylo derive)";
 
 export async function GET() {
   const guard = await requireConductor();
@@ -119,9 +124,9 @@ export async function POST(req: NextRequest) {
         body.authorName,
         body.companyName,
         body.brandHomeUrl?.trim() || null,
-        body.brandVertical,
-        body.brandTagline,
-        body.brandFeatureCta,
+        body.brandVertical?.trim() || BRAND_PLACEHOLDER,
+        body.brandTagline?.trim() || BRAND_PLACEHOLDER,
+        body.brandFeatureCta?.trim() || BRAND_PLACEHOLDER,
       ],
     );
 

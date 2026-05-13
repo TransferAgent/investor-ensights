@@ -47,7 +47,10 @@ export async function GET(
     return NextResponse.json({ error: "Persona not found" }, { status: 404 });
   }
 
-  // Brand readiness: every brand_* field must be non-empty.
+  // Brand readiness: every brand_* field must be non-empty AND not equal to
+  // the "(pending Haylo derive)" placeholder we set at create time. The
+  // placeholder is the signal that Step 2's brand derive hasn't happened yet.
+  const PLACEHOLDER = "(pending Haylo derive)";
   const brandComplete = !!(
     tenantRow.personaDisplayName &&
     tenantRow.publisherName &&
@@ -55,7 +58,10 @@ export async function GET(
     tenantRow.companyName &&
     tenantRow.brandVertical?.trim() &&
     tenantRow.brandTagline?.trim() &&
-    tenantRow.brandFeatureCta?.trim()
+    tenantRow.brandFeatureCta?.trim() &&
+    tenantRow.brandVertical !== PLACEHOLDER &&
+    tenantRow.brandTagline !== PLACEHOLDER &&
+    tenantRow.brandFeatureCta !== PLACEHOLDER
   );
 
   // Direct counts in the tenant schema. Use a dedicated pool with explicit

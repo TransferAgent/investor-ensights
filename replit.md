@@ -45,6 +45,16 @@ A programmatic-SEO publishing platform providing financial insights on local com
 
 **Project model:** Investor Ensights is the Conductor's private internal Newsroom workshop, not a public SaaS. Each Persona/Tenant = one of the Conductor's brands publishing through the same domain. Tableicity is the first tenant; existing 80 articles + 340 cities + 182 haylo + all newsroom state migrate **untouched** into `tenant_tableicity` schema.
 
+**MT-4.13.1 SHIPPED (Haylo-first wizard, LLM-derived brand voice):**
+
+*   **Wizard restructured to 4 steps**: Identity → Haylo + Brand → Cities → Finish. Brand voice is no longer hand-typed at create time — it's *derived* from a pasted Haylo essay by an LLM, then human-reviewed in an editable form. Mirrors the real Conductor workflow (log in → paste Haylo → everything else flows from it).
+*   **New Conductor-only endpoint** `POST /api/admin/personas/derive-brand` takes `{hayloTitle, hayloBodyHtml, currentTenant?}` and returns `{personaDisplayName, publisherName, authorName, brandVertical, brandTagline, brandFeatureCta, confidence, rationale, model, tokensUsed}`. Pure derive — never writes to the tenant. Uses `gpt-4.1-mini` (~$0.001/derive). Audited as `persona.brand.derived` on every call (model + tokens + source title) so we can always trace which essay seeded which persona's voice.
+*   **Step 1 is now staff-minimal**: slug + display name + publisher + author + legal company + slug-confirm + Create button. Slug-confirm sits *next to* the Create button (proximity = the whole point of a one-way door). Brand fields removed. Auto-lock checkbox removed (revisits in MT-4.14).
+*   **Step 2 (Haylo + Brand)**: LEFT = essay paste (title, optional topic/summary, body HTML) + "Derive brand voice" button. RIGHT = Haylo Source card (title + word count + first-200-char excerpt) + Live SEO Preview driven by the *derived* brand. Editable brand form below paste, soft-warning under 0.6 confidence. "Save brand + Haylo essay" PATCHes tenant + POSTs essay in sequence, then advances.
+*   **Brand placeholder pattern**: `POST /api/admin/personas` allows `brand_*` fields to be optional and writes `(pending Haylo derive)` placeholders if absent. `readiness.brand.complete` treats any placeholder value as incomplete, so the Wizard's Finish gate correctly waits for Step 2 to land real values.
+*   **Step 3 (Cities)** adds a CSV template download button (parity with `/admin/cities`) and immediate readiness refetch after every successful upload (no more 5s lag).
+*   **Resumable**: persona row exists after Step 1; deep-link `?slug=…&step=N` resumes any half-finished setup from `/admin/personas`.
+
 **MT-4.13 SHIPPED (Persona Wizard, staff-proof tenant onboarding):**
 
 *   New Conductor-only `/admin/personas` list + `/admin/personas/new` 3-step Wizard (Identity & Brand → City Batch → Haylo essays). Adding a persona no longer requires SQL access.
