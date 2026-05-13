@@ -44,13 +44,21 @@ import {
   Eye,
   AlertTriangle,
   CheckCircle,
+  Cloud,
+  CloudDownload,
 } from "lucide-react"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 interface HayloArticle {
   id: string
   slug: string
   title: string
-  topicSlug: string
+  topicSlug: string | null
   bodyHtml: string
   summary: string | null
   status: string
@@ -68,6 +76,21 @@ interface ScanResult {
   imported: Array<{ filename: string; id: string; title: string; topicSlug: string }>
   skipped: Array<{ filename: string; reason: string; existingId?: string }>
   errors: Array<{ filename: string; message: string }>
+}
+
+interface HaloPullResult {
+  dryRun: boolean
+  previousHighWaterMark: number
+  newHighWaterMark: number
+  imported: Array<{ remoteId: number; id: string; title: string; slug: string }>
+  skipped: Array<{ remoteId: number; reason: string; existingId?: string }>
+  errors: Array<{ remoteId?: number; message: string }>
+}
+
+interface HaloStatus {
+  keyIsSet: boolean
+  lastPulledId: number
+  lastPulledAt: string | null
 }
 
 const STATUS_OPTIONS = [
@@ -109,6 +132,7 @@ export default function HayloLibraryPage() {
   const [editing, setEditing] = useState<HayloArticle | null>(null)
   const [previewing, setPreviewing] = useState<HayloArticle | null>(null)
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
+  const [pullResult, setPullResult] = useState<HaloPullResult | null>(null)
   const [form, setForm] = useState<ArticleFormState>(EMPTY_FORM)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -116,9 +140,13 @@ export default function HayloLibraryPage() {
     queryKey: ["/api/admin/haylo-articles"],
   })
 
+  const { data: haloStatus } = useQuery<HaloStatus>({
+    queryKey: ["/api/admin/haylo-articles/halo-status"],
+  })
+
   const topics = useMemo(() => {
     const set = new Set<string>()
-    for (const a of articles ?? []) set.add(a.topicSlug)
+    for (const a of articles ?? []) if (a.topicSlug) set.add(a.topicSlug)
     return Array.from(set).sort()
   }, [articles])
 
@@ -181,6 +209,26 @@ export default function HayloLibraryPage() {
     },
   })
 
+  const haloPullMutation = useMutation({
+    mutationFn: async (dryRun: boolean) => {
+      const res = await apiRequest("POST", "/api/admin/haylo-articles/pull-from-halo", { dryRun })
+      return (await res.json()) as HaloPullResult
+    },
+    onSuccess: (result) => {
+      setPullResult(result)
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/haylo-articles"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/haylo-articles/halo-status"] })
+      const verb = result.dryRun ? "Dry-run" : "Pulled"
+      toast({
+        title: `${verb} ${result.imported.length} from Halo Lab`,
+        description: `Imported ${result.imported.length} · Already in library ${result.skipped.length} · Errors ${result.errors.length}`,
+      })
+    },
+    onError: (err: any) => {
+      toast({ title: "Halo pull failed", description: err?.message ?? "", variant: "destructive" })
+    },
+  })
+
   const scanMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/admin/haylo-articles/scan-inbox")
@@ -203,7 +251,7 @@ export default function HayloLibraryPage() {
     setEditing(a)
     setForm({
       title: a.title,
-      topicSlug: a.topicSlug,
+      topicSlug: a.topicSlug ?? "",
       slug: a.slug,
       status: a.status,
       summary: a.summary ?? "",
@@ -297,6 +345,118 @@ export default function HayloLibraryPage() {
           </Dialog>
         </div>
       </div>
+
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="halo-pull" className="rounded-lg border bg-card px-4">
+          <AccordionTrigger className="text-left hover:no-underline" data-testid="accordion-halo-pull">
+            <div className="flex w-full items-center justify-between gap-4 pr-2">
+              <div className="flex items-center gap-2">
+                <Cloud className="h-4 w-4" />
+                <span className="font-medium">Pull from Haylo Lab API</span>
+                {haloStatus?.keyIsSet ? (
+                  <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-800">Key configured</span>
+                ) : (
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">Key not set</span>
+                )}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {haloStatus?.lastPulledAt
+                  ? `Last pulled ${new Date(haloStatus.lastPulledAt).toLocaleString()} · highest id ${haloStatus.lastPulledId}`
+                  : "Never pulled"}
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-4">
+            <div className="space-y-3">
+              {!haloStatus?.keyIsSet && (
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div>
+                      No Haylo Lab API key set for this tenant. Add it in
+                      <strong> Settings → Users &amp; Tenants → Edit your user</strong>, then return here to pull.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="text-sm text-muted-foreground">
+                Pulls all published Haylo Lab articles you haven't imported yet using the persona-locked key
+                for this tenant. Imported articles arrive with status <strong>Draft</strong> so you can
+                review and assign a topic before they go live. Dry-run shows what would be pulled without
+                writing anything.
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => haloPullMutation.mutate(true)}
+                  disabled={!haloStatus?.keyIsSet || haloPullMutation.isPending}
+                  data-testid="button-halo-dry-run"
+                >
+                  {haloPullMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
+                  Dry run
+                </Button>
+                <Button
+                  onClick={() => haloPullMutation.mutate(false)}
+                  disabled={!haloStatus?.keyIsSet || haloPullMutation.isPending}
+                  data-testid="button-halo-pull-now"
+                >
+                  {haloPullMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CloudDownload className="mr-2 h-4 w-4" />}
+                  Pull now
+                </Button>
+              </div>
+
+              {pullResult && (
+                <Card className="p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="font-medium">
+                      Last pull {pullResult.dryRun && <span className="ml-2 rounded bg-zinc-200 px-1.5 py-0.5 text-xs">DRY RUN</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        Watermark {pullResult.previousHighWaterMark} → {pullResult.newHighWaterMark}
+                      </span>
+                      <Button variant="ghost" size="sm" onClick={() => setPullResult(null)}>Dismiss</Button>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3 text-sm">
+                    <div>
+                      <div className="font-medium text-emerald-700">Imported ({pullResult.imported.length})</div>
+                      <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground" data-testid="list-halo-imported">
+                        {pullResult.imported.slice(0, 8).map((i) => (
+                          <li key={i.remoteId}>· #{i.remoteId} — {i.title}</li>
+                        ))}
+                        {pullResult.imported.length > 8 && <li>+ {pullResult.imported.length - 8} more</li>}
+                        {pullResult.imported.length === 0 && <li className="italic">none</li>}
+                      </ul>
+                    </div>
+                    <div>
+                      <div className="font-medium text-amber-700">Already in library ({pullResult.skipped.length})</div>
+                      <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                        {pullResult.skipped.slice(0, 8).map((i) => (
+                          <li key={i.remoteId}>· #{i.remoteId} — {i.reason}</li>
+                        ))}
+                        {pullResult.skipped.length > 8 && <li>+ {pullResult.skipped.length - 8} more</li>}
+                        {pullResult.skipped.length === 0 && <li className="italic">none</li>}
+                      </ul>
+                    </div>
+                    <div>
+                      <div className="font-medium text-rose-700">Errors ({pullResult.errors.length})</div>
+                      <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                        {pullResult.errors.slice(0, 8).map((i, idx) => (
+                          <li key={idx}>· {i.remoteId ? `#${i.remoteId} — ` : ""}{i.message}</li>
+                        ))}
+                        {pullResult.errors.length === 0 && <li className="italic">none</li>}
+                      </ul>
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       <div className="grid gap-3 md:grid-cols-3">
         <Card className="p-4">
@@ -413,7 +573,13 @@ export default function HayloLibraryPage() {
                     <div className="font-medium" data-testid={`text-title-${a.id}`}>{a.title}</div>
                     <div className="text-xs text-muted-foreground font-mono">{a.slug}</div>
                   </TableCell>
-                  <TableCell><Badge variant="outline" className="font-mono text-xs">{a.topicSlug}</Badge></TableCell>
+                  <TableCell>
+                    {a.topicSlug ? (
+                      <Badge variant="outline" className="font-mono text-xs">{a.topicSlug}</Badge>
+                    ) : (
+                      <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-200 text-xs">Needs topic</Badge>
+                    )}
+                  </TableCell>
                   <TableCell><Badge className={statusBadgeClass(a.status)}>{a.status}</Badge></TableCell>
                   <TableCell data-testid={`text-placements-${a.id}`}>{a.placementCount}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">

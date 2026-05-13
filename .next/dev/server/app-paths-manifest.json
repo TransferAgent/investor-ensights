@@ -1,4 +1,7 @@
 {
+  "/admin/haylo/page": "app/admin/haylo/page.js",
+  "/admin/login/page": "app/admin/login/page.js",
+  "/api/admin/me/route": "app/api/admin/me/route.js",
   "/api/public/tenants/route": "app/api/public/tenants/route.js",
   "/page": "app/page.js"
 }

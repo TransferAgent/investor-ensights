@@ -127,6 +127,7 @@ export interface IStorage {
   getHayloArticleById(id: string): Promise<HayloArticle | undefined>;
   getHayloArticleBySlug(slug: string): Promise<HayloArticle | undefined>;
   getHayloArticleByContentHash(hash: string): Promise<HayloArticle | undefined>;
+  getHayloArticleByHaloRemoteId(remoteId: number): Promise<HayloArticle | undefined>;
   createHayloArticle(article: InsertHayloArticle, contentHash: string): Promise<HayloArticle>;
   updateHayloArticle(id: string, data: Partial<InsertHayloArticle>): Promise<HayloArticle | undefined>;
   deleteHayloArticle(id: string): Promise<void>;
@@ -816,6 +817,11 @@ export class DatabaseStorage implements IStorage {
 
   async getHayloArticleByContentHash(hash: string): Promise<HayloArticle | undefined> {
     const [row] = await db.select().from(hayloArticles).where(eq(hayloArticles.contentHash, hash)).limit(1);
+    return row;
+  }
+
+  async getHayloArticleByHaloRemoteId(remoteId: number): Promise<HayloArticle | undefined> {
+    const [row] = await db.select().from(hayloArticles).where(eq(hayloArticles.haloRemoteId, remoteId)).limit(1);
     return row;
   }
 

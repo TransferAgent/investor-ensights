@@ -98,6 +98,31 @@ export function buildInsertFromPaste(input: {
   };
 }
 
+/**
+ * Parse a Halo Distribution API payload item.
+ * Halo only sends id/publishedAt/htmlContent — title is the first <h1> in
+ * the body, summary is the first <p class="answer-block" itemprop="abstract">
+ * if present. No topic slug is provided (admin assigns later).
+ */
+export function parseHaloPayload(htmlContent: string): {
+  title: string;
+  summary: string | null;
+  bodyHtml: string;
+} {
+  let title: string | null = null;
+  const h1 = htmlContent.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+  if (h1) title = stripHtml(h1[1]);
+  if (!title || title.length === 0) title = "Untitled Halo essay";
+
+  let summary: string | null = null;
+  const abstract = htmlContent.match(
+    /<p[^>]*class=["'][^"']*answer-block[^"']*["'][^>]*itemprop=["']abstract["'][^>]*>([\s\S]*?)<\/p>/i,
+  );
+  if (abstract) summary = stripHtml(abstract[1]).slice(0, 220);
+
+  return { title, summary, bodyHtml: htmlContent };
+}
+
 export async function ensureUniqueSlug(
   base: string,
   exists: (slug: string) => Promise<boolean>

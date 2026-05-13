@@ -353,6 +353,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/admin/haylo-articles/halo-status/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/haylo-articles/halo-status">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/haylo-articles/halo-status/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/admin/haylo-articles/pull-from-halo/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/haylo-articles/pull-from-halo">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/haylo-articles/pull-from-halo/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/admin/haylo-articles/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/haylo-articles">> = Specific

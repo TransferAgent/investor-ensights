@@ -144,6 +144,8 @@ export default function AdminUsersPage() {
   const [editTenantAuthor, setEditTenantAuthor] = useState("")
   const [editTenantCompany, setEditTenantCompany] = useState("")
   const [editTenantBrandUrl, setEditTenantBrandUrl] = useState("")
+  const [editHaloKey, setEditHaloKey] = useState("")
+  const [editHaloKeyIsSet, setEditHaloKeyIsSet] = useState(false)
 
   const openEdit = (row: AdminRow) => {
     setEditing(row)
@@ -155,6 +157,8 @@ export default function AdminUsersPage() {
     setEditTenantAuthor("")
     setEditTenantCompany("")
     setEditTenantBrandUrl("")
+    setEditHaloKey("")
+    setEditHaloKeyIsSet(false)
   }
 
   const editingSlug = editing?.tenantSlug ?? null
@@ -162,6 +166,7 @@ export default function AdminUsersPage() {
     tenant: {
       slug: string; personaDisplayName: string; publisherName: string;
       authorName: string; companyName: string; brandHomeUrl: string | null;
+      haloKeyIsSet?: boolean; haloLastPulledId?: number; haloLastPulledAt?: string | null;
     }
   }>({
     queryKey: ["/api/admin/tenants", editingSlug],
@@ -177,6 +182,8 @@ export default function AdminUsersPage() {
     setEditTenantAuthor(editingTenant.tenant.authorName)
     setEditTenantCompany(editingTenant.tenant.companyName)
     setEditTenantBrandUrl(editingTenant.tenant.brandHomeUrl ?? "")
+    setEditHaloKeyIsSet(!!editingTenant.tenant.haloKeyIsSet)
+    setEditHaloKey("") // never pre-fill the secret; empty = leave alone, non-empty = replace
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingTenant?.tenant?.slug, editingSlug])
 
@@ -201,13 +208,19 @@ export default function AdminUsersPage() {
         }))
       }
       if (editing.tenantSlug) {
-        tasks.push(apiRequest("PATCH", `/api/admin/tenants/${editing.tenantSlug}`, {
+        const tenantPayload: Record<string, unknown> = {
           personaDisplayName: editTenantDisplay.trim(),
           publisherName: editTenantPublisher.trim(),
           authorName: editTenantAuthor.trim(),
           companyName: editTenantCompany.trim(),
           brandHomeUrl: editTenantBrandUrl.trim() || null,
-        }))
+        }
+        // Only send haloDistributionKey when admin actually typed a new value.
+        // Empty input = leave existing key untouched.
+        if (editHaloKey.trim().length > 0) {
+          tenantPayload.haloDistributionKey = editHaloKey.trim()
+        }
+        tasks.push(apiRequest("PATCH", `/api/admin/tenants/${editing.tenantSlug}`, tenantPayload))
       }
       await Promise.all(tasks)
     },
@@ -571,6 +584,29 @@ export default function AdminUsersPage() {
                     className={errBorder(editAttempted && editMissing.tenantAuthor)}
                   />
                 </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="edit-halo-key" className="flex items-center gap-2">
+                    Halo Lab API key
+                    {editHaloKeyIsSet ? (
+                      <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-800">Configured</span>
+                    ) : (
+                      <span className="rounded bg-zinc-200 px-1.5 py-0.5 text-xs font-medium text-zinc-700">Not set</span>
+                    )}
+                  </Label>
+                  <Input
+                    id="edit-halo-key"
+                    type="password"
+                    value={editHaloKey}
+                    onChange={(e) => setEditHaloKey(e.target.value)}
+                    placeholder={editHaloKeyIsSet ? "Paste a new key to replace the existing one" : "halo_AbCdEf… (paste from Halo Distribution page)"}
+                    autoComplete="off"
+                    data-testid="input-edit-halo-key"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Persona-locked at Halo (1:1 with this tenant). Used by the Pull from Halo Lab button on the Haylo Library page. Leave blank to keep the existing key. Rotation at Halo instantly kills the old key — paste the new one here.
+                  </p>
+                </div>
+
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="edit-tenant-brand-url">Brand link template (Mandatory)</Label>
                   <Input

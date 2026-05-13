@@ -24,7 +24,7 @@ export async function POST(_request: NextRequest) {
     );
   }
 
-  const imported: Array<{ filename: string; id: string; title: string; topicSlug: string }> = [];
+  const imported: Array<{ filename: string; id: string; title: string; topicSlug: string | null }> = [];
   const skipped: Array<{ filename: string; reason: string; existingId?: string }> = [];
   const errors: Array<{ filename: string; message: string }> = [];
 

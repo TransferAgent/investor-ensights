@@ -13,6 +13,8 @@ const patchSchema = z.object({
   authorName: z.string().min(1).max(120).optional(),
   companyName: z.string().min(1).max(200).optional(),
   brandHomeUrl: z.string().url().max(500).nullable().optional(),
+  // Empty string = clear; non-empty = set/replace; omitted = leave alone.
+  haloDistributionKey: z.string().max(500).nullable().optional(),
 });
 
 export async function GET(
@@ -31,13 +33,23 @@ export async function GET(
       authorName: tenants.authorName,
       companyName: tenants.companyName,
       brandHomeUrl: tenants.brandHomeUrl,
+      haloDistributionKey: tenants.haloDistributionKey,
+      haloLastPulledId: tenants.haloLastPulledId,
+      haloLastPulledAt: tenants.haloLastPulledAt,
     })
     .from(tenants)
     .where(eq(tenants.slug, slug))
     .limit(1);
 
   if (!row) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
-  return NextResponse.json({ tenant: row });
+  // Never return the actual key — only whether one is configured.
+  const { haloDistributionKey, ...safe } = row;
+  return NextResponse.json({
+    tenant: {
+      ...safe,
+      haloKeyIsSet: !!(haloDistributionKey && haloDistributionKey.length > 0),
+    },
+  });
 }
 
 export async function PATCH(
@@ -65,6 +77,10 @@ export async function PATCH(
   if (body.authorName !== undefined) update.authorName = body.authorName.trim();
   if (body.companyName !== undefined) update.companyName = body.companyName.trim();
   if (body.brandHomeUrl !== undefined) update.brandHomeUrl = body.brandHomeUrl?.trim() || null;
+  if (body.haloDistributionKey !== undefined) {
+    const trimmed = body.haloDistributionKey?.trim();
+    update.haloDistributionKey = trimmed && trimmed.length > 0 ? trimmed : null;
+  }
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
@@ -81,9 +97,16 @@ export async function PATCH(
       authorName: tenants.authorName,
       companyName: tenants.companyName,
       brandHomeUrl: tenants.brandHomeUrl,
+      haloDistributionKey: tenants.haloDistributionKey,
     });
 
   if (!updated) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+
+  // Redact the key from audit details to avoid leaking it into the audit log.
+  const safeValues: Record<string, unknown> = { ...update };
+  if ("haloDistributionKey" in safeValues) {
+    safeValues.haloDistributionKey = safeValues.haloDistributionKey ? "[REDACTED]" : null;
+  }
 
   // Audit goes into the SESSION user's tenant audit log (the actor's tenant).
   await withTenantAsync(session.tenantSlug, () =>
@@ -92,9 +115,13 @@ export async function PATCH(
       action: "update",
       entityType: "tenant",
       entityId: slug,
-      details: { fields: Object.keys(update), values: update },
+      details: { fields: Object.keys(update), values: safeValues },
     }),
   );
 
-  return NextResponse.json({ tenant: updated });
+  // Strip the key from the response.
+  const { haloDistributionKey, ...safe } = updated;
+  return NextResponse.json({
+    tenant: { ...safe, haloKeyIsSet: !!(haloDistributionKey && haloDistributionKey.length > 0) },
+  });
 }

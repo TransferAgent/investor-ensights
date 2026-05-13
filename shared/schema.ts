@@ -52,6 +52,16 @@ export const tenants = pgTable(
     // the city slug at render time. Example: "https://www.tableicity.com/locations/{city}".
     // Null = no link (brand name shown as plain text).
     brandHomeUrl: varchar("brand_home_url", { length: 500 }),
+    // MT-4.11: per-tenant Halo Lab Distribution API key. One key per persona
+    // (1:1, persona-locked by Halo). Bearer token. Plaintext at rest (Neon
+    // already encrypts the DB at rest; admin-only access).
+    haloDistributionKey: varchar("halo_distribution_key", { length: 500 }),
+    // High-water mark for the `?since=<lastId>` cursor. Highest Halo article id
+    // we've successfully imported for this tenant. Default 0 = never pulled.
+    haloLastPulledId: integer("halo_last_pulled_id").notNull().default(0),
+    // Last successful pull timestamp (informational, mirrors Halo's own
+    // "Last Pulled" column on their Distribution page).
+    haloLastPulledAt: timestamp("halo_last_pulled_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("tenants_slug_idx").on(table.slug)]
@@ -560,7 +570,10 @@ export const hayloArticles = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     slug: text("slug").notNull().unique(),
     title: text("title").notNull(),
-    topicSlug: text("topic_slug").notNull(),
+    // MT-4.11: relaxed to nullable. Halo API pulls don't include a topic;
+    // admin assigns one in the Library after import. Existing manual rows
+    // keep their topic — no data migration needed.
+    topicSlug: text("topic_slug"),
     bodyHtml: text("body_html").notNull(),
     summary: text("summary"),
     status: text("status").notNull().default("ready"),
@@ -568,6 +581,11 @@ export const hayloArticles = pgTable(
     sourceFilename: text("source_filename"),
     contentHash: text("content_hash").notNull(),
     placementCount: integer("placement_count").notNull().default(0),
+    // MT-4.11: layer-1 dedupe for Halo API pulls. Halo article id (their
+    // monotonically-increasing integer). Nullable for legacy paste/inbox
+    // rows. Unique within the tenant schema (per-tenant table).
+    haloRemoteId: integer("halo_remote_id"),
+    haloPublishedAt: timestamp("halo_published_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -576,6 +594,7 @@ export const hayloArticles = pgTable(
     index("haylo_articles_status_idx").on(table.status),
     index("haylo_articles_topic_idx").on(table.topicSlug),
     uniqueIndex("haylo_articles_content_hash_idx").on(table.contentHash),
+    uniqueIndex("haylo_articles_halo_remote_id_idx").on(table.haloRemoteId),
   ]
 );
 
