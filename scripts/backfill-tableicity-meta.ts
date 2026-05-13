@@ -1,19 +1,28 @@
 /**
  * backfill-tableicity-meta.ts (MT-4.12.7)
  *
- * One-shot backfill of `meta_title` / `meta_description` for the 84 published
- * Tableicity articles. Uses the deterministic Tier-2 builders from
+ * One-shot backfill of `meta_title` / `meta_description` for every published
+ * Tableicity article (current count passed via `--expected=N`; replit.md notes
+ * 80 articles + 4 static = 84 sitemap URLs, but the canonical published count
+ * fluctuates and is set from the live PROD value at execution time).
+ * Uses the deterministic Tier-2 builders from
  * `lib/newsroom/pairProcessor` so the same brand+city formatting that ships
  * for new pairs also applies to legacy rows.
  *
  * Locked decisions (replit.md / John gate notes):
- *   - Backfill scope = the 84 published Tableicity articles only.
+ *   - Backfill scope = published Tableicity articles only (status='published').
  *   - Source stamp on every backfilled row = `fallback` (deterministic Tier-2).
  *   - `meta_locked_at` is set to the backfill-run wall-clock time so legacy
  *     rows are immediately frozen and can never be regenerated.
- *   - Forward-only: this script never DELETES anything; it only UPDATEs rows
- *     where `meta_locked_at IS NULL`. `--force` re-locks already-locked rows
- *     (Conductor-only escape hatch; off by default).
+ *   - Forward-only: this script never DELETES anything; it only UPDATEs the
+ *     four meta columns (`meta_title`, `meta_description`, `meta_source`,
+ *     `meta_generated_at`, `meta_locked_at`) on rows where
+ *     `meta_locked_at IS NULL`. No other column is touched — `updated_at`,
+ *     `date_modified`, `status`, `slug`, `robots`, `date_published`, etc.
+ *     are intentionally left alone so the public sitemap last-mod stays in
+ *     sync with content changes (not SEO-meta changes).
+ *   - `--force` re-locks already-locked rows (Conductor-only escape hatch;
+ *     off by default).
  *
  * Usage:
  *   npx tsx scripts/backfill-tableicity-meta.ts                    # dry run, dev DB
@@ -261,13 +270,17 @@ async function main(): Promise<void> {
       let written = 0;
       for (const p of writable) {
         const { rowCount } = await client.query(
+          // Pure meta-only update: do NOT touch updated_at / date_modified /
+          // status / slug / robots / date_published. The public sitemap's
+          // last-mod is content-driven, not SEO-meta-driven, so updating
+          // those bookkeeping columns here would mis-signal a content change
+          // to crawlers for 76 already-published rows.
           `UPDATE ${TENANT_SCHEMA}.knowledge_articles
            SET meta_title = $1,
                meta_description = $2,
                meta_source = 'fallback',
                meta_generated_at = $3,
-               meta_locked_at = $3,
-               updated_at = $3
+               meta_locked_at = $3
            WHERE id = $4
              AND ($5::boolean OR meta_locked_at IS NULL)`,
           [p.newMetaTitle, p.newMetaDescription, now, p.id, FORCE],

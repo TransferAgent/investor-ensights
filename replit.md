@@ -13,6 +13,7 @@ A programmatic-SEO publishing platform providing financial insights on local com
 *   **Push schema to prod DB**: `bash scripts/push-schema-to-prod.sh` (now also propagates additive changes to every `tenant_<slug>` schema via `scripts/sync-tenant-schemas.mjs --prod`)
 *   **Sync tenant schemas only (after `npm run db:push`)**: `node scripts/sync-tenant-schemas.mjs` (dev) or `--prod` (prod). Use `--dry-run` to preview.
 *   **Sync Dev to Prod data**: `npx tsx scripts/sync-dev-to-prod.ts --confirm` (use `--confirm` for actual writes)
+*   **Backfill Tableicity SEO meta (one-shot, MT-4.12.7 — already executed on PROD 2026-05-13, 76 rows locked)**: `npx tsx scripts/backfill-tableicity-meta.ts [--prod] [--confirm] [--expected=N] [--force]`. Default = dev + dry-run. Idempotent (skips rows where `meta_locked_at IS NOT NULL`); `--force` only for Conductor-approved re-locks. Pure meta-only UPDATE — does not touch `updated_at` / `date_modified` so sitemap last-mod stays content-driven.
 
 **Required Environment Variables**: `DATABASE_URL`, `PROD_DATABASE_URL`, `SESSION_SECRET`, `NEXT_PUBLIC_BASE_URL`, `OPENAI_API_KEY`, `OPENCAGE_API_KEY`, `CRON_SECRET`, `NEWSROOM_WORKER_SECRET`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_DISPLAY`, `ADMIN_PURGE_OTHERS`.
 
