@@ -146,6 +146,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/admin/personas/new/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/admin/personas/new">> = Specific
+  const handler = {} as typeof import("../../../app/admin/personas/new/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/admin/personas/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/admin/personas">> = Specific
+  const handler = {} as typeof import("../../../app/admin/personas/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/admin/settings/admins/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/admin/settings/admins">> = Specific
@@ -798,6 +816,51 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/pages">> = Specific
   const handler = {} as typeof import("../../../app/api/admin/pages/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/admin/personas/[slug]/cities/bulk-csv/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/personas/[slug]/cities/bulk-csv">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/personas/[slug]/cities/bulk-csv/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/admin/personas/[slug]/haylo/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/personas/[slug]/haylo">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/personas/[slug]/haylo/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/admin/personas/[slug]/readiness/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/personas/[slug]/readiness">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/personas/[slug]/readiness/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/admin/personas/preview-meta/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/personas/preview-meta">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/personas/preview-meta/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/admin/personas/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/personas">> = Specific
+  const handler = {} as typeof import("../../../app/api/admin/personas/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

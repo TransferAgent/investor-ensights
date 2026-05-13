@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { users, tenants, tenantMembers } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/auth";
+import { isConductor } from "@/lib/conductor-guard";
 
 export async function GET() {
   const session = await verifySession();
@@ -35,5 +36,8 @@ export async function GET() {
     displayName: row.displayName,
     tenantSlug: row.tenantSlug,
     tenantDisplayName: row.personaDisplayName,
+    // MT-4.13: drives the conditional Persona Wizard nav entry. Sessions
+    // outside the Conductor tenant get false here and the entry doesn't render.
+    isConductor: isConductor(session),
   });
 }

@@ -33,6 +33,7 @@ import {
   Bot,
   BookOpen,
   Users,
+  UserPlus,
 } from "lucide-react"
 
 const navItems = [
@@ -48,6 +49,13 @@ const navItems = [
   { title: "Admin Users", url: "/admin/settings/admins", icon: Users },
 ]
 
+// MT-4.13: Persona Wizard nav entry, conditionally rendered for Conductor
+// sessions only. Placed at the bottom of the nav since it's a low-frequency
+// staff-only operation, not part of the daily workflow.
+const conductorNavItems = [
+  { title: "Personas", url: "/admin/personas", icon: UserPlus },
+]
+
 const socialPlatforms = [
   { title: "Twitter", slug: "twitter", icon: Twitter },
   { title: "LinkedIn", slug: "linkedin", icon: Linkedin },
@@ -60,6 +68,7 @@ interface AdminUser {
   id: string
   username: string
   displayName: string | null
+  isConductor?: boolean
 }
 
 function AdminShell({ children }: { children: React.ReactNode }) {
@@ -144,6 +153,22 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               item.url === "/admin"
                 ? pathname === "/admin"
                 : pathname.startsWith(item.url)
+            return (
+              <Link key={item.title} href={item.url}>
+                <Button
+                  variant={isActive ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {item.title}
+                </Button>
+              </Link>
+            )
+          })}
+
+          {user.isConductor && conductorNavItems.map((item) => {
+            const isActive = pathname.startsWith(item.url)
             return (
               <Link key={item.title} href={item.url}>
                 <Button
