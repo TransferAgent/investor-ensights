@@ -1,14 +1,4 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/admin/haylo/page": "app/admin/haylo/page.js",
-  "/admin/login/page": "app/admin/login/page.js",
-  "/admin/page": "app/admin/page.js",
-  "/admin/personas/new/page": "app/admin/personas/new/page.js",
-  "/api/admin/haylo-articles/halo-status/route": "app/api/admin/haylo-articles/halo-status/route.js",
-  "/api/admin/haylo-articles/route": "app/api/admin/haylo-articles/route.js",
-  "/api/admin/login/route": "app/api/admin/login/route.js",
-  "/api/admin/me/route": "app/api/admin/me/route.js",
-  "/api/admin/stats/route": "app/api/admin/stats/route.js",
   "/api/public/tenants/route": "app/api/public/tenants/route.js",
   "/page": "app/page.js"
 }
