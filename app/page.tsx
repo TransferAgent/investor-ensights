@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { storage } from "@/lib/storage"
 import { SlideRenderer } from "@/components/slides/slide-renderer"
 import HeroHome from "@/components/homepage/hero-home"
+import HomeInternalLinks from "@/components/homepage/home-internal-links"
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com"
 
@@ -32,7 +33,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const homePage = await storage.getPageBySlug("home")
+  // Fetch in parallel: home page builder, slides (if any), and SEO link inventory.
+  // The link section below the hero exists to break the "orphan pages" indexing
+  // signal flagged in John/Google_Index_Root_Cause.md — Google needs internal
+  // <a href> equity flowing to every article and city, not just sitemap entries.
+  const [homePage, articles, cities] = await Promise.all([
+    storage.getPageBySlug("home"),
+    storage.getKnowledgeArticles("published").catch(() => []),
+    storage.getCities().catch(() => []),
+  ])
 
   const usePageBuilder = homePage?.isPublished
   let slides: any[] = []
@@ -46,9 +55,15 @@ export default async function HomePage() {
         {slides.map((slide) => (
           <SlideRenderer key={slide.id} slide={slide} />
         ))}
+        <HomeInternalLinks articles={articles} cities={cities} />
       </div>
     )
   }
 
-  return <HeroHome />
+  return (
+    <>
+      <HeroHome />
+      <HomeInternalLinks articles={articles} cities={cities} />
+    </>
+  )
 }

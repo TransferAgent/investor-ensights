@@ -1,4 +1,5 @@
 {
   "/api/public/tenants/route": "app/api/public/tenants/route.js",
+  "/discovery/knowledge/[slug]/page": "app/discovery/knowledge/[slug]/page.js",
   "/page": "app/page.js"
 }

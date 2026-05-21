@@ -1653,6 +1653,10 @@ body {
   margin-top: auto;
 }
 
+.mt-10 {
+  margin-top: 2.5rem;
+}
+
 .line-clamp-1 {
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
@@ -2459,6 +2463,10 @@ body {
   gap: 2rem;
 }
 
+.gap-12 {
+  gap: 3rem;
+}
+
 .gap-x-3 {
   -moz-column-gap: .75rem;
   column-gap: .75rem;
@@ -2475,6 +2483,11 @@ body {
 
 .gap-y-2 {
   row-gap: .5rem;
+}
+
+.gap-x-6 {
+  -moz-column-gap: 1.5rem;
+  column-gap: 1.5rem;
 }
 
 .space-x-1 > :not([hidden]) ~ :not([hidden]) {
@@ -3581,6 +3594,10 @@ body {
   line-height: 1.25;
 }
 
+.leading-snug {
+  line-height: 1.375;
+}
+
 .tracking-\[0\.3em\] {
   letter-spacing: .3em;
 }
@@ -3952,6 +3969,10 @@ body {
 
 .underline-offset-2 {
   text-underline-offset: 2px;
+}
+
+.underline-offset-4 {
+  text-underline-offset: 4px;
 }
 
 .antialiased {
