@@ -14,7 +14,13 @@ export const metadata: Metadata = {
 }
 
 export default async function LocationsPage() {
-  const cities = await storage.getCities(true)
+  // Two-gate filter so this hub matches City Management intent end-to-end:
+  // 1. isPublished=true (enforced by storage.getCities(true))
+  // 2. allowIndexing=true (enforced here) — Publish+NoIndex cities are hidden
+  //    from the public hub so Google never sees a link from /locations to a
+  //    page that tells Google not to index it.
+  const all = await storage.getCities(true)
+  const cities = all.filter((c) => c.allowIndexing === true)
 
   return (
     <div className="min-h-screen bg-background">

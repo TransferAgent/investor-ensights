@@ -2,5 +2,6 @@
   "/api/public/tenants/route": "app/api/public/tenants/route.js",
   "/discovery/knowledge/[slug]/page": "app/discovery/knowledge/[slug]/page.js",
   "/locations/page": "app/locations/page.js",
-  "/page": "app/page.js"
+  "/page": "app/page.js",
+  "/sitemap.xml/route": "app/sitemap.xml/route.js"
 }

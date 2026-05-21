@@ -2,7 +2,6 @@ import Link from "next/link"
 import type { KnowledgeArticle, CityLocation } from "@shared/schema"
 
 const ARTICLE_LIMIT = 12
-const CITY_LIMIT = 24
 
 function pickRecentArticles(articles: KnowledgeArticle[]): KnowledgeArticle[] {
   return articles
@@ -16,11 +15,10 @@ function pickRecentArticles(articles: KnowledgeArticle[]): KnowledgeArticle[] {
     .slice(0, ARTICLE_LIMIT)
 }
 
-function pickCities(cities: CityLocation[]): CityLocation[] {
-  return cities
-    .filter((c) => c.allowIndexing !== false)
-    .sort((a, b) => a.cityName.localeCompare(b.cityName))
-    .slice(0, CITY_LIMIT)
+function countPublicCities(cities: CityLocation[]): number {
+  // Same two-gate filter the /locations hub uses: isPublished AND allowIndexing.
+  // Used only to decide whether to render the Locations CTA at all.
+  return cities.filter((c) => c.isPublished && c.allowIndexing === true).length
 }
 
 export default function HomeInternalLinks({
@@ -31,9 +29,10 @@ export default function HomeInternalLinks({
   cities: CityLocation[]
 }) {
   const recent = pickRecentArticles(articles)
-  const featuredCities = pickCities(cities)
+  const publicCityCount = countPublicCities(cities)
+  const hasLocationsHub = publicCityCount > 0
 
-  if (recent.length === 0 && featuredCities.length === 0) return null
+  if (recent.length === 0 && !hasLocationsHub) return null
 
   return (
     <section
@@ -83,29 +82,22 @@ export default function HomeInternalLinks({
             </div>
           )}
 
-          {featuredCities.length > 0 && (
-            <div data-testid="block-featured-cities">
-              <h3 className="text-lg font-semibold">Locations we cover</h3>
-              <ul className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
-                {featuredCities.map((c) => (
-                  <li key={c.id}>
-                    <Link
-                      href={`/locations/${c.slug}`}
-                      className="text-sm leading-snug text-foreground underline-offset-4 hover:underline"
-                      data-testid={`link-city-${c.slug}`}
-                    >
-                      {c.cityName}, {c.stateCode}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+          {hasLocationsHub && (
+            <div data-testid="block-locations-hub">
+              <h3 className="text-lg font-semibold">Locations</h3>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                Ground-truth coverage of company formation and equity activity in{" "}
+                {publicCityCount}{" "}
+                {publicCityCount === 1 ? "active city" : "active cities"} across the US.
+                Search by city, filter by state, or auto-detect locations near you.
+              </p>
               <div className="mt-5">
                 <Link
                   href="/locations"
                   className="text-sm font-medium text-primary underline-offset-4 hover:underline"
                   data-testid="link-all-locations"
                 >
-                  See every location →
+                  Browse all locations →
                 </Link>
               </div>
             </div>

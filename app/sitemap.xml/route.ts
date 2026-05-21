@@ -97,6 +97,7 @@ async function buildEntries(): Promise<Entry[]> {
     }))
 
   const staticEntries: Entry[] = [
+    { loc: `${BASE_URL}/locations`, lastmod: maxDate(cities.map((c) => c.updatedAt)), changefreq: "daily", priority: 0.9 },
     { loc: `${BASE_URL}/terms`, lastmod: STATIC_LASTMOD, changefreq: "yearly", priority: 0.3 },
     { loc: `${BASE_URL}/privacy`, lastmod: STATIC_LASTMOD, changefreq: "yearly", priority: 0.3 },
     { loc: `${BASE_URL}/site-map`, lastmod: STATIC_LASTMOD, changefreq: "weekly", priority: 0.4 },
