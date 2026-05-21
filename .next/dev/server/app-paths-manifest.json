@@ -7,5 +7,6 @@
   "/page": "app/page.js",
   "/personas/[slug]/insights/page": "app/personas/[slug]/insights/page.js",
   "/personas/[slug]/locations/page": "app/personas/[slug]/locations/page.js",
+  "/site-map/page": "app/site-map/page.js",
   "/sitemap.xml/route": "app/sitemap.xml/route.js"
 }
