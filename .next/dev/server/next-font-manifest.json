@@ -6,10 +6,19 @@
     "[project]/app/discovery/knowledge/page": [
       "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
     ],
+    "[project]/app/locations/[slug]/page": [
+      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
+    ],
     "[project]/app/locations/page": [
       "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
     ],
     "[project]/app/page": [
+      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
+    ],
+    "[project]/app/personas/[slug]/insights/page": [
+      "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
+    ],
+    "[project]/app/personas/[slug]/locations/page": [
       "static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2"
     ]
   },

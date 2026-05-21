@@ -2,7 +2,10 @@
   "/api/public/tenants/route": "app/api/public/tenants/route.js",
   "/discovery/knowledge/[slug]/page": "app/discovery/knowledge/[slug]/page.js",
   "/discovery/knowledge/page": "app/discovery/knowledge/page.js",
+  "/locations/[slug]/page": "app/locations/[slug]/page.js",
   "/locations/page": "app/locations/page.js",
   "/page": "app/page.js",
+  "/personas/[slug]/insights/page": "app/personas/[slug]/insights/page.js",
+  "/personas/[slug]/locations/page": "app/personas/[slug]/locations/page.js",
   "/sitemap.xml/route": "app/sitemap.xml/route.js"
 }

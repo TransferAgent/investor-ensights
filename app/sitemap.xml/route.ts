@@ -1,4 +1,6 @@
 import { storage } from "@/lib/storage"
+import { withTenantAsync } from "@/lib/tenant/context"
+import { getPublicTenants } from "@/lib/tenant/public-tenants"
 
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com").replace(/\/$/, "")
 
@@ -54,29 +56,54 @@ function renderXml(entries: Entry[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`
 }
 
+interface TenantData {
+  slug: string
+  cities: Awaited<ReturnType<typeof storage.getCities>>
+  articles: Awaited<ReturnType<typeof storage.getKnowledgeArticles>>
+}
+
 async function buildEntries(): Promise<Entry[]> {
-  let cities: Awaited<ReturnType<typeof storage.getCities>> = []
+  // Multi-tenant aware: loop every public tenant and aggregate.
   let pages: Awaited<ReturnType<typeof storage.getPages>> = []
-  let articles: Awaited<ReturnType<typeof storage.getKnowledgeArticles>> = []
+  let tenantData: TenantData[] = []
 
   try {
-    ;[cities, pages, articles] = await Promise.all([
-      storage.getCities(true),
-      storage.getPages(),
-      storage.getKnowledgeArticles("published"),
+    const publicTenants = await getPublicTenants()
+    const [pagesResult, ...perTenant] = await Promise.all([
+      storage.getPages().catch(() => []),
+      ...publicTenants.map(async (t): Promise<TenantData> => {
+        const [cities, articles] = await withTenantAsync(t.slug, () =>
+          Promise.all([
+            storage.getCities(true).catch(() => []),
+            storage.getKnowledgeArticles("published").catch(() => []),
+          ]),
+        )
+        return { slug: t.slug, cities, articles }
+      }),
     ])
+    pages = pagesResult as typeof pages
+    tenantData = perTenant as TenantData[]
   } catch {
     // On DB failure, ship a minimal sitemap rather than 500ing Googlebot.
   }
 
-  const cityEntries: Entry[] = cities
-    .filter((c) => c.allowIndexing !== false)
-    .map((city) => ({
+  const allCities = tenantData.flatMap((t) => t.cities)
+  const allArticles = tenantData.flatMap((t) => t.articles)
+
+  // Per-city URLs (global namespace, deduped by slug just in case).
+  const cityEntries: Entry[] = []
+  const seenCitySlugs = new Set<string>()
+  for (const city of allCities) {
+    if (city.allowIndexing === false) continue
+    if (seenCitySlugs.has(city.slug)) continue
+    seenCitySlugs.add(city.slug)
+    cityEntries.push({
       loc: `${BASE_URL}/locations/${city.slug}`,
       lastmod: city.updatedAt as Date,
       changefreq: "weekly",
       priority: 0.8,
-    }))
+    })
+  }
 
   const pageEntries: Entry[] = pages
     .filter((p) => p.isPublished)
@@ -87,32 +114,57 @@ async function buildEntries(): Promise<Entry[]> {
       priority: 0.7,
     }))
 
-  const articleEntries: Entry[] = articles
-    .filter((a) => !String(a.robots || "").toLowerCase().includes("noindex"))
-    .map((article) => ({
+  // Per-article URLs (slugs are globally unique by persona-prefix construction).
+  const seenArticleSlugs = new Set<string>()
+  const articleEntries: Entry[] = []
+  for (const article of allArticles) {
+    if (String(article.robots || "").toLowerCase().includes("noindex")) continue
+    if (seenArticleSlugs.has(article.slug)) continue
+    seenArticleSlugs.add(article.slug)
+    articleEntries.push({
       loc: `${BASE_URL}/discovery/knowledge/${article.slug}`,
       lastmod: article.dateModified as Date,
       changefreq: "weekly",
       priority: 0.7,
-    }))
+    })
+  }
+
+  // Per-persona sub-hub URLs — one /personas/<slug>/locations and one
+  // /personas/<slug>/insights for every public tenant. These hubs are the
+  // primary internal-link spine that flows equity from home to leaf pages.
+  const personaHubEntries: Entry[] = tenantData.flatMap((t) => [
+    {
+      loc: `${BASE_URL}/personas/${t.slug}/locations`,
+      lastmod: maxDate(t.cities.map((c) => c.updatedAt)),
+      changefreq: "daily" as const,
+      priority: 0.85,
+    },
+    {
+      loc: `${BASE_URL}/personas/${t.slug}/insights`,
+      lastmod: maxDate(t.articles.map((a) => a.dateModified)),
+      changefreq: "daily" as const,
+      priority: 0.85,
+    },
+  ])
 
   const staticEntries: Entry[] = [
-    { loc: `${BASE_URL}/locations`, lastmod: maxDate(cities.map((c) => c.updatedAt)), changefreq: "daily", priority: 0.9 },
-    { loc: `${BASE_URL}/discovery/knowledge`, lastmod: maxDate(articles.map((a) => a.dateModified)), changefreq: "daily", priority: 0.9 },
+    { loc: `${BASE_URL}/locations`, lastmod: maxDate(allCities.map((c) => c.updatedAt)), changefreq: "daily", priority: 0.9 },
+    { loc: `${BASE_URL}/discovery/knowledge`, lastmod: maxDate(allArticles.map((a) => a.dateModified)), changefreq: "daily", priority: 0.9 },
     { loc: `${BASE_URL}/terms`, lastmod: STATIC_LASTMOD, changefreq: "yearly", priority: 0.3 },
     { loc: `${BASE_URL}/privacy`, lastmod: STATIC_LASTMOD, changefreq: "yearly", priority: 0.3 },
     { loc: `${BASE_URL}/site-map`, lastmod: STATIC_LASTMOD, changefreq: "weekly", priority: 0.4 },
   ]
 
   const homeLastMod = maxDate([
-    ...cities.map((c) => c.updatedAt),
-    ...articles.map((a) => a.dateModified),
+    ...allCities.map((c) => c.updatedAt),
+    ...allArticles.map((a) => a.dateModified),
     ...pages.map((p) => p.updatedAt),
   ])
 
   return [
     { loc: BASE_URL, lastmod: homeLastMod, changefreq: "daily", priority: 1.0 },
     ...staticEntries,
+    ...personaHubEntries,
     ...cityEntries,
     ...pageEntries,
     ...articleEntries,

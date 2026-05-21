@@ -1,6 +1,9 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { storage } from "@/lib/storage"
+import { withTenantAsync } from "@/lib/tenant/context"
+import { resolveTenantFromCitySlug } from "@/lib/tenant/resolve-from-slug"
+import { getPublicTenants } from "@/lib/tenant/public-tenants"
 import {
   replacePlaceholders,
   type CityData,
@@ -11,10 +14,27 @@ import LoginPanel from "@/components/homepage/login-panel"
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com"
 
 export async function generateStaticParams() {
-  const cities = await storage.getCities(true)
-  return cities.map((city) => ({
-    slug: city.slug,
-  }))
+  // Multi-tenant: pre-render all Publish+Index cities across every public
+  // tenant. Without the loop, only the default tenant's cities get static
+  // params and any non-default tenant's cities render dynamically on first
+  // hit (still 200, just slower TTFB on cold cache).
+  const tenants = await getPublicTenants()
+  const all = await Promise.all(
+    tenants.map((t) =>
+      withTenantAsync(t.slug, () => storage.getCities(true)).catch(() => []),
+    ),
+  )
+  const seen = new Set<string>()
+  const params: Array<{ slug: string }> = []
+  for (const cities of all) {
+    for (const city of cities) {
+      if (city.allowIndexing === false) continue
+      if (seen.has(city.slug)) continue
+      seen.add(city.slug)
+      params.push({ slug: city.slug })
+    }
+  }
+  return params
 }
 
 export async function generateMetadata({
@@ -23,15 +43,23 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const city = await storage.getCityBySlug(slug)
+  // MT-latent-bug-fix: resolve which tenant owns this city slug via the
+  // public.city_slug_registry, then run all storage calls inside that
+  // tenant's context. Without this wrap, storage looked in the default
+  // tenant's schema only — so the moment a second persona ships a city,
+  // its detail page would return 404 even though the row exists.
+  const tenantSlug = await resolveTenantFromCitySlug(slug)
+  const city = await withTenantAsync(tenantSlug, () => storage.getCityBySlug(slug))
 
   if (!city) {
     return { title: "Location Not Found" }
   }
 
-  const assignment = await storage.getAssignmentByCityId(city.id)
+  const [assignment] = await withTenantAsync(tenantSlug, () =>
+    Promise.all([storage.getAssignmentByCityId(city.id)]),
+  )
   const template = assignment?.templateId
-    ? await storage.getTemplateById(assignment.templateId)
+    ? await withTenantAsync(tenantSlug, () => storage.getTemplateById(assignment.templateId as string))
     : null
 
   const landmarks = (city.localLandmarks as string[]) || []
@@ -93,18 +121,25 @@ export default async function CityPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const city = await storage.getCityBySlug(slug)
+  const tenantSlug = await resolveTenantFromCitySlug(slug)
+
+  const { city, assignment, template, cityArticles } = await withTenantAsync(
+    tenantSlug,
+    async () => {
+      const c = await storage.getCityBySlug(slug)
+      if (!c) return { city: null, assignment: null, template: null, cityArticles: [] as Awaited<ReturnType<typeof storage.getPublishedArticlesByCitySlug>> }
+      const [a, articles] = await Promise.all([
+        storage.getAssignmentByCityId(c.id),
+        storage.getPublishedArticlesByCitySlug(c.slug),
+      ])
+      const t = a?.templateId ? await storage.getTemplateById(a.templateId) : null
+      return { city: c, assignment: a, template: t, cityArticles: articles }
+    },
+  )
 
   if (!city) {
     notFound()
   }
-
-  const assignment = await storage.getAssignmentByCityId(city.id)
-  const template = assignment?.templateId
-    ? await storage.getTemplateById(assignment.templateId)
-    : null
-
-  const cityArticles = await storage.getPublishedArticlesByCitySlug(city.slug)
 
   const landmarks = (city.localLandmarks as string[]) || []
   const nearbyCities = (city.nearbyCities as string[]) || []
