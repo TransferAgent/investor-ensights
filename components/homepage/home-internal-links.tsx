@@ -72,7 +72,7 @@ export default function HomeInternalLinks({
               </ul>
               <div className="mt-5">
                 <Link
-                  href="/site-map"
+                  href="/discovery/knowledge"
                   className="text-sm font-medium text-primary underline-offset-4 hover:underline"
                   data-testid="link-all-articles"
                 >
