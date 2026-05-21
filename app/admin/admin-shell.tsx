@@ -34,6 +34,7 @@ import {
   BookOpen,
   Users,
   UserPlus,
+  Home,
 } from "lucide-react"
 
 const navItems = [
@@ -225,10 +226,10 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
             <Button
               variant="ghost"
               className="w-full justify-start mb-1"
-              data-testid="link-view-site"
+              data-testid="link-home-page"
             >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              View All Locations
+              <Home className="mr-2 h-4 w-4" />
+              Home Page
             </Button>
           </Link>
           <div className="mb-2 px-3 text-sm text-muted-foreground" data-testid="text-admin-user">

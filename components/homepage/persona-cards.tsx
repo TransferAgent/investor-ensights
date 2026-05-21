@@ -1,24 +1,11 @@
 import Link from "next/link"
-import { MapPin, Newspaper, ArrowRight } from "lucide-react"
+import { MapPin, ArrowRight } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { PersonaCardData } from "@/lib/tenant/public-tenants"
 
-function formatDate(iso: string | null): string {
-  if (!iso) return ""
-  try {
-    return new Date(iso).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
-  } catch {
-    return ""
-  }
-}
-
 function PersonaCard({ data }: { data: PersonaCardData }) {
-  const { tenant, cityCount, recentArticles } = data
+  const { tenant, cityCount } = data
   return (
     <Card
       className="flex h-full flex-col p-6"
@@ -58,40 +45,7 @@ function PersonaCard({ data }: { data: PersonaCardData }) {
         </Link>
       </div>
 
-      <div className="flex flex-1 flex-col">
-        <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-          <Newspaper className="h-4 w-4 text-primary" />
-          Recent insights
-        </div>
-        {recentArticles.length === 0 ? (
-          <p
-            className="text-sm text-muted-foreground"
-            data-testid={`text-no-articles-${tenant.slug}`}
-          >
-            No insights published yet. Check back soon.
-          </p>
-        ) : (
-          <ul className="space-y-3">
-            {recentArticles.map((a) => (
-              <li key={a.slug} className="leading-snug">
-                <Link
-                  href={`/discovery/knowledge/${a.slug}`}
-                  className="text-sm text-foreground underline-offset-4 hover:underline"
-                  data-testid={`link-article-${a.slug}`}
-                >
-                  {a.title}
-                </Link>
-                <div className="mt-0.5 text-xs text-muted-foreground">
-                  {a.cityName}, {a.stateCode}
-                  {a.datePublished ? ` · ${formatDate(a.datePublished)}` : ""}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="mt-5 border-t pt-4">
+      <div className="mt-auto border-t pt-4">
         <Link
           href={`/personas/${tenant.slug}/insights`}
           className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
