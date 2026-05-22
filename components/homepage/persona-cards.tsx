@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { MapPin, ArrowRight } from "lucide-react"
+import { MapPin, Newspaper, ArrowRight } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { PersonaCardData } from "@/lib/tenant/public-tenants"
@@ -11,49 +11,66 @@ function PersonaCard({ data }: { data: PersonaCardData }) {
       className="flex h-full flex-col p-6"
       data-testid={`card-persona-${tenant.slug}`}
     >
-      <div className="mb-4">
+      <div className="mb-5">
         <h3
           className="text-xl font-semibold"
           data-testid={`text-persona-name-${tenant.slug}`}
         >
           {tenant.personaDisplayName}
         </h3>
-        {tenant.brandTagline && (
-          <p className="mt-1 text-sm text-muted-foreground">
-            {tenant.brandTagline}
-          </p>
-        )}
-        {tenant.brandVertical && (
-          <Badge variant="secondary" className="mt-3 text-xs">
-            {tenant.brandVertical}
-          </Badge>
-        )}
+        <p
+          className="mt-1 min-h-[2.5rem] text-sm text-muted-foreground"
+          data-testid={`text-persona-tagline-${tenant.slug}`}
+        >
+          {tenant.brandTagline || "\u00A0"}
+        </p>
+        <div className="mt-3 min-h-[1.5rem]">
+          {tenant.brandVertical ? (
+            <Badge
+              variant="secondary"
+              className="text-xs"
+              data-testid={`badge-persona-vertical-${tenant.slug}`}
+            >
+              {tenant.brandVertical}
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="invisible text-xs" aria-hidden="true">
+              &nbsp;
+            </Badge>
+          )}
+        </div>
       </div>
 
-      <div className="mb-5 flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
-        <MapPin className="h-4 w-4 shrink-0 text-primary" />
-        <span className="text-sm" data-testid={`text-city-count-${tenant.slug}`}>
-          {cityCount} {cityCount === 1 ? "active city" : "active cities"}
-        </span>
-        <Link
-          href={`/personas/${tenant.slug}/locations`}
-          className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
-          data-testid={`link-persona-locations-${tenant.slug}`}
-        >
-          Locations
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
+      <div className="mt-auto flex flex-col gap-3">
+        <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
+          <MapPin className="h-4 w-4 shrink-0 text-primary" />
+          <span className="text-sm" data-testid={`text-city-count-${tenant.slug}`}>
+            {cityCount} {cityCount === 1 ? "active city" : "active cities"}
+          </span>
+          <Link
+            href={`/personas/${tenant.slug}/locations`}
+            className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+            data-testid={`link-persona-locations-${tenant.slug}`}
+          >
+            Locations
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
 
-      <div className="mt-auto border-t pt-4">
-        <Link
-          href={`/personas/${tenant.slug}/insights`}
-          className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
-          data-testid={`link-persona-insights-${tenant.slug}`}
-        >
-          Browse all {tenant.personaDisplayName} insights
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
+        <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
+          <Newspaper className="h-4 w-4 shrink-0 text-primary" />
+          <span className="text-sm" data-testid={`text-insights-label-${tenant.slug}`}>
+            {tenant.personaDisplayName} insights
+          </span>
+          <Link
+            href={`/personas/${tenant.slug}/insights`}
+            className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+            data-testid={`link-persona-insights-${tenant.slug}`}
+          >
+            Browse
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </div>
     </Card>
   )
