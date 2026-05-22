@@ -43,7 +43,14 @@ export default async function PersonaInsightsPage({
   const tenant = tenants.find((t) => t.slug === slug)
   if (!tenant) notFound()
 
-  const { articles, cityCount } = await withTenantAsync(tenant.slug, async () => {
+  type Orphan = {
+    id: string
+    slug: string
+    title: string
+    datePublished: string | null
+  }
+
+  const { articles, orphans, cityCount } = await withTenantAsync(tenant.slug, async () => {
     const [articlesRaw, citiesRaw] = await Promise.all([
       storage.getKnowledgeArticles("published"),
       storage.getCities(true),
@@ -51,8 +58,10 @@ export default async function PersonaInsightsPage({
     const publicCityMap = new Map(
       citiesRaw.filter((c) => c.allowIndexing === true).map((c) => [c.slug, c] as const),
     )
-    const enriched: ArticleWithCity[] = articlesRaw
-      .filter((a) => !String(a.robots || "").toLowerCase().includes("noindex"))
+    const indexable = articlesRaw.filter(
+      (a) => !String(a.robots || "").toLowerCase().includes("noindex"),
+    )
+    const enriched: ArticleWithCity[] = indexable
       .filter((a) => a.citySlug && publicCityMap.has(a.citySlug))
       .map((a) => {
         const city = publicCityMap.get(a.citySlug as string)!
@@ -72,10 +81,24 @@ export default async function PersonaInsightsPage({
         const tb = b.datePublished ? new Date(b.datePublished).getTime() : 0
         return tb - ta
       })
-    return { articles: enriched, cityCount: publicCityMap.size }
+    const orphanList: Orphan[] = indexable
+      .filter((a) => !a.citySlug || !publicCityMap.has(a.citySlug))
+      .map((a) => ({
+        id: a.id,
+        slug: a.slug,
+        title: a.headline || a.title,
+        datePublished: a.datePublished ? a.datePublished.toISOString() : null,
+      }))
+      .sort((a, b) => {
+        const ta = a.datePublished ? new Date(a.datePublished).getTime() : 0
+        const tb = b.datePublished ? new Date(b.datePublished).getTime() : 0
+        return tb - ta
+      })
+    return { articles: enriched, orphans: orphanList, cityCount: publicCityMap.size }
   })
 
   const cityCoverageCount = new Set(articles.map((a) => a.citySlug)).size
+  const totalInsightCount = articles.length + orphans.length
 
   return (
     <div className="min-h-screen bg-background">
@@ -101,7 +124,7 @@ export default async function PersonaInsightsPage({
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Badge variant="secondary" className="text-sm">
               <Newspaper className="mr-1.5 h-3.5 w-3.5" />
-              {articles.length} {articles.length === 1 ? "Insight" : "Insights"}
+              {totalInsightCount} {totalInsightCount === 1 ? "Insight" : "Insights"}
             </Badge>
             <Badge variant="secondary" className="text-sm">
               <MapPin className="mr-1.5 h-3.5 w-3.5" />
@@ -127,6 +150,49 @@ export default async function PersonaInsightsPage({
       </div>
 
       <ArticleGrid articles={articles} />
+
+      {orphans.length > 0 && (
+        <section
+          className="border-t bg-muted/20"
+          aria-labelledby="orphan-insights-heading"
+          data-testid="section-orphan-insights"
+        >
+          <div className="mx-auto max-w-6xl px-4 py-10">
+            <h2
+              id="orphan-insights-heading"
+              className="text-2xl font-bold tracking-tight"
+              data-testid="text-orphan-heading"
+            >
+              Our Insights (All)
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              Additional {tenant.personaDisplayName} insights not yet tied to a published city page.
+            </p>
+            <ul className="mt-6 divide-y rounded-md border bg-background">
+              {orphans.map((o) => (
+                <li key={o.id} data-testid={`item-orphan-${o.slug}`}>
+                  <Link
+                    href={`/discovery/knowledge/${o.slug}`}
+                    className="flex items-start justify-between gap-4 px-4 py-3 text-sm hover:bg-muted/40"
+                    data-testid={`link-orphan-${o.slug}`}
+                  >
+                    <span className="font-medium text-foreground">{o.title}</span>
+                    {o.datePublished && (
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {new Date(o.datePublished).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       <footer className="border-t">
         <div className="mx-auto max-w-6xl px-4 py-6 flex items-center justify-between flex-wrap gap-2">

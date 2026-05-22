@@ -1736,6 +1736,10 @@ body {
   margin-top: .375rem;
 }
 
+.mt-10 {
+  margin-top: 2.5rem;
+}
+
 .mt-12 {
   margin-top: 3rem;
 }
@@ -1774,10 +1778,6 @@ body {
 
 .mt-auto {
   margin-top: auto;
-}
-
-.mt-10 {
-  margin-top: 2.5rem;
 }
 
 .line-clamp-1 {
@@ -2586,10 +2586,6 @@ body {
   gap: 2rem;
 }
 
-.gap-12 {
-  gap: 3rem;
-}
-
 .gap-x-3 {
   -moz-column-gap: .75rem;
   column-gap: .75rem;
@@ -2606,11 +2602,6 @@ body {
 
 .gap-y-2 {
   row-gap: .5rem;
-}
-
-.gap-x-6 {
-  -moz-column-gap: 1.5rem;
-  column-gap: 1.5rem;
 }
 
 .space-x-1 > :not([hidden]) ~ :not([hidden]) {
@@ -3533,6 +3524,10 @@ body {
   padding-top: .25rem;
 }
 
+.pt-12 {
+  padding-top: 3rem;
+}
+
 .pt-2 {
   padding-top: .5rem;
 }
@@ -3555,10 +3550,6 @@ body {
 
 .pt-8 {
   padding-top: 2rem;
-}
-
-.pt-12 {
-  padding-top: 3rem;
 }
 
 .text-left {
@@ -3667,14 +3658,14 @@ body {
   line-height: 1.25rem;
 }
 
-.text-xs {
-  font-size: .75rem;
-  line-height: 1rem;
-}
-
 .text-xl {
   font-size: 1.25rem;
   line-height: 1.75rem;
+}
+
+.text-xs {
+  font-size: .75rem;
+  line-height: 1rem;
 }
 
 .font-bold {
@@ -3722,12 +3713,12 @@ body {
   line-height: 1.625;
 }
 
-.leading-tight {
-  line-height: 1.25;
-}
-
 .leading-snug {
   line-height: 1.375;
+}
+
+.leading-tight {
+  line-height: 1.25;
 }
 
 .tracking-\[0\.3em\] {
@@ -3995,6 +3986,10 @@ body {
   color: hsl(var(--primary-foreground) / var(--tw-text-opacity, 1));
 }
 
+.text-primary-foreground\/70 {
+  color: hsl(var(--primary-foreground) / .7);
+}
+
 .text-primary-foreground\/80 {
   color: hsl(var(--primary-foreground) / .8);
 }
@@ -4085,10 +4080,6 @@ body {
 .text-zinc-700 {
   --tw-text-opacity: 1;
   color: rgb(63 63 70 / var(--tw-text-opacity, 1));
-}
-
-.text-primary-foreground\/70 {
-  color: hsl(var(--primary-foreground) / .7);
 }
 
 .underline {
@@ -4835,6 +4826,10 @@ input[type="search"]::-webkit-search-cancel-button {
 .hover\:bg-zinc-200:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(228 228 231 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-muted\/40:hover {
+  background-color: hsl(var(--muted) / .4);
 }
 
 .hover\:text-accent-foreground:hover {
