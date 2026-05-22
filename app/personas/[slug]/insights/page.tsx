@@ -82,7 +82,7 @@ export default async function PersonaInsightsPage({
         return tb - ta
       })
     const orphanList: Orphan[] = indexable
-      .filter((a) => !a.citySlug || !publicCityMap.has(a.citySlug))
+      .filter((a) => a.citySlug && !publicCityMap.has(a.citySlug))
       .map((a) => ({
         id: a.id,
         slug: a.slug,

@@ -1934,8 +1934,16 @@ body {
   min-height: 2.25rem;
 }
 
+.min-h-\[1\.5rem\] {
+  min-height: 1.5rem;
+}
+
 .min-h-\[150px\] {
   min-height: 150px;
+}
+
+.min-h-\[2\.5rem\] {
+  min-height: 2.5rem;
 }
 
 .min-h-\[280px\] {
