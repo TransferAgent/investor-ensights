@@ -168,7 +168,13 @@ export default async function PersonaInsightsPage({
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Additional {tenant.personaDisplayName} insights not yet tied to a published city page.
             </p>
-            <ul className="mt-6 divide-y rounded-md border bg-background">
+            <p className="mt-3 text-xs text-muted-foreground" data-testid="text-orphan-count">
+              {orphans.length} {orphans.length === 1 ? "article" : "articles"} · scroll to see all
+            </p>
+            <ul
+              className="mt-4 max-h-[28rem] divide-y overflow-y-auto rounded-md border bg-background"
+              data-testid="list-orphan-insights"
+            >
               {orphans.map((o) => (
                 <li key={o.id} data-testid={`item-orphan-${o.slug}`}>
                   <Link

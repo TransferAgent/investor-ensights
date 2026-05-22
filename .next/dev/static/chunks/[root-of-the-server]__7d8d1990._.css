@@ -2009,6 +2009,10 @@ body {
   max-height: var(--radix-select-content-available-height);
 }
 
+.max-h-\[28rem\] {
+  max-height: 28rem;
+}
+
 .max-h-\[300px\] {
   max-height: 300px;
 }
@@ -4790,6 +4794,10 @@ input[type="search"]::-webkit-search-cancel-button {
   background-color: hsl(var(--muted) / .3);
 }
 
+.hover\:bg-muted\/40:hover {
+  background-color: hsl(var(--muted) / .4);
+}
+
 .hover\:bg-muted\/50:hover {
   background-color: hsl(var(--muted) / .5);
 }
@@ -4826,10 +4834,6 @@ input[type="search"]::-webkit-search-cancel-button {
 .hover\:bg-zinc-200:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(228 228 231 / var(--tw-bg-opacity, 1));
-}
-
-.hover\:bg-muted\/40:hover {
-  background-color: hsl(var(--muted) / .4);
 }
 
 .hover\:text-accent-foreground:hover {
