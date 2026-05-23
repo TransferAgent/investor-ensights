@@ -18,42 +18,6 @@ uri = "file://public/auth-hero.png"
 type = "image"
 title = "generated_image"
 
-[[generated]]
-id = "RZVdaUxrkOKXHcgoQTGZK"
-uri = "file://public/persona-heroes/tableicity.png"
-type = "image"
-title = "generated_image"
-
-[[generated]]
-id = "bycXfoUexXMIfAgqDew8_"
-uri = "file://public/persona-heroes/texitie.png"
-type = "image"
-title = "generated_image"
-
-[[generated]]
-id = "vQKPA6je0IXE7gN_3dMCE"
-uri = "file://public/persona-heroes/veltroy.png"
-type = "image"
-title = "generated_image"
-
-[[generated]]
-id = "VH4YtTrN5VNmfEep6mYIX"
-uri = "file://public/persona-heroes/haylo.png"
-type = "image"
-title = "generated_image"
-
-[[generated]]
-id = "gdcqSn5l_adYCCGCoSfo-"
-uri = "file://public/persona-heroes/payrol.png"
-type = "image"
-title = "generated_image"
-
-[[generated]]
-id = "kvXMudUA2-ARYYNqx8PRN"
-uri = "file://public/persona-heroes/dummy.png"
-type = "image"
-title = "generated_image"
-
 [[outputs]]
 id = "H8VCHfKuHDt6JHRR47nJz"
 uri = "file://John/STATUS_REPORT.md"
