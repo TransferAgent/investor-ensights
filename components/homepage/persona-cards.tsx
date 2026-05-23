@@ -13,6 +13,48 @@ function personaDescription(data: PersonaCardData): string {
   return `${tenant.personaDisplayName} publishes ground-truth company-formation and equity coverage across ${cityCount} U.S. ${cityCount === 1 ? "city" : "cities"}. New articles ship through the Investor Ensights newsroom on a regular cadence.`
 }
 
+function DummyComingSoonCard() {
+  return (
+    <Card
+      className="flex h-full flex-col overflow-hidden rounded-2xl border border-dashed border-border/60 shadow-sm"
+      data-testid="card-persona-coming-soon"
+      aria-label="Coming soon persona placeholder"
+    >
+      <div
+        className="relative aspect-[16/7] w-full bg-gradient-to-br from-muted to-muted/60"
+        aria-hidden="true"
+      >
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+        <div className="absolute left-4 top-4 flex items-center gap-2">
+          <span
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-white/70 text-xs font-bold text-muted-foreground shadow"
+            aria-hidden="true"
+          >
+            ?
+          </span>
+          <h3 className="text-base font-semibold text-white/90 drop-shadow">
+            New Persona
+          </h3>
+        </div>
+      </div>
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            Coming Soon
+          </span>
+        </div>
+        <p
+          className="text-sm leading-relaxed text-muted-foreground"
+          data-testid="text-persona-description-coming-soon"
+        >
+          A new persona will appear here once it joins the Investor Ensights
+          newsroom. Each persona ships with its own locations and insights.
+        </p>
+      </div>
+    </Card>
+  )
+}
+
 function PersonaCard({
   data,
   variant,
@@ -139,6 +181,7 @@ export default function PersonaCards({ cards }: { cards: PersonaCardData[] }) {
                 {restCards.map((card) => (
                   <PersonaCard key={card.tenant.slug} data={card} variant="stack" />
                 ))}
+                <DummyComingSoonCard />
               </div>
             </div>
           )
