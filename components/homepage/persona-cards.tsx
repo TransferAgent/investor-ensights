@@ -1,76 +1,97 @@
 import Link from "next/link"
-import { MapPin, Newspaper, ArrowRight } from "lucide-react"
+import { MapPin, Newspaper, TrendingUp } from "lucide-react"
 import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import type { PersonaCardData } from "@/lib/tenant/public-tenants"
 
-function PersonaCard({ data }: { data: PersonaCardData }) {
+type CardVariant = "hero" | "stack"
+
+function personaDescription(data: PersonaCardData): string {
   const { tenant, cityCount } = data
+  if (tenant.brandTagline && tenant.brandTagline.trim().length > 0) {
+    return tenant.brandTagline
+  }
+  return `${tenant.personaDisplayName} publishes ground-truth company-formation and equity coverage across ${cityCount} U.S. ${cityCount === 1 ? "city" : "cities"}. New articles ship through the Investor Ensights newsroom on a regular cadence.`
+}
+
+function PersonaCard({
+  data,
+  variant,
+}: {
+  data: PersonaCardData
+  variant: CardVariant
+}) {
+  const { tenant, cityCount } = data
+  const description = personaDescription(data)
+  const imageAspect = variant === "hero" ? "aspect-[4/3]" : "aspect-[16/7]"
+
   return (
     <Card
-      className="flex h-full flex-col p-6"
+      className="flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 shadow-sm transition-shadow hover:shadow-md"
       data-testid={`card-persona-${tenant.slug}`}
     >
-      <div className="mb-5">
-        <h3
-          className="text-xl font-semibold"
-          data-testid={`text-persona-name-${tenant.slug}`}
-        >
-          {tenant.personaDisplayName}
-        </h3>
-        <p
-          className="mt-1 min-h-[2.5rem] text-sm text-muted-foreground"
-          data-testid={`text-persona-tagline-${tenant.slug}`}
-        >
-          {tenant.brandTagline || "\u00A0"}
-        </p>
-        <div className="mt-3 min-h-[1.5rem]">
-          {tenant.brandVertical ? (
-            <Badge
-              variant="secondary"
-              className="text-xs"
-              data-testid={`badge-persona-vertical-${tenant.slug}`}
-            >
-              {tenant.brandVertical}
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="invisible text-xs" aria-hidden="true">
-              &nbsp;
-            </Badge>
-          )}
+      <div
+        className={`relative w-full bg-gradient-to-br from-muted to-muted/60 ${imageAspect}`}
+        data-testid={`img-placeholder-${tenant.slug}`}
+        aria-hidden="true"
+      >
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+        <div className="absolute left-4 top-4 flex items-center gap-2">
+          <span
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-white/95 text-xs font-bold text-foreground shadow"
+            aria-hidden="true"
+          >
+            {tenant.personaDisplayName.charAt(0)}
+          </span>
+          <h3
+            className="text-base font-semibold text-white drop-shadow"
+            data-testid={`text-persona-name-${tenant.slug}`}
+          >
+            {tenant.personaDisplayName}
+          </h3>
         </div>
       </div>
 
-      <div className="mt-auto flex flex-col gap-3">
-        <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
-          <MapPin className="h-4 w-4 shrink-0 text-primary" />
-          <span className="text-sm" data-testid={`text-city-count-${tenant.slug}`}>
-            {cityCount} {cityCount === 1 ? "active city" : "active cities"}
-          </span>
-          <Link
-            href={`/personas/${tenant.slug}/locations`}
-            className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
-            data-testid={`link-persona-locations-${tenant.slug}`}
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white"
+            data-testid={`badge-growth-insights-${tenant.slug}`}
           >
-            Locations
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+            <TrendingUp className="h-3.5 w-3.5" />
+            Growth Insights
+          </span>
+          <div className="flex items-center gap-1">
+            <Link
+              href={`/personas/${tenant.slug}/locations`}
+              title={`${cityCount} ${cityCount === 1 ? "location" : "locations"}`}
+              aria-label={`${tenant.personaDisplayName} locations`}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              data-testid={`link-persona-locations-${tenant.slug}`}
+            >
+              <MapPin className="h-4 w-4" />
+            </Link>
+            <Link
+              href={`/personas/${tenant.slug}/insights`}
+              title={`${tenant.personaDisplayName} insights`}
+              aria-label={`${tenant.personaDisplayName} insights`}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              data-testid={`link-persona-insights-${tenant.slug}`}
+            >
+              <Newspaper className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
-          <Newspaper className="h-4 w-4 shrink-0 text-primary" />
-          <span className="text-sm" data-testid={`text-insights-label-${tenant.slug}`}>
-            {tenant.personaDisplayName} insights
-          </span>
-          <Link
-            href={`/personas/${tenant.slug}/insights`}
-            className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
-            data-testid={`link-persona-insights-${tenant.slug}`}
-          >
-            Browse
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
+        <p
+          className="text-sm leading-relaxed text-foreground/80"
+          data-testid={`text-persona-description-${tenant.slug}`}
+        >
+          {description}
+        </p>
+
+        <span className="sr-only" data-testid={`text-city-count-${tenant.slug}`}>
+          {cityCount} {cityCount === 1 ? "active city" : "active cities"}
+        </span>
       </div>
     </Card>
   )
@@ -109,14 +130,14 @@ export default function PersonaCards({ cards }: { cards: PersonaCardData[] }) {
               data-testid="grid-persona-mosaic"
             >
               <div className="md:w-1/2" data-testid="slot-persona-hero">
-                <PersonaCard key={heroCard.tenant.slug} data={heroCard} />
+                <PersonaCard key={heroCard.tenant.slug} data={heroCard} variant="hero" />
               </div>
               <div
                 className="flex flex-col gap-6 md:w-1/2"
                 data-testid="slot-persona-stack"
               >
                 {restCards.map((card) => (
-                  <PersonaCard key={card.tenant.slug} data={card} />
+                  <PersonaCard key={card.tenant.slug} data={card} variant="stack" />
                 ))}
               </div>
             </div>
