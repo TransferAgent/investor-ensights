@@ -99,11 +99,29 @@ export default function PersonaCards({ cards }: { cards: PersonaCardData[] }) {
           own set of cities and insights.
         </p>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
-          {cards.map((card) => (
-            <PersonaCard key={card.tenant.slug} data={card} />
-          ))}
-        </div>
+        {(() => {
+          const HERO_SLUG = "tableicity"
+          const heroCard = cards.find((c) => c.tenant.slug === HERO_SLUG) ?? cards[0]
+          const restCards = cards.filter((c) => c.tenant.slug !== heroCard.tenant.slug)
+          return (
+            <div
+              className="mt-10 flex flex-col gap-6 md:flex-row md:items-stretch"
+              data-testid="grid-persona-mosaic"
+            >
+              <div className="md:w-1/2" data-testid="slot-persona-hero">
+                <PersonaCard key={heroCard.tenant.slug} data={heroCard} />
+              </div>
+              <div
+                className="flex flex-col gap-6 md:w-1/2"
+                data-testid="slot-persona-stack"
+              >
+                {restCards.map((card) => (
+                  <PersonaCard key={card.tenant.slug} data={card} />
+                ))}
+              </div>
+            </div>
+          )
+        })()}
       </div>
     </section>
   )
