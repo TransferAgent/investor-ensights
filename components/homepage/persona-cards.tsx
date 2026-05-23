@@ -13,44 +13,19 @@ function personaDescription(data: PersonaCardData): string {
   return `${tenant.personaDisplayName} publishes ground-truth company-formation and equity coverage across ${cityCount} U.S. ${cityCount === 1 ? "city" : "cities"}. New articles ship through the Investor Ensights newsroom on a regular cadence.`
 }
 
-function DummyComingSoonCard() {
+function CallToActionCard() {
   return (
     <Card
-      className="flex h-full flex-col overflow-hidden rounded-2xl border border-dashed border-border/60 shadow-sm"
-      data-testid="card-persona-coming-soon"
-      aria-label="Coming soon persona placeholder"
+      className="flex h-full flex-col justify-between overflow-hidden rounded-2xl border-0 bg-blue-600 p-6 text-white shadow-sm"
+      data-testid="card-cta-homepage"
+      aria-label="Call to action"
     >
-      <div
-        className="relative aspect-[16/7] w-full bg-gradient-to-br from-muted to-muted/60"
-        aria-hidden="true"
-      >
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-        <div className="absolute left-4 top-4 flex items-center gap-2">
-          <span
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-white/70 text-xs font-bold text-muted-foreground shadow"
-            aria-hidden="true"
-          >
-            ?
-          </span>
-          <h3 className="text-base font-semibold text-white/90 drop-shadow">
-            New Persona
-          </h3>
-        </div>
-      </div>
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-            Coming Soon
-          </span>
-        </div>
-        <p
-          className="text-sm leading-relaxed text-muted-foreground"
-          data-testid="text-persona-description-coming-soon"
-        >
-          A new persona will appear here once it joins the Investor Ensights
-          newsroom. Each persona ships with its own locations and insights.
-        </p>
-      </div>
+      <h3 className="text-xl font-semibold leading-snug" data-testid="text-cta-headline">
+        Learn about the companies that matter to you (for free)
+      </h3>
+      <p className="mt-4 text-sm text-white/90" data-testid="text-cta-subline">
+        Get personalized private market analysis <span aria-hidden="true">→</span>
+      </p>
     </Card>
   )
 }
@@ -165,24 +140,40 @@ export default function PersonaCards({ cards }: { cards: PersonaCardData[] }) {
         {(() => {
           const HERO_SLUG = "tableicity"
           const heroCard = cards.find((c) => c.tenant.slug === HERO_SLUG) ?? cards[0]
-          const restCards = cards.filter((c) => c.tenant.slug !== heroCard.tenant.slug)
+          const rest = cards
+            .filter((c) => c.tenant.slug !== heroCard.tenant.slug)
+            .sort((a, b) => a.tenant.slug.localeCompare(b.tenant.slug))
+          const [topRightCard, bottomLeftCard, bottomRightCard] = rest
           return (
             <div
-              className="mt-10 flex flex-col gap-6 md:flex-row md:items-stretch"
+              className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-12 md:auto-rows-fr"
               data-testid="grid-persona-mosaic"
             >
-              <div className="md:w-1/2" data-testid="slot-persona-hero">
-                <PersonaCard key={heroCard.tenant.slug} data={heroCard} variant="hero" />
+              <div className="md:col-span-7" data-testid="slot-persona-hero">
+                <PersonaCard data={heroCard} variant="hero" />
               </div>
+
               <div
-                className="flex flex-col gap-6 md:w-1/2"
-                data-testid="slot-persona-stack"
+                className="flex flex-col gap-6 md:col-span-5"
+                data-testid="slot-row1-right"
               >
-                {restCards.map((card) => (
-                  <PersonaCard key={card.tenant.slug} data={card} variant="stack" />
-                ))}
-                <DummyComingSoonCard />
+                <CallToActionCard />
+                {topRightCard && (
+                  <PersonaCard data={topRightCard} variant="stack" />
+                )}
               </div>
+
+              {bottomLeftCard && (
+                <div className="md:col-span-4" data-testid="slot-row2-left">
+                  <PersonaCard data={bottomLeftCard} variant="stack" />
+                </div>
+              )}
+
+              {bottomRightCard && (
+                <div className="md:col-span-8" data-testid="slot-row2-right">
+                  <PersonaCard data={bottomRightCard} variant="stack" />
+                </div>
+              )}
             </div>
           )
         })()}
