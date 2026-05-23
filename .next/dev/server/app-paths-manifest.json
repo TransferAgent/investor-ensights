@@ -1,4 +1,3 @@
 {
-  "/api/public/tenants/route": "app/api/public/tenants/route.js",
   "/page": "app/page.js"
 }
