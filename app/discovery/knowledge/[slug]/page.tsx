@@ -6,7 +6,7 @@ import { resolveTenantFromArticleSlug } from "@/lib/tenant/resolve-from-slug";
 import { getTenantBranding, resolveBrandHref } from "@/lib/tenant/branding";
 import { AuthorByline } from "@/components/articles/author-byline";
 import { AuthorBio } from "@/components/articles/author-bio";
-import { resolveAuthor } from "@/lib/author-config";
+import { PLATFORM_AUTHOR } from "@/lib/author-config";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com";
 
@@ -444,11 +444,11 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
 
   const isPreview = article.status === "pending";
 
-  const author = resolveAuthor({
-    articleAuthorName: article.authorName,
-    articlePublisherName: article.publisherName,
-  });
-  const authorIsOrg = author.name.toLowerCase() === "investor ensights";
+  // Display author is ALWAYS the platform author (John Reynolds). article.author_name
+  // is preserved in the DB for data hygiene (normalized in F5) but does not drive
+  // the rendered byline, bio, or JSON-LD identity. When new staff are added later,
+  // extend PLATFORM_AUTHOR/KNOWN_AUTHORS and switch this back to per-row resolution.
+  const author = PLATFORM_AUTHOR;
 
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -457,25 +457,19 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
     description: article.metaDescription || undefined,
     datePublished: (article.datePublished ?? article.createdAt).toISOString(),
     dateModified: article.dateModified.toISOString(),
-    author: authorIsOrg
-      ? {
-          "@type": "Organization",
-          name: author.name,
-          url: BASE_URL,
-        }
-      : {
-          "@type": "Person",
-          name: author.name,
-          jobTitle: author.title,
-          email: author.email,
-          image: `${BASE_URL}${author.avatarPath}`,
-          sameAs: [author.facebookUrl],
-          worksFor: {
-            "@type": "Organization",
-            name: author.publisherName,
-            url: BASE_URL,
-          },
-        },
+    author: {
+      "@type": "Person",
+      name: author.name,
+      jobTitle: author.title,
+      email: author.email,
+      image: `${BASE_URL}${author.avatarPath}`,
+      sameAs: [author.facebookUrl],
+      worksFor: {
+        "@type": "Organization",
+        name: author.publisherName,
+        url: BASE_URL,
+      },
+    },
     publisher: {
       "@type": "Organization",
       name: author.publisherName,
