@@ -1784,6 +1784,10 @@ body {
   margin-top: auto;
 }
 
+.mb-14 {
+  margin-bottom: 3.5rem;
+}
+
 .line-clamp-1 {
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
@@ -4174,6 +4178,16 @@ body {
   color: #dbeafecc;
 }
 
+.text-neutral-300 {
+  --tw-text-opacity: 1;
+  color: rgb(212 212 212 / var(--tw-text-opacity, 1));
+}
+
+.text-neutral-600 {
+  --tw-text-opacity: 1;
+  color: rgb(82 82 82 / var(--tw-text-opacity, 1));
+}
+
 .underline {
   text-decoration-line: underline;
 }
@@ -5952,6 +5966,10 @@ input[type="search"]::-webkit-search-cancel-button {
 
   .sm\:flex-col {
     flex-direction: column;
+  }
+
+  .sm\:items-start {
+    align-items: flex-start;
   }
 
   .sm\:items-center {

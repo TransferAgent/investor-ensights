@@ -178,6 +178,11 @@ export default async function SitemapPage() {
               </Link>
             </li>
             <li>
+              <Link href="/about" className="text-neutral-700 hover:text-neutral-900 hover:underline" data-testid="link-about">
+                About &amp; Editorial Team
+              </Link>
+            </li>
+            <li>
               <Link href="/terms" className="text-neutral-700 hover:text-neutral-900 hover:underline" data-testid="link-terms">
                 Terms of Service
               </Link>
@@ -305,6 +310,10 @@ export default async function SitemapPage() {
           <span className="mx-2">·</span>
           <Link href="/privacy" className="hover:text-neutral-900">
             Privacy
+          </Link>
+          <span className="mx-2">·</span>
+          <Link href="/about" className="hover:text-neutral-900">
+            About
           </Link>
           <span className="mx-2">·</span>
           <Link href="/" className="hover:text-neutral-900">

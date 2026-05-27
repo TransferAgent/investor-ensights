@@ -203,6 +203,10 @@ export default function PrivacyPage() {
             Terms of Service
           </Link>
           <span className="mx-2">·</span>
+          <Link href="/about" className="hover:text-neutral-900" data-testid="link-about">
+            About
+          </Link>
+          <span className="mx-2">·</span>
           <Link href="/site-map" className="hover:text-neutral-900" data-testid="link-sitemap">
             Sitemap
           </Link>

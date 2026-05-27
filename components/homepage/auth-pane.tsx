@@ -205,6 +205,14 @@ export default function AuthPane() {
         </p>
         <p className="mt-2 text-[11px] text-neutral-400">
           <Link
+            href="/about"
+            className="hover:text-neutral-700 hover:underline"
+            data-testid="link-about"
+          >
+            About
+          </Link>
+          <span className="mx-2">·</span>
+          <Link
             href="/site-map"
             className="hover:text-neutral-700 hover:underline"
             data-testid="link-sitemap"
