@@ -4,6 +4,9 @@ import { storage } from "@/lib/storage";
 import { withTenantAsync } from "@/lib/tenant/context";
 import { resolveTenantFromArticleSlug } from "@/lib/tenant/resolve-from-slug";
 import { getTenantBranding, resolveBrandHref } from "@/lib/tenant/branding";
+import { AuthorByline } from "@/components/articles/author-byline";
+import { AuthorBio } from "@/components/articles/author-bio";
+import { resolveAuthor } from "@/lib/author-config";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com";
 
@@ -441,23 +444,41 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
 
   const isPreview = article.status === "pending";
 
-  const authorType = article.authorName.toLowerCase() === "investor ensights" ? "Organization" : "Person";
+  const author = resolveAuthor({
+    articleAuthorName: article.authorName,
+    articlePublisherName: article.publisherName,
+  });
+  const authorIsOrg = author.name.toLowerCase() === "investor ensights";
 
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
     headline: article.headline,
     description: article.metaDescription || undefined,
-    datePublished: article.datePublished?.toISOString(),
+    datePublished: (article.datePublished ?? article.createdAt).toISOString(),
     dateModified: article.dateModified.toISOString(),
-    author: {
-      "@type": authorType,
-      name: article.authorName,
-      ...(authorType === "Organization" ? { url: BASE_URL } : {}),
-    },
+    author: authorIsOrg
+      ? {
+          "@type": "Organization",
+          name: author.name,
+          url: BASE_URL,
+        }
+      : {
+          "@type": "Person",
+          name: author.name,
+          jobTitle: author.title,
+          email: author.email,
+          image: `${BASE_URL}${author.avatarPath}`,
+          sameAs: [author.facebookUrl],
+          worksFor: {
+            "@type": "Organization",
+            name: author.publisherName,
+            url: BASE_URL,
+          },
+        },
     publisher: {
       "@type": "Organization",
-      name: article.publisherName,
+      name: author.publisherName,
       url: BASE_URL,
       logo: {
         "@type": "ImageObject",
@@ -570,6 +591,11 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           <div className="mb-10 pb-6 border-b border-white/10" />
         )}
 
+        <AuthorByline
+          author={author}
+          publishedAt={article.datePublished ?? article.createdAt}
+        />
+
         <div
           className="knowledge-article-body prose prose-invert prose-blue max-w-none
             prose-headings:text-blue-200/70 prose-headings:font-medium
@@ -589,6 +615,8 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           }}
           data-testid="article-body"
         />
+
+        <AuthorBio author={author} />
 
         {article.boilerplateHtml && (
           <div className="mt-12 pt-8 border-t border-white/10">
