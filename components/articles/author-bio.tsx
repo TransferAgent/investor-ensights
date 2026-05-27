@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Facebook } from "lucide-react";
+import { Linkedin } from "lucide-react";
 import type { AuthorConfig } from "@/lib/author-config";
 
 interface AuthorBioProps {
@@ -58,14 +58,14 @@ export function AuthorBio({ author }: AuthorBioProps) {
             </a>
             <span className="text-blue-200/30">|</span>
             <a
-              href={author.facebookUrl}
+              href={author.linkedinUrl}
               target="_blank"
               rel="noopener noreferrer me"
               className="inline-flex items-center gap-1 hover:text-blue-300 transition-colors"
-              data-testid="link-bio-facebook"
+              data-testid="link-bio-linkedin"
             >
-              <Facebook className="h-3 w-3" />
-              <span>Facebook</span>
+              <Linkedin className="h-3 w-3" />
+              <span>LinkedIn</span>
             </a>
           </div>
         </div>

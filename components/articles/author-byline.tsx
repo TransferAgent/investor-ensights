@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Facebook } from "lucide-react";
+import { Linkedin } from "lucide-react";
 import { formatPublishedDate, type AuthorConfig } from "@/lib/author-config";
 
 interface AuthorBylineProps {
@@ -45,16 +45,16 @@ export function AuthorByline({ author, publishedAt }: AuthorBylineProps) {
           <span className="text-blue-200/80" data-testid="text-author-title">
             {author.title}, {author.publisherName}
           </span>
-          {author.facebookUrl && (
+          {author.linkedinUrl && (
             <a
-              href={author.facebookUrl}
+              href={author.linkedinUrl}
               target="_blank"
               rel="noopener noreferrer me"
               className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-white/5 border border-white/10 hover:bg-blue-600/30 hover:border-blue-400/40 transition-colors"
-              aria-label={`Follow ${author.name} on Facebook`}
-              data-testid="link-author-facebook"
+              aria-label={`Follow ${author.name} on LinkedIn`}
+              data-testid="link-author-linkedin"
             >
-              <Facebook className="h-3.5 w-3.5 text-blue-300" />
+              <Linkedin className="h-3.5 w-3.5 text-blue-300" />
             </a>
           )}
         </p>

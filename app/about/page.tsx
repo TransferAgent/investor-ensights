@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
-import { Facebook } from "lucide-react"
+import { Linkedin } from "lucide-react"
 import { PLATFORM_AUTHOR } from "@/lib/author-config"
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://investorensights.com"
@@ -36,7 +36,7 @@ export default function AboutPage() {
     image: `${BASE_URL}${PLATFORM_AUTHOR.avatarPath}`,
     email: `mailto:${PLATFORM_AUTHOR.email}`,
     telephone: PLATFORM_AUTHOR.phone,
-    sameAs: [PLATFORM_AUTHOR.facebookUrl],
+    sameAs: [PLATFORM_AUTHOR.linkedinUrl],
     worksFor: {
       "@type": "Organization",
       name: PUBLISHER_NAME,
@@ -62,7 +62,7 @@ export default function AboutPage() {
       postalCode: "91730",
       addressCountry: "US",
     },
-    sameAs: [PLATFORM_AUTHOR.facebookUrl],
+    sameAs: [PLATFORM_AUTHOR.linkedinUrl],
     founder: {
       "@type": "Person",
       name: PLATFORM_AUTHOR.name,
@@ -184,15 +184,15 @@ export default function AboutPage() {
                 </a>
                 <span className="text-neutral-300">·</span>
                 <a
-                  href={PLATFORM_AUTHOR.facebookUrl}
+                  href={PLATFORM_AUTHOR.linkedinUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 hover:text-neutral-900 hover:underline"
-                  data-testid="link-author-facebook"
-                  aria-label={`${PLATFORM_AUTHOR.name} on Facebook`}
+                  data-testid="link-author-linkedin"
+                  aria-label={`${PLATFORM_AUTHOR.name} on LinkedIn`}
                 >
-                  <Facebook className="h-3.5 w-3.5" aria-hidden="true" />
-                  Facebook
+                  <Linkedin className="h-3.5 w-3.5" aria-hidden="true" />
+                  LinkedIn
                 </a>
               </div>
             </div>

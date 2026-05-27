@@ -3,7 +3,7 @@ export interface AuthorConfig {
   title: string;
   email: string;
   phone: string;
-  facebookUrl: string;
+  linkedinUrl: string;
   avatarPath: string;
   publisherName: string;
   bioHtml: string;
@@ -21,7 +21,7 @@ export const PLATFORM_AUTHOR: AuthorConfig = {
   title: "Senior Financial Analyst",
   email: "info@investorensights.com",
   phone: "(800) 684-8034",
-  facebookUrl: "https://www.facebook.com/profile.php?id=100029159976340",
+  linkedinUrl: "https://www.linkedin.com/in/brian-reynolds-aa62a457/",
   avatarPath: "/john-reynolds.jpg",
   publisherName: "Investor Ensights",
   bioHtml:
@@ -65,7 +65,7 @@ export function resolveAuthor(opts: {
     title: PLATFORM_AUTHOR.title,
     email: PLATFORM_AUTHOR.email,
     phone: PLATFORM_AUTHOR.phone,
-    facebookUrl: "",
+    linkedinUrl: "",
     avatarPath: "",
     publisherName: effectivePublisher,
     bioHtml: "",

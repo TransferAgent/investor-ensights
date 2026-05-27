@@ -463,7 +463,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
       jobTitle: author.title,
       email: author.email,
       image: `${BASE_URL}${author.avatarPath}`,
-      sameAs: [author.facebookUrl],
+      sameAs: [author.linkedinUrl],
       worksFor: {
         "@type": "Organization",
         name: author.publisherName,
