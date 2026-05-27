@@ -1,10 +1,13 @@
 ---
 name: Sitemap canary baseline drift
-description: The 84-URL sitemap canary in replit.md is stale post-E-E-A-T rollup; new baseline is 104. Verify before treating divergence as a regression.
+description: The sitemap-as-canary baseline in replit.md drifts every time we ship a new page or article batch. Always verify the live count before treating divergence as a regression.
 ---
 
-`replit.md` "Gotchas" section says `investorensights.com/sitemap.xml` should return 84 URLs (80 articles + 4 static) at every multi-tenant gate close. After the E-E-A-T author rollup (and the homepage mosaic work that preceded it the same day), the actual count is 104 URLs.
+`replit.md` "Gotchas" section pins a sitemap baseline for `investorensights.com/sitemap.xml`. Treat that number as a floor, not a contract — it gets stale every time we intentionally publish a new article batch or add a static page.
 
-**Why:** ~10 new articles published since the canary was set + new persona hub pages, orphan bucket page, and locations grid additions from the May 2026 mosaic redesign. None of these are regressions — all intentional growth.
+**Why:** the canary's job is to alarm on a SHRINK (a regression that silently dropped URLs), not on growth. Every intentional add (new articles, new static pages like `/about`, new persona hubs) bumps the floor. The number in `replit.md` lags those events until someone refreshes it.
 
-**How to apply:** when verifying a release, fetch `/sitemap.xml` and confirm the count is **≥104 and growing monotonically**. A SHRINK below 104 is the real alarm. The "84" number in replit.md should be refreshed the next time `replit.md` is edited.
+**How to apply:**
+1. Before treating a count mismatch as a bug, `curl -s https://investorensights.com/sitemap.xml | grep -c '<loc>'` to see the live truth.
+2. If the live count is ≥ the documented baseline, no regression — refresh the `replit.md` number in the same edit as whatever else you're shipping.
+3. If the live count is BELOW the documented baseline, THAT is the alarm — something dropped URLs (forward-only deletes rule was broken, or a noindex sweeper got reintroduced).
