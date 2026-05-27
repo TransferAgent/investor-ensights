@@ -444,7 +444,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
 
   const isPreview = article.status === "pending";
 
-  // Display author is ALWAYS the platform author (John Reynolds). article.author_name
+  // Display author is ALWAYS the platform author (Brian Reynolds). article.author_name
   // is preserved in the DB for data hygiene (normalized in F5) but does not drive
   // the rendered byline, bio, or JSON-LD identity. When new staff are added later,
   // extend PLATFORM_AUTHOR/KNOWN_AUTHORS and switch this back to per-row resolution.

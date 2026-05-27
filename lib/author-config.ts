@@ -17,7 +17,7 @@ export interface AuthorConfig {
 }
 
 export const PLATFORM_AUTHOR: AuthorConfig = {
-  name: "John Reynolds",
+  name: "Brian Reynolds",
   title: "Senior Financial Analyst",
   email: "info@investorensights.com",
   phone: "(800) 684-8034",
@@ -25,7 +25,7 @@ export const PLATFORM_AUTHOR: AuthorConfig = {
   avatarPath: "/john-reynolds.jpg",
   publisherName: "Investor Ensights",
   bioHtml:
-    "John Reynolds is the Senior Financial Analyst at Investor Ensights, with 10+ years covering U.S. company formation, equity activity, and small-business capital markets. His work focuses on translating institutional-grade data into clear, actionable insights for founders and investors. John publishes daily across Investor Ensights and its sister brands — Tableicity, Veltroy, Haylo, Texitie, and Payrol.",
+    "Brian Reynolds is the Senior Financial Analyst at Investor Ensights, with 10+ years covering U.S. company formation, equity activity, and small-business capital markets. His work focuses on translating institutional-grade data into clear, actionable insights for founders and investors. Brian publishes daily across Investor Ensights and its sister brands — Tableicity, Veltroy, Haylo, Texitie, and Payrol.",
   hasFullProfile: true,
 };
 
@@ -36,7 +36,7 @@ export const PLATFORM_AUTHOR: AuthorConfig = {
  * "byline name only" with no avatar/social/bio (prevents mixed identity).
  */
 const KNOWN_AUTHORS: Record<string, AuthorConfig> = {
-  "john reynolds": PLATFORM_AUTHOR,
+  "brian reynolds": PLATFORM_AUTHOR,
 };
 
 export function resolveAuthor(opts: {
@@ -58,7 +58,8 @@ export function resolveAuthor(opts: {
   }
 
   // Unknown author name: render the name + publisher only. Suppress avatar,
-  // social, and bio to avoid attaching John's identity to a different person.
+  // social, and bio to avoid attaching the platform author's identity to a
+  // different person.
   return {
     name: rawName,
     title: PLATFORM_AUTHOR.title,

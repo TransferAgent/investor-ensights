@@ -34,7 +34,7 @@ import pg from "pg";
 
 const TENANT_SLUGS = ["tableicity", "texitie", "veltroy", "haylo", "payrol"] as const;
 
-const TARGET_AUTHOR_NAME = "John Reynolds";
+const TARGET_AUTHOR_NAME = "Brian Reynolds";
 const TARGET_PUBLISHER_NAME = "Investor Ensights";
 const TARGET_EMAIL = "info@investorensights.com";
 const TARGET_PHONE = "(800) 684-8034";

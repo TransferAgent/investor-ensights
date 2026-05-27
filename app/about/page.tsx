@@ -14,12 +14,12 @@ const CONTACT_PHONE = PLATFORM_AUTHOR.phone
 export const metadata: Metadata = {
   title: "About & Editorial Team | Investor Ensights",
   description:
-    "About Investor Ensights and its editorial team. Meet John Reynolds, Senior Financial Analyst, and learn how we publish daily financial insights on U.S. company formation and equity activity.",
+    "About Investor Ensights and its editorial team. Meet Brian Reynolds, Senior Financial Analyst, and learn how we publish daily financial insights on U.S. company formation and equity activity.",
   alternates: { canonical: `${BASE_URL}/about` },
   openGraph: {
     title: "About & Editorial Team | Investor Ensights",
     description:
-      "About Investor Ensights and its editorial team — John Reynolds, Senior Financial Analyst, and how we cover U.S. company formation and equity activity.",
+      "About Investor Ensights and its editorial team — Brian Reynolds, Senior Financial Analyst, and how we cover U.S. company formation and equity activity.",
     url: `${BASE_URL}/about`,
     type: "website",
     images: [{ url: `${BASE_URL}${PLATFORM_AUTHOR.avatarPath}` }],
@@ -200,17 +200,17 @@ export default function AboutPage() {
 
           <div className="prose prose-neutral mt-8 max-w-none text-[15px] leading-relaxed">
             <p>
-              John Reynolds is the Senior Financial Analyst at Investor Ensights, where he
+              Brian Reynolds is the Senior Financial Analyst at Investor Ensights, where he
               leads editorial coverage of U.S. company formation, equity activity, and
               small-business capital markets. With more than ten years of experience
               translating institutional-grade datasets into clear, decision-ready insights,
-              John focuses on the local detail behind national trends — the city-by-city pace
+              Brian focuses on the local detail behind national trends — the city-by-city pace
               of new LLC filings, the founder-equity patterns that shape early-stage company
               health, and the operating conditions that move small businesses from formation
               to funding.
             </p>
             <p>
-              Before joining Investor Ensights, John spent eight years on the analyst desk at
+              Before joining Investor Ensights, Brian spent eight years on the analyst desk at
               a regional research firm covering Sun Belt market formation, where he built the
               quantitative methodology that still anchors much of his published work. He holds
               a B.A. in Economics and writes daily across Investor Ensights and its sister
@@ -220,7 +220,7 @@ export default function AboutPage() {
             <p>
               His editorial standard is simple: every published article must cite the
               underlying public data source, name the city or jurisdiction it covers, and
-              explain what it means for the founder or investor reading it. John reviews and
+              explain what it means for the founder or investor reading it. Brian reviews and
               signs off on every piece that carries his byline. Reach the editorial team at{" "}
               <a
                 href={`mailto:${CONTACT_EMAIL}`}
