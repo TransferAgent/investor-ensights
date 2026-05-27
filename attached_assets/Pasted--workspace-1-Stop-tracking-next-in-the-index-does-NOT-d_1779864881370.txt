@@ -1,0 +1,257 @@
+~/workspace$ # 1. Stop tracking .next/ in the index (does NOT delete your local files — Next.js keeps using them)
+git rm -r --cached .next
+
+# 2. Commit the untracking
+git commit -m "chore: untrack .next/ build cache (already in .gitignore but was committed before)"
+rm '.next/dev/build-manifest.json'
+rm '.next/dev/build/chunks/[root-of-the-server]__44695d76._.js'
+rm '.next/dev/build/chunks/[root-of-the-server]__44695d76._.js.map'
+rm '.next/dev/build/chunks/[root-of-the-server]__6d51cb5d._.js'
+rm '.next/dev/build/chunks/[root-of-the-server]__6d51cb5d._.js.map'
+rm '.next/dev/build/chunks/[turbopack-node]_transforms_postcss_ts_df7a5b11._.js'
+rm '.next/dev/build/chunks/[turbopack-node]_transforms_postcss_ts_df7a5b11._.js.map'
+rm '.next/dev/build/chunks/[turbopack]_runtime.js'
+rm '.next/dev/build/chunks/[turbopack]_runtime.js.map'
+rm '.next/dev/build/chunks/node_modules_fe693df6._.js'
+rm '.next/dev/build/chunks/node_modules_fe693df6._.js.map'
+rm '.next/dev/build/package.json'
+rm '.next/dev/build/postcss.js'
+rm '.next/dev/build/postcss.js.map'
+rm '.next/dev/cache/config.json'
+rm '.next/dev/cache/turbopack/0c06f068/CURRENT'
+rm '.next/dev/fallback-build-manifest.json'
+rm '.next/dev/lock'
+rm '.next/dev/package.json'
+rm '.next/dev/prerender-manifest.json'
+rm '.next/dev/routes-manifest.json'
+rm '.next/dev/server/app-paths-manifest.json'
+rm '.next/dev/server/app/page.js'
+rm '.next/dev/server/app/page.js.map'
+rm '.next/dev/server/app/page/app-paths-manifest.json'
+rm '.next/dev/server/app/page/build-manifest.json'
+rm '.next/dev/server/app/page/next-font-manifest.json'
+rm '.next/dev/server/app/page/react-loadable-manifest.json'
+rm '.next/dev/server/app/page/server-reference-manifest.json'
+rm '.next/dev/server/app/page_client-reference-manifest.js'
+rm '.next/dev/server/chunks/ssr/[externals]__7f148858._.js'
+rm '.next/dev/server/chunks/ssr/[externals]__7f148858._.js.map'
+rm '.next/dev/server/chunks/ssr/[externals]_next_dist_1aaf5479._.js'
+rm '.next/dev/server/chunks/ssr/[externals]_next_dist_1aaf5479._.js.map'
+rm '.next/dev/server/chunks/ssr/[root-of-the-server]__01c0c5f8._.js'
+rm '.next/dev/server/chunks/ssr/[root-of-the-server]__01c0c5f8._.js.map'
+rm '.next/dev/server/chunks/ssr/[root-of-the-server]__689ad00b._.js'
+rm '.next/dev/server/chunks/ssr/[root-of-the-server]__689ad00b._.js.map'
+rm '.next/dev/server/chunks/ssr/[turbopack]_runtime.js'
+rm '.next/dev/server/chunks/ssr/[turbopack]_runtime.js.map'
+rm '.next/dev/server/chunks/ssr/_next-internal_server_app_page_actions_39d4fc33.js'
+rm '.next/dev/server/chunks/ssr/_next-internal_server_app_page_actions_39d4fc33.js.map'
+rm '.next/dev/server/chunks/ssr/node_modules_0edb7e3d._.js'
+rm '.next/dev/server/chunks/ssr/node_modules_0edb7e3d._.js.map'
+rm '.next/dev/server/chunks/ssr/node_modules_next_dist_7381059c._.js'
+rm '.next/dev/server/chunks/ssr/node_modules_next_dist_7381059c._.js.map'
+rm '.next/dev/server/chunks/ssr/node_modules_next_dist_afb60855._.js'
+rm '.next/dev/server/chunks/ssr/node_modules_next_dist_afb60855._.js.map'
+rm '.next/dev/server/chunks/ssr/node_modules_next_dist_client_components_9774470f._.js'
+rm '.next/dev/server/chunks/ssr/node_modules_next_dist_client_components_9774470f._.js.map'
+rm '.next/dev/server/chunks/ssr/node_modules_next_dist_client_components_builtin_forbidden_45780354.js'
+rm '.next/dev/server/chunks/ssr/node_modules_next_dist_client_components_builtin_forbidden_45780354.js.map'
+rm '.next/dev/server/chunks/ssr/node_modules_next_dist_client_components_builtin_global-error_ece394eb.js'
+rm '.next/dev/server/chunks/ssr/node_modules_next_dist_client_components_builtin_global-error_ece394eb.js.map'
+rm '.next/dev/server/chunks/ssr/node_modules_next_dist_client_components_builtin_unauthorized_15817684.js'
+rm '.next/dev/server/chunks/ssr/node_modules_next_dist_client_components_builtin_unauthorized_15817684.js.map'
+rm '.next/dev/server/interception-route-rewrite-manifest.js'
+rm '.next/dev/server/middleware-build-manifest.js'
+rm '.next/dev/server/middleware-manifest.json'
+rm '.next/dev/server/next-font-manifest.js'
+rm '.next/dev/server/next-font-manifest.json'
+rm '.next/dev/server/pages-manifest.json'
+rm '.next/dev/server/server-reference-manifest.js'
+rm '.next/dev/server/server-reference-manifest.json'
+rm '.next/dev/static/chunks/[next]_internal_font_google_open_sans_e3e9d5cc_module_css_bad6b30c._.single.css'
+rm '.next/dev/static/chunks/[next]_internal_font_google_open_sans_e3e9d5cc_module_css_bad6b30c._.single.css.map'
+rm '.next/dev/static/chunks/[root-of-the-server]__7d8d1990._.css'
+rm '.next/dev/static/chunks/[root-of-the-server]__7d8d1990._.css.map'
+rm '.next/dev/static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_956a0d3a._.js'
+rm '.next/dev/static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_956a0d3a._.js.map'
+rm '.next/dev/static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_c7192189._.js'
+rm '.next/dev/static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_c8c997ce._.js'
+rm '.next/dev/static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_c8c997ce._.js.map'
+rm '.next/dev/static/chunks/_23a915ee._.js.map'
+rm '.next/dev/static/chunks/_a0ff3932._.js'
+rm '.next/dev/static/chunks/_b7fac5ca._.js'
+rm '.next/dev/static/chunks/_b7fac5ca._.js.map'
+rm '.next/dev/static/chunks/app_globals_css_bad6b30c._.single.css'
+rm '.next/dev/static/chunks/app_globals_css_bad6b30c._.single.css.map'
+rm '.next/dev/static/chunks/app_layout_tsx_1cf6b850._.js'
+rm '.next/dev/static/chunks/app_page_tsx_84254166._.js'
+rm '.next/dev/static/chunks/node_modules_@swc_helpers_cjs_d80fb378._.js'
+rm '.next/dev/static/chunks/node_modules_@swc_helpers_cjs_d80fb378._.js.map'
+rm '.next/dev/static/chunks/node_modules_e6b0ea65._.js'
+rm '.next/dev/static/chunks/node_modules_e6b0ea65._.js.map'
+rm '.next/dev/static/chunks/node_modules_next_dist_be32b49c._.js'
+rm '.next/dev/static/chunks/node_modules_next_dist_be32b49c._.js.map'
+rm '.next/dev/static/chunks/node_modules_next_dist_build_polyfills_polyfill-nomodule.js'
+rm '.next/dev/static/chunks/node_modules_next_dist_build_polyfills_polyfill-nomodule.js.map'
+rm '.next/dev/static/chunks/node_modules_next_dist_client_17643121._.js'
+rm '.next/dev/static/chunks/node_modules_next_dist_client_17643121._.js.map'
+rm '.next/dev/static/chunks/node_modules_next_dist_client_components_builtin_global-error_1cf6b850.js'
+rm '.next/dev/static/chunks/node_modules_next_dist_compiled_a0e4c7b4._.js'
+rm '.next/dev/static/chunks/node_modules_next_dist_compiled_a0e4c7b4._.js.map'
+rm '.next/dev/static/chunks/node_modules_next_dist_compiled_next-devtools_index_1dd7fb59.js'
+rm '.next/dev/static/chunks/node_modules_next_dist_compiled_next-devtools_index_1dd7fb59.js.map'
+rm '.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_1e674e59._.js'
+rm '.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_1e674e59._.js.map'
+rm '.next/dev/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_9212ccad._.js'
+rm '.next/dev/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_9212ccad._.js.map'
+rm '.next/dev/static/chunks/node_modules_next_dist_f3530cac._.js'
+rm '.next/dev/static/chunks/node_modules_next_dist_f3530cac._.js.map'
+rm '.next/dev/static/chunks/turbopack-_23a915ee._.js'
+rm '.next/dev/static/development/_buildManifest.js'
+rm '.next/dev/static/development/_clientMiddlewareManifest.json'
+rm '.next/dev/static/development/_ssgManifest.js'
+rm '.next/dev/static/media/1e239d59b95c7889-s.4a36b7d0.woff2'
+rm '.next/dev/static/media/2aec202ebfcf461b-s.d55a2306.woff2'
+rm '.next/dev/static/media/3ce154ad7d54dc86-s.f170796f.woff2'
+rm '.next/dev/static/media/5b0229109f6656bb-s.6c710ca8.woff2'
+rm '.next/dev/static/media/7cdbb9ca823c0a73-s.f2244ea0.woff2'
+rm '.next/dev/static/media/a421df443b3f383b-s.90e10d49.woff2'
+rm '.next/dev/static/media/c2873153dc73d9e3-s.6884c055.woff2'
+rm '.next/dev/static/media/ca19bc83075b2625-s.195cce89.woff2'
+rm '.next/dev/static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2'
+rm '.next/dev/static/media/d38a53d0ba90b32d-s.3eaec13b.woff2'
+rm '.next/dev/trace'
+rm '.next/dev/types/cache-life.d.ts'
+rm '.next/dev/types/routes.d.ts'
+rm '.next/dev/types/validator.ts'
+[main a5078e3] chore: untrack .next/ build cache (already in .gitignore but was committed before)
+ 120 files changed, 115279 deletions(-)
+ delete mode 100644 .next/dev/build-manifest.json
+ delete mode 100644 .next/dev/build/chunks/[root-of-the-server]__44695d76._.js
+ delete mode 100644 .next/dev/build/chunks/[root-of-the-server]__44695d76._.js.map
+ delete mode 100644 .next/dev/build/chunks/[root-of-the-server]__6d51cb5d._.js
+ delete mode 100644 .next/dev/build/chunks/[root-of-the-server]__6d51cb5d._.js.map
+ delete mode 100644 .next/dev/build/chunks/[turbopack-node]_transforms_postcss_ts_df7a5b11._.js
+ delete mode 100644 .next/dev/build/chunks/[turbopack-node]_transforms_postcss_ts_df7a5b11._.js.map
+ delete mode 100644 .next/dev/build/chunks/[turbopack]_runtime.js
+ delete mode 100644 .next/dev/build/chunks/[turbopack]_runtime.js.map
+ delete mode 100644 .next/dev/build/chunks/node_modules_fe693df6._.js
+ delete mode 100644 .next/dev/build/chunks/node_modules_fe693df6._.js.map
+ delete mode 100644 .next/dev/build/package.json
+ delete mode 100644 .next/dev/build/postcss.js
+ delete mode 100644 .next/dev/build/postcss.js.map
+ delete mode 100644 .next/dev/cache/config.json
+ delete mode 100644 .next/dev/cache/turbopack/0c06f068/CURRENT
+ delete mode 100644 .next/dev/fallback-build-manifest.json
+ delete mode 100644 .next/dev/lock
+ delete mode 100644 .next/dev/package.json
+ delete mode 100644 .next/dev/prerender-manifest.json
+ delete mode 100644 .next/dev/routes-manifest.json
+ delete mode 100644 .next/dev/server/app-paths-manifest.json
+ delete mode 100644 .next/dev/server/app/page.js
+ delete mode 100644 .next/dev/server/app/page.js.map
+ delete mode 100644 .next/dev/server/app/page/app-paths-manifest.json
+ delete mode 100644 .next/dev/server/app/page/build-manifest.json
+ delete mode 100644 .next/dev/server/app/page/next-font-manifest.json
+ delete mode 100644 .next/dev/server/app/page/react-loadable-manifest.json
+ delete mode 100644 .next/dev/server/app/page/server-reference-manifest.json
+ delete mode 100644 .next/dev/server/app/page_client-reference-manifest.js
+ delete mode 100644 .next/dev/server/chunks/ssr/[externals]__7f148858._.js
+ delete mode 100644 .next/dev/server/chunks/ssr/[externals]__7f148858._.js.map
+ delete mode 100644 .next/dev/server/chunks/ssr/[externals]_next_dist_1aaf5479._.js
+ delete mode 100644 .next/dev/server/chunks/ssr/[externals]_next_dist_1aaf5479._.js.map
+ delete mode 100644 .next/dev/server/chunks/ssr/[root-of-the-server]__01c0c5f8._.js
+ delete mode 100644 .next/dev/server/chunks/ssr/[root-of-the-server]__01c0c5f8._.js.map
+ delete mode 100644 .next/dev/server/chunks/ssr/[root-of-the-server]__689ad00b._.js
+ delete mode 100644 .next/dev/server/chunks/ssr/[root-of-the-server]__689ad00b._.js.map
+ delete mode 100644 .next/dev/server/chunks/ssr/[turbopack]_runtime.js
+ delete mode 100644 .next/dev/server/chunks/ssr/[turbopack]_runtime.js.map
+ delete mode 100644 .next/dev/server/chunks/ssr/_next-internal_server_app_page_actions_39d4fc33.js
+ delete mode 100644 .next/dev/server/chunks/ssr/_next-internal_server_app_page_actions_39d4fc33.js.map
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_0edb7e3d._.js
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_0edb7e3d._.js.map
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_next_dist_7381059c._.js
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_next_dist_7381059c._.js.map
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_next_dist_afb60855._.js
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_next_dist_afb60855._.js.map
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_next_dist_client_components_9774470f._.js
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_next_dist_client_components_9774470f._.js.map
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_next_dist_client_components_builtin_forbidden_45780354.js
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_next_dist_client_components_builtin_forbidden_45780354.js.map
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_next_dist_client_components_builtin_global-error_ece394eb.js
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_next_dist_client_components_builtin_global-error_ece394eb.js.map
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_next_dist_client_components_builtin_unauthorized_15817684.js
+ delete mode 100644 .next/dev/server/chunks/ssr/node_modules_next_dist_client_components_builtin_unauthorized_15817684.js.map
+ delete mode 100644 .next/dev/server/interception-route-rewrite-manifest.js
+ delete mode 100644 .next/dev/server/middleware-build-manifest.js
+ delete mode 100644 .next/dev/server/middleware-manifest.json
+ delete mode 100644 .next/dev/server/next-font-manifest.js
+ delete mode 100644 .next/dev/server/next-font-manifest.json
+ delete mode 100644 .next/dev/server/pages-manifest.json
+ delete mode 100644 .next/dev/server/server-reference-manifest.js
+ delete mode 100644 .next/dev/server/server-reference-manifest.json
+ delete mode 100644 .next/dev/static/chunks/[next]_internal_font_google_open_sans_e3e9d5cc_module_css_bad6b30c._.single.css
+ delete mode 100644 .next/dev/static/chunks/[next]_internal_font_google_open_sans_e3e9d5cc_module_css_bad6b30c._.single.css.map
+ delete mode 100644 .next/dev/static/chunks/[root-of-the-server]__7d8d1990._.css
+ delete mode 100644 .next/dev/static/chunks/[root-of-the-server]__7d8d1990._.css.map
+ delete mode 100644 .next/dev/static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_956a0d3a._.js
+ delete mode 100644 .next/dev/static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_956a0d3a._.js.map
+ delete mode 100644 .next/dev/static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_c7192189._.js
+ delete mode 100644 .next/dev/static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_c8c997ce._.js
+ delete mode 100644 .next/dev/static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_c8c997ce._.js.map
+ delete mode 100644 .next/dev/static/chunks/_23a915ee._.js.map
+ delete mode 100644 .next/dev/static/chunks/_a0ff3932._.js
+ delete mode 100644 .next/dev/static/chunks/_b7fac5ca._.js
+ delete mode 100644 .next/dev/static/chunks/_b7fac5ca._.js.map
+ delete mode 100644 .next/dev/static/chunks/app_globals_css_bad6b30c._.single.css
+ delete mode 100644 .next/dev/static/chunks/app_globals_css_bad6b30c._.single.css.map
+ delete mode 100644 .next/dev/static/chunks/app_layout_tsx_1cf6b850._.js
+ delete mode 100644 .next/dev/static/chunks/app_page_tsx_84254166._.js
+ delete mode 100644 .next/dev/static/chunks/node_modules_@swc_helpers_cjs_d80fb378._.js
+ delete mode 100644 .next/dev/static/chunks/node_modules_@swc_helpers_cjs_d80fb378._.js.map
+ delete mode 100644 .next/dev/static/chunks/node_modules_e6b0ea65._.js
+ delete mode 100644 .next/dev/static/chunks/node_modules_e6b0ea65._.js.map
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_be32b49c._.js
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_be32b49c._.js.map
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_build_polyfills_polyfill-nomodule.js
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_build_polyfills_polyfill-nomodule.js.map
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_client_17643121._.js
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_client_17643121._.js.map
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_client_components_builtin_global-error_1cf6b850.js
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_compiled_a0e4c7b4._.js
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_compiled_a0e4c7b4._.js.map
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_compiled_next-devtools_index_1dd7fb59.js
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_compiled_next-devtools_index_1dd7fb59.js.map
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_1e674e59._.js
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_1e674e59._.js.map
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_9212ccad._.js
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_9212ccad._.js.map
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_f3530cac._.js
+ delete mode 100644 .next/dev/static/chunks/node_modules_next_dist_f3530cac._.js.map
+ delete mode 100644 .next/dev/static/chunks/turbopack-_23a915ee._.js
+ delete mode 100644 .next/dev/static/development/_buildManifest.js
+ delete mode 100644 .next/dev/static/development/_clientMiddlewareManifest.json
+ delete mode 100644 .next/dev/static/development/_ssgManifest.js
+ delete mode 100644 .next/dev/static/media/1e239d59b95c7889-s.4a36b7d0.woff2
+ delete mode 100644 .next/dev/static/media/2aec202ebfcf461b-s.d55a2306.woff2
+ delete mode 100644 .next/dev/static/media/3ce154ad7d54dc86-s.f170796f.woff2
+ delete mode 100644 .next/dev/static/media/5b0229109f6656bb-s.6c710ca8.woff2
+ delete mode 100644 .next/dev/static/media/7cdbb9ca823c0a73-s.f2244ea0.woff2
+ delete mode 100644 .next/dev/static/media/a421df443b3f383b-s.90e10d49.woff2
+ delete mode 100644 .next/dev/static/media/c2873153dc73d9e3-s.6884c055.woff2
+ delete mode 100644 .next/dev/static/media/ca19bc83075b2625-s.195cce89.woff2
+ delete mode 100644 .next/dev/static/media/cf514f5d0007dafa-s.p.417aa1a2.woff2
+ delete mode 100644 .next/dev/static/media/d38a53d0ba90b32d-s.3eaec13b.woff2
+ delete mode 100644 .next/dev/trace
+ delete mode 100644 .next/dev/types/cache-life.d.ts
+ delete mode 100644 .next/dev/types/routes.d.ts
+ delete mode 100644 .next/dev/types/validator.ts
+~/workspace$ git push origin main
+Enumerating objects: 3, done.
+Counting objects: 100% (3/3), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (2/2), done.
+Writing objects: 100% (2/2), 279 bytes | 279.00 KiB/s, done.
+Total 2 (delta 1), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+To https://github.com/TransferAgent/investor-ensights.git
+   59a9cad..a5078e3  main -> main
