@@ -68,6 +68,12 @@ export const tenants = pgTable(
     brandVertical: varchar("brand_vertical", { length: 200 }),
     brandTagline: varchar("brand_tagline", { length: 300 }),
     brandFeatureCta: varchar("brand_feature_cta", { length: 200 }),
+    // MT-City-Meta G1: per-persona "truth document" pointer for the City Meta
+    // LLM generator. References hayloArticles.id within this tenant's own
+    // schema (cross-schema, so no FK). NULL = no truth doc → the generator
+    // skips this tenant's cities and the deterministic pre-LLM fallback chain
+    // continues to render city meta unchanged.
+    defaultHayloArticleId: uuid("default_haylo_article_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("tenants_slug_idx").on(table.slug)]
@@ -161,6 +167,14 @@ export const cityLocations = pgTable(
     mapEmbedUrl: text("map_embed_url"),
     metaTitle: varchar("meta_title", { length: 120 }),
     metaDescription: varchar("meta_description", { length: 500 }),
+    // MT-City-Meta G1: provenance of the meta above. 'llm' = produced by the
+    // City Meta generator, 'fallback' = deterministic safety net, 'manual' =
+    // human-curated. NULL = legacy/untouched. The generator only overwrites
+    // rows that are NULL or 'fallback' — never 'manual' and never a locked row.
+    metaSource: varchar("meta_source", { length: 16 }),
+    // MT-City-Meta G1: when set, the meta is curated/locked and the generator
+    // must never overwrite it (mirrors the article meta_locked_at discipline).
+    metaLockedAt: timestamp("meta_locked_at", { withTimezone: true }),
     allowIndexing: boolean("allow_indexing").default(true).notNull(),
     isPublished: boolean("is_published").default(false).notNull(),
     displayOrder: integer("display_order").default(0).notNull(),
