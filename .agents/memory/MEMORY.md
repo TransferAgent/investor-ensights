@@ -1,2 +1,3 @@
 - [Article author rendering is decoupled from DB](article-author-rendering.md) — article byline/bio/JSON-LD is hardcoded to PLATFORM_AUTHOR in lib/author-config.ts, NOT article.author_name. The DB column is data-hygiene only.
 - [Sitemap canary baseline](sitemap-canary.md) — replit.md says 84 URLs but post-E-E-A-T rollup it's 104 (added pubs + persona hubs). Update baseline before treating divergence as alarm.
+- [Dev/Prod ownership](dev-prod-ownership.md) — Dev is the agent's, Prod is the user's; never write Prod unless asked. Dev/Prod data diverge (e.g. Haylo library).

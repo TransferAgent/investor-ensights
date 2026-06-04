@@ -35,6 +35,14 @@ import { metaTitleAcceptable } from "@/lib/newsroom/brandContext";
 export const CITY_META_DESC_TARGET = 160;
 export const CITY_META_DESC_HARD_MAX = 165;
 export const CITY_META_DESC_MIN = 140;
+/**
+ * Brand may not appear within the first N chars. This is the "content leads,
+ * brand earns its place at the end" guard. It also closes the single-sentence
+ * loophole in the closing-sentence rule below: when the whole description is
+ * one sentence, "closing sentence" == the sentence, so a brand at the front
+ * would otherwise pass — the lead guard rejects it.
+ */
+export const CITY_META_DESC_BRAND_LEAD_GUARD = 40;
 
 export const CITY_META_TITLE_TARGET = 55;
 export const CITY_META_TITLE_HARD_MAX = 65;
@@ -111,6 +119,13 @@ export function cityMetaDescriptionAcceptable(
   const total = (text.match(brandRe) ?? []).length;
   if (total === 0) return "desc-missing-brand";
   if (total > 1) return `desc-brand-repeated-${total}`;
+  // Lead guard: no brand in the opening chars (also closes the single-sentence
+  // loophole — see CITY_META_DESC_BRAND_LEAD_GUARD).
+  const lead = text.slice(0, CITY_META_DESC_BRAND_LEAD_GUARD);
+  if (new RegExp(`\\b${escapeRegExp(persona)}\\b`, "i").test(lead)) {
+    return "desc-brand-in-lead";
+  }
+  // And the single mention must land in the closing sentence.
   const last = closingSentence(text);
   if (!new RegExp(`\\b${escapeRegExp(persona)}\\b`, "i").test(last)) {
     return "desc-brand-not-in-closing";
