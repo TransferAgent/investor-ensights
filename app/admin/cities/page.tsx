@@ -43,6 +43,8 @@ import {
   MapPin,
   ShieldCheck,
   ShieldOff,
+  Sparkles,
+  Lock,
 } from "lucide-react"
 
 const US_STATES = [
@@ -90,6 +92,8 @@ interface CityLocation {
   mapEmbedUrl: string | null
   metaTitle: string | null
   metaDescription: string | null
+  metaSource: string | null
+  metaLockedAt: string | null
   allowIndexing: boolean
   isPublished: boolean
   displayOrder: number
@@ -217,6 +221,7 @@ export default function AdminCitiesPage() {
   const [formData, setFormData] = useState<CityFormData>(emptyCityForm)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [csvDialogOpen, setCsvDialogOpen] = useState(false)
+  const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set())
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
@@ -420,6 +425,39 @@ export default function AdminCitiesPage() {
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" })
+    },
+  })
+
+  const generateMetaMutation = useMutation({
+    mutationFn: async ({ city, force }: { city: CityLocation; force: boolean }) => {
+      const res = await apiRequest(
+        "POST",
+        `/api/admin/cities/${city.id}/generate-meta${force ? "?force=1" : ""}`,
+      )
+      return res.json() as Promise<{
+        ok: boolean
+        metaTitle: string
+        metaDescription: string
+        costUsd: number
+      }>
+    },
+    onSuccess: (data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cities"] })
+      toast({
+        title: vars.force ? "Meta regenerated" : "Meta generated",
+        description: `${vars.city.cityName}: title ${data.metaTitle.length} chars, description ${data.metaDescription.length} chars.`,
+      })
+    },
+    onError: (err: any) => {
+      const msg = err?.message ?? "Generation failed"
+      toast({ title: "Could not generate meta", description: msg, variant: "destructive" })
+    },
+    onSettled: (_data, _err, vars) => {
+      setGeneratingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(vars.city.id)
+        return next
+      })
     },
   })
 
@@ -812,6 +850,44 @@ export default function AdminCitiesPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {(() => {
+                          const locked = !!city.metaLockedAt
+                          const manual = city.metaSource === "manual"
+                          const isLlm = city.metaSource === "llm"
+                          const disabled = locked || manual
+                          const busy = generatingIds.has(city.id)
+                          const title = locked
+                            ? "Meta is locked — cannot regenerate"
+                            : manual
+                            ? "Meta is manually curated — cannot regenerate"
+                            : isLlm
+                            ? "Regenerate AI meta title & description"
+                            : "Generate AI meta title & description"
+                          return (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              disabled={disabled || busy}
+                              onClick={() => {
+                                if (generatingIds.has(city.id)) return
+                                setGeneratingIds((prev) => new Set(prev).add(city.id))
+                                generateMetaMutation.mutate({ city, force: isLlm })
+                              }}
+                              data-testid={`button-generate-meta-${city.slug}`}
+                              title={title}
+                            >
+                              {busy ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : locked ? (
+                                <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                              ) : (
+                                <Sparkles
+                                  className={`h-3.5 w-3.5 ${isLlm ? "text-indigo-500" : "text-amber-500"}`}
+                                />
+                              )}
+                            </Button>
+                          )
+                        })()}
                         <Button
                           size="icon"
                           variant="ghost"
