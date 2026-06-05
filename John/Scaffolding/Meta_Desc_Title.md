@@ -23,6 +23,7 @@
 |---|---|---|---|
 | r1 | 2026-06-05 | Agent | Initial document. Captures Article meta history (MT-4.13 → MT-4.13.4) and City meta build (G1 → G5, PROD rollout complete). Records the considered-and-parked 290–320 / 50–65 proposal. |
 | r2 | 2026-06-05 | Agent | **Universal Truth Document Provisioning (TD-0..TD-5).** Adds the human-designation path for a per-tenant truth doc (Haylo Library star + Persona Wizard auto-designate on seed), readiness gating (`truthDoc.ready` folded into `publishReady`), and same-tenant + Conductor cross-tenant designation APIs. See new §G6. **No contract / band / model change** — only *how* a persona acquires the truth doc the City generator already required. |
+| r3 | 2026-06-05 | Agent | **City Title: state code now BANNED + per-city admin "generate" sparkle button.** Two changes (commits `5f95614` sparkle, `09c1c19` state-ban): (1) `cityMetaTitleAcceptable` now takes `stateCode` and rejects `title-contains-state` (uppercase word-boundary match) so city titles read "Austin", never "Austin, TX" — the parked-then-revived "city-only title" sub-decision in §3 is now **SHIPPED for the city path only**; the shared article gate is untouched (article titles still allow state). (2) The admin Cities listing gained a per-row sparkle button calling the existing generate-meta route (amber = generate on null/fallback, indigo = regenerate w/ `?force=1` on `llm`, lock icon when `meta_locked_at`/`manual`). **Bands and models unchanged** (desc 130/160/165, title 55/65, `gpt-4.1`/`gpt-4.1-mini`). |
 
 > **Document-control rule:** every substantive change to meta behavior gets a new revision row here **and** a matching update to `Regeneration.md`. Bump the rev letter, never overwrite history.
 
@@ -111,7 +112,7 @@ Single source of truth for the SERP-fit rules. Current constants:
 
 Gates:
 - **`cityMetaDescriptionAcceptable`** rejects unless: length in [130, 165]; ends on terminal punctuation (complete sentence, never mid-word); city verbatim; brand appears **exactly once**; that single mention is **in the closing sentence**; and the brand is **not** in the first 40 chars. (The lead guard also closes the single-sentence loophole.)
-- **`cityMetaTitleAcceptable`** is a thin wrapper over the shared `metaTitleAcceptable`, pinned to the city max (65): city verbatim, brand-free, length ≤ max. **No minimum length** today, and **state is neither required nor forbidden.**
+- **`cityMetaTitleAcceptable`** wraps the shared `metaTitleAcceptable` (pinned to the city max 65: city verbatim, brand-free, length ≤ max, **no minimum length**) and, as of **r3**, adds a City-only **"no state code" guard**: pass the `stateCode` and a title containing the uppercase code as a word-boundary token (e.g. the "TX" in "Austin, TX") is rejected as `title-contains-state`. The match is **case-sensitive on the UPPERCASE code** (code normalized to uppercase first), so lowercase words that happen to spell a code ("or", "in") never false-positive. The shared article gate is unaffected — **state is still allowed in article titles, banned only in city titles.**
 - **`repairCityMetaDescriptionLength`** — deterministic length fix for an over-long-but-otherwise-valid description: drops whole *middle* content sentences (keeps the first content sentence, which carries the city, and the brand closing sentence), then re-validates against the FULL contract. Returns `null` if it can't be safely fixed (caller then treats it as an `llm-failed` skip). This exists because **LLMs cannot count characters**, so over-length is the dominant failure.
 
 ### G3 — RAG **generator** (`lib/cities/cityMetaGenerator.ts`, compute-only)
@@ -162,7 +163,9 @@ The City generator was already keyed on `tenants.default_haylo_article_id` + `--
 
 Agent laid out the exact code changes required (contract constants, a `minLen` param on the shared `metaTitleAcceptable` so the article path stays unchanged, prompt edits to drop the state line + add a 3–4 sentence guidance, a `title-too-short` retry hint, and a `--force` re-backfill of all 340 cities). Two caveats raised: (a) 290–320 is ~2× Google's visible snippet (~155–160) — fine if the goal is LLM/social consumption, not just Google's grey line; (b) a 50-char title minimum slightly lowers first-shot hit rate.
 
-**Decision:** Conductor reviewed and said **"the Cities and the rendering are correct — take no action."** → **Current contract stands** (130–165 desc / 55–65 title, state allowed). This proposal is **not implemented.** If revived, see `Regeneration.md` §"How to change the bands."
+**Decision (initial):** Conductor reviewed and said **"the Cities and the rendering are correct — take no action."** → contract stood (130–165 desc / 55–65 title, state allowed). The proposal was **parked.**
+
+**UPDATE (r3, 2026-06-05) — the state sub-decision was revived and SHIPPED.** On re-testing, the Conductor confirmed the door-hanger concern was specifically the **`City, ST` stamp in the Title** and said **"wire the rule in for Meta Title."** So the **"city-only title / no state"** portion is now **implemented for the city path** (`title-contains-state` gate + prompt line + retry hint; see r3 + §2 G2 above). The other two parked items — **description 290–320** and the **50-char title minimum** — remain **NOT implemented**; the bands still stand at **130–165 desc / 55–65 title**. If those are revived, see `Regeneration.md` §"How to change the bands."
 
 ---
 
@@ -173,7 +176,8 @@ Agent laid out the exact code changes required (contract constants, a `minLen` p
 | `shared/schema.ts` | meta columns (`city_locations`, `knowledge_articles`) + `tenants.default_haylo_article_id` |
 | `lib/cities/cityMetaContract.ts` | **City** contract: constants + gates + length-repair (pure) |
 | `lib/cities/cityMetaGenerator.ts` | **City** RAG generator (desc-first, title-second, two-shot, never-throws) |
-| `app/api/admin/cities/[id]/generate-meta/route.ts` | single-city admin generate |
+| `app/api/admin/cities/[id]/generate-meta/route.ts` | single-city admin generate (POST; `?force=1` to re-stamp `llm`; 409 on locked/manual/llm-without-force; 422 on no-truth-doc / contract fail) |
+| `app/admin/cities/page.tsx` | admin Cities listing — per-row **sparkle** generate button (amber generate / indigo regenerate / lock icon when frozen); per-row in-flight tracking via a `Set` |
 | `scripts/backfill-city-meta.ts` | bulk backfill (dry-run default, `--confirm`, `--force`, `--prod`, `--concurrency`) |
 | `app/api/admin/haylo-articles/truth-doc/route.ts` | same-tenant truth-doc designation (GET current / PUT set+clear) |
 | `app/api/admin/personas/[slug]/truth-doc/route.ts` | Conductor cross-tenant truth-doc designation (POST) |

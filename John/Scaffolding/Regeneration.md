@@ -22,6 +22,7 @@
 |---|---|---|---|---|
 | r1 | 2026-06-05 | Agent | `9f294dc` (tree at "Published your App"; meta build at `38d7305`) | City meta G1–G5 complete & live on PROD; article meta at MT-4.13.4. Bands: desc 130/160/165, title 55/65. |
 | r2 | 2026-06-05 | Agent | *(this change set; commit recorded at task close)* | TD-0..TD-5 **Universal Truth Document Provisioning** — adds human designation (Haylo Library star + Persona Wizard auto-designate on seed) + readiness gate (`truthDoc.ready` in `publishReady`) for the per-tenant truth doc. **Contract / bands / models unchanged from r1** (desc 130/160/165, title 55/65, `gpt-4.1` / `gpt-4.1-mini`): §§2–3 numbers are identical; §4 updated for provisioning. |
+| r3 | 2026-06-05 | Agent | `09c1c19` (state-ban); sparkle button at `5f95614` | **City Title now BANS the state code** — `cityMetaTitleAcceptable` rejects `title-contains-state` (uppercase word-boundary; code normalized to uppercase first), so city titles are city-only ("Austin", never "Austin, TX"). **City path only — the shared article gate is untouched.** Plus a per-row admin "generate meta" **sparkle** button on the Cities listing. **Bands / models unchanged from r1/r2** (desc 130/160/165, title 55/65, `gpt-4.1`/`gpt-4.1-mini`); §2 title-gate line updated, §5 gains a state-ban check. |
 
 > **Rule:** create a NEW revision row each time the meta subsystem changes, and re-snapshot §§2–5 below to match. Never edit an old row. The newest row is the live restore point.
 
@@ -57,7 +58,7 @@
 
 City gates:
 - **Description:** length 130–165; complete sentence (terminal punctuation); city verbatim; brand **exactly once**, **in closing sentence**, **not** in first 40 chars.
-- **Title:** city verbatim; brand-free; length ≤ 65; **no minimum**; **state neither required nor forbidden.**
+- **Title:** city verbatim; brand-free; length ≤ 65; **no minimum**; **state code BANNED** (r3 — `title-contains-state`, uppercase word-boundary match; **city titles only** — article titles still allow the state).
 
 ### City generator — `lib/cities/cityMetaGenerator.ts`
 | Setting | Value |
@@ -117,6 +118,10 @@ rg -n "CITY_META_DESC_MIN|CITY_META_DESC_TARGET|CITY_META_DESC_HARD_MAX|CITY_MET
 # 3) City models unchanged
 rg -n "DESC_MODEL|TITLE_MODEL|TRUTH_DOC_EXCERPT_CHARS" lib/cities/cityMetaGenerator.ts
 #   expect gpt-4.1 / gpt-4.1-mini / 4000
+
+# 4) City title state-ban present (r3)
+rg -n "title-contains-state" lib/cities/cityMetaContract.ts lib/cities/cityMetaGenerator.ts
+#   expect matches in BOTH files (gate reject reason + generator retry hint)
 ```
 
 PROD data check (read-only; user owns PROD — run via the database skill with `environment: "production"`):
@@ -154,9 +159,11 @@ GROUP BY meta_source;
 
 ## 7. How to CHANGE the bands (forward path, if the parked proposal is revived)
 
-> Recorded so a future change is mechanical and reversible. As of r1 this is **NOT done** — current bands stand (Conductor: "Cities and rendering are correct, take no action").
+> Recorded so a future change is mechanical and reversible.
+>
+> **UPDATE (r3, 2026-06-05):** the **title state-free** portion of this proposal is now **SHIPPED** for city titles (step 3's state-prompt edit + the gate guard are done — see r3 / §2). What **remains parked** is the **description 290–320** band and the **50-char title minimum**; the bands still stand at 130–165 / 55–65. Steps below cover those remaining band changes.
 
-To move to, e.g., **description 290–320** / **title 50–65** / **title state-free**:
+To move to, e.g., **description 290–320** / **title 50–65** (the title-state-free part is already done):
 1. `lib/cities/cityMetaContract.ts` — change the desc constants (min/target/max); add `CITY_META_TITLE_MIN`; have `cityMetaTitleAcceptable` pass it.
 2. `lib/newsroom/brandContext.ts` — add an **optional** `minLen` param to `metaTitleAcceptable` defaulting to `0` (keeps the article path unchanged); city wrapper passes 50.
 3. `lib/cities/cityMetaGenerator.ts` — desc prompt: "3–4 complete sentences" (two won't fill 290–320); title prompt: state the 50–65 range + "city only, no state/abbreviation"; **remove** the `State code:` line from the title user prompt; add a `title-too-short` retry hint.

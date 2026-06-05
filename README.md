@@ -126,7 +126,8 @@ Conductor-only `/admin/personas` flow that creates a new tenant atomically (sing
 - User management with last-admin delete protection
 - Audit log per tenant (`tenant_<slug>.admin_audit_log`)
 - Newsroom Auto-Scheduler with configurable drip publishing
-- Haylo library: essay ingestion, duplicate detection, sandboxed previews
+- Haylo library: essay ingestion, duplicate detection, sandboxed previews, per-tenant "truth document" designation
+- AI-assisted SEO meta generation for city pages — per-row generate/regenerate (sparkle button), RAG-grounded on the tenant truth document; city titles are city-only (no state code), descriptions lead with content and close on the brand
 - Persona Wizard (Conductor only) for adding new tenants without SQL
 
 ### SEO
