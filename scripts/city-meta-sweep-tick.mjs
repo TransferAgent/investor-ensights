@@ -33,6 +33,28 @@ try {
   const elapsed = Date.now() - startedAt;
   console.log(`[city-meta-sweep] ${res.status} in ${elapsed}ms — ${text.slice(0, 500)}`);
   if (!res.ok) process.exit(2);
+
+  // Surface a failed sweep run as a non-zero exit so a Scheduled Deployment
+  // marks the run failed instead of silently succeeding on HTTP 200. A run
+  // that merely found nothing to do, or was skipped because another sweep was
+  // already in flight, is NOT a failure.
+  let body;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    body = null;
+  }
+  const inner = body && typeof body === "object" ? body.result : null;
+  if (inner && inner.ok === false) {
+    const note = String(inner.notes ?? "");
+    const benign =
+      note === "another sweep is already running" ||
+      note.startsWith("OPENAI_API_KEY");
+    if (!benign) {
+      console.error(`[city-meta-sweep] sweep reported failure: ${note || "ok=false"}`);
+      process.exit(4);
+    }
+  }
 } catch (err) {
   console.error(`[city-meta-sweep] request failed:`, err);
   process.exit(3);

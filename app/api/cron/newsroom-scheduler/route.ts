@@ -13,7 +13,17 @@ export const maxDuration = 120;
  * already consumes. When no cities are eligible the sweep is ~2 cheap COUNT
  * queries per tenant — effectively free.
  */
-const CITY_META_SWEEP_PER_TICK = 10;
+const CITY_META_SWEEP_PER_TICK = 5;
+
+/**
+ * Wall-clock ceiling (ms from request start) the ride-along sweep must not
+ * cross when STARTING a new city. Set to leave ~40s of headroom under the
+ * route's 120s `maxDuration` — enough for one in-flight generation (each
+ * OpenAI call is timeout-bounded in the generator) plus response
+ * serialization. However long the article tick took, the sweep stops opening
+ * new work past this point; cities not reached stay eligible for the next tick.
+ */
+const CITY_META_SWEEP_DEADLINE_MS = 80_000;
 
 function authorize(req: NextRequest): boolean {
   const expected = process.env.CRON_SECRET;
@@ -36,6 +46,7 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
+  const tStart = Date.now();
   try {
     // Article publishing runs FIRST and is fully awaited/committed before the
     // city-meta sweep starts, so the sweep can never affect publishing.
@@ -43,14 +54,17 @@ async function handle(req: NextRequest) {
 
     // Piggyback the reconciling city-meta sweep on the same heartbeat. Wrapped
     // so a sweep failure (or its internal in-flight guard) can never turn a
-    // successful publish tick into a 500. Forward-only + idempotent: whatever
-    // it doesn't reach this tick, the next tick continues.
+    // successful publish tick into a 500. Bounded by BOTH a per-tick attempt
+    // budget and a wall-clock deadline (relative to request start) so the
+    // combined route stays under maxDuration no matter how long publishing took.
+    // Forward-only + idempotent: whatever it doesn't reach, the next tick does.
     let cityMeta: unknown;
     try {
       cityMeta = await runCityMetaSweep({
         triggeredBy: "cron",
         username: "newsroom-cron",
         limit: CITY_META_SWEEP_PER_TICK,
+        deadlineMs: tStart + CITY_META_SWEEP_DEADLINE_MS,
       });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);

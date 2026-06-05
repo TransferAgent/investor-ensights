@@ -91,7 +91,11 @@ function getClient(): OpenAI {
   if (!apiKey) {
     throw new Error("Missing OpenAI API key. Set OPENAI_API_KEY or OpenAi_Key.");
   }
-  return new OpenAI({ apiKey });
+  // Bound each request so a hung/slow OpenAI connection can't stall a caller
+  // for the SDK's 10-minute default. A timed-out call is caught below and
+  // surfaced as a graceful generation failure (never-throws contract), which
+  // also keeps the cron sweeper's per-tick wall-clock budget meaningful.
+  return new OpenAI({ apiKey, timeout: 30_000, maxRetries: 1 });
 }
 
 function costFor(model: string, promptTokens: number, completionTokens: number): number {

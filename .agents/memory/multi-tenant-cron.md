@@ -24,3 +24,28 @@ behavior." A correct multi-tenant cron must:
 **How to apply:** any new cron/sweeper/batch job that should cover every tenant —
 follow the `lib/cities/cityMetaSweeper.ts` pattern (enumerate-then-per-tenant),
 not the bare `runSchedulerTick()` pattern.
+
+# Triggering a cron automatically on Replit
+
+Nothing in the repo schedules the cron *routes* — a Next.js route only runs when
+pinged. The schedule lives in Replit's deployment UI (a **Scheduled
+Deployment**), which the agent cannot create programmatically and cannot see from
+the dev container. So you can never "confirm from code" that a cron auto-runs.
+
+Two ways to make a route fire automatically:
+1. **Ride-along on an already-scheduled heartbeat** (zero new setup). The
+   city-meta sweep is invoked at the end of `app/api/cron/newsroom-scheduler`
+   after the article tick. Best when a trusted cron already runs.
+2. **Dedicated Scheduled Deployment** — a tiny tick script (see
+   `scripts/*-cron-tick.mjs`) that POSTs to the route with `CRON_SECRET`; the
+   user points a Scheduled Deployment at `node scripts/<x>.mjs`. Requires a
+   one-time UI step by the user.
+
+**Why / how to apply (piggyback safety):** the host route runs on autoscale with
+a hard `maxDuration` (120s) and `setInterval`/fire-and-forget get killed when the
+response returns — so extra work MUST be awaited, and bounded by BOTH an attempt
+limit AND a wall-clock deadline relative to request start (not just a count). Run
+the critical work (publishing) FIRST and let it commit, then do the piggyback in
+its own try/catch so it can never fail the host. Also give external API calls a
+per-request timeout — without one the SDK default (OpenAI: 10 min) can blow the
+route budget from a single hung call.

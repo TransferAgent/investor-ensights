@@ -53,6 +53,14 @@ export interface SweepInput {
   limit?: number;
   /** Count eligibility only — no LLM calls, no writes, no cost. */
   dryRun?: boolean;
+  /**
+   * Absolute wall-clock deadline (`Date.now()` ms). When set, the per-city loop
+   * stops before starting a generation that would risk running past it. Used by
+   * the newsroom-heartbeat ride-along to stay safely under the route's 120s
+   * `maxDuration` no matter how long the article tick took. Cities not reached
+   * simply stay eligible for the next tick (forward-only, idempotent).
+   */
+  deadlineMs?: number;
 }
 
 export interface SweepTenantResult {
@@ -110,6 +118,7 @@ async function sweepOneTenant(
   budget: number,
   dryRun: boolean,
   username: string,
+  deadlineMs?: number,
 ): Promise<SweepTenantResult> {
   const eligible = await countEligible();
   if (dryRun || budget <= 0 || eligible === 0) {
@@ -135,8 +144,15 @@ async function sweepOneTenant(
   let failed = 0;
   let skipped = 0;
   let costUsd = 0;
+  let timedOut = false;
 
   for (const city of cities) {
+    // Wall-clock guard: stop BEFORE starting a generation we might not finish
+    // in budget. Unreached cities stay eligible for the next tick.
+    if (deadlineMs && Date.now() >= deadlineMs) {
+      timedOut = true;
+      break;
+    }
     const result = await generateCityMeta({
       brand,
       cityName: city.cityName,
@@ -192,7 +208,16 @@ async function sweepOneTenant(
     });
   }
 
-  return { slug, eligible, processed: generated + failed + skipped, generated, failed, skipped, costUsd };
+  return {
+    slug,
+    eligible,
+    processed: generated + failed + skipped,
+    generated,
+    failed,
+    skipped,
+    costUsd,
+    ...(timedOut ? { note: "stopped early: per-tick time budget reached" } : {}),
+  };
 }
 
 export async function runCityMetaSweep(input: SweepInput): Promise<SweepResult> {
@@ -201,6 +226,7 @@ export async function runCityMetaSweep(input: SweepInput): Promise<SweepResult> 
   const rawLimit = Math.floor(input.limit ?? DEFAULT_LIMIT);
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(1, rawLimit), MAX_LIMIT) : DEFAULT_LIMIT;
   const dryRun = input.dryRun ?? false;
+  const deadlineMs = input.deadlineMs;
 
   const base: SweepResult = {
     ok: false,
@@ -241,9 +267,10 @@ export async function runCityMetaSweep(input: SweepInput): Promise<SweepResult> 
 
     for (const t of tenantRows) {
       if (!dryRun && remaining <= 0) break;
+      if (!dryRun && deadlineMs && Date.now() >= deadlineMs) break;
       const budget = dryRun ? 0 : remaining;
       const res = await withTenantAsync(t.slug, async () =>
-        sweepOneTenant(t.slug, t.docId as string, budget, dryRun, username),
+        sweepOneTenant(t.slug, t.docId as string, budget, dryRun, username, deadlineMs),
       );
       perTenant.push(res);
       remaining -= res.processed;
