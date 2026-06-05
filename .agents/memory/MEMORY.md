@@ -2,3 +2,4 @@
 - [Sitemap canary baseline](sitemap-canary.md) — replit.md says 84 URLs but post-E-E-A-T rollup it's 104 (added pubs + persona hubs). Update baseline before treating divergence as alarm.
 - [City meta generation](city-meta-generation.md) — tight char-band meta desc needs full gpt-4.1 (mini can't count, stuck ~50%); write-time so cost is trivial. Title stays on mini.
 - [Dev/Prod ownership](dev-prod-ownership.md) — Dev is the agent's, Prod is the user's; never write Prod unless asked. Dev/Prod data diverge (e.g. Haylo library).
+- [Multi-tenant cron jobs](multi-tenant-cron.md) — context-less cron silently hits only the default tenant; sweep all tenants by enumerating public.tenants under withTenantAsync, then per-tenant withTenantAsync.

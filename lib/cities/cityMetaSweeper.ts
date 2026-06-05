@@ -44,6 +44,7 @@ import { logAuditEvent } from "@/lib/audit";
 let sweepInFlight = false;
 
 const DEFAULT_LIMIT = 25;
+const MAX_LIMIT = 500;
 
 export interface SweepInput {
   triggeredBy: "cron" | "manual";
@@ -58,10 +59,13 @@ export interface SweepTenantResult {
   slug: string;
   /** Total cities eligible right now (not capped by the per-tick budget). */
   eligible: number;
-  /** Attempts made this tick (generated + failed). 0 on dryRun. */
+  /** LLM attempts made this tick (generated + failed + skipped). 0 on dryRun. */
   processed: number;
   generated: number;
+  /** Generation that failed the contract — nothing written. */
   failed: number;
+  /** Generation succeeded but the row was locked/curated mid-tick — nothing written. */
+  skipped: number;
   costUsd: number;
   note?: string;
 }
@@ -76,6 +80,7 @@ export interface SweepResult {
   processed: number;
   generated: number;
   failed: number;
+  skipped: number;
   costUsd: number;
   durationMs: number;
   perTenant: SweepTenantResult[];
@@ -108,12 +113,12 @@ async function sweepOneTenant(
 ): Promise<SweepTenantResult> {
   const eligible = await countEligible();
   if (dryRun || budget <= 0 || eligible === 0) {
-    return { slug, eligible, processed: 0, generated: 0, failed: 0, costUsd: 0 };
+    return { slug, eligible, processed: 0, generated: 0, failed: 0, skipped: 0, costUsd: 0 };
   }
 
   const truthDoc = await storage.getHayloArticleById(docId);
   if (!truthDoc) {
-    return { slug, eligible, processed: 0, generated: 0, failed: 0, costUsd: 0, note: "configured truth document not found" };
+    return { slug, eligible, processed: 0, generated: 0, failed: 0, skipped: 0, costUsd: 0, note: "configured truth document not found" };
   }
 
   const brand = await resolveBrandContext(slug);
@@ -128,6 +133,7 @@ async function sweepOneTenant(
 
   let generated = 0;
   let failed = 0;
+  let skipped = 0;
   let costUsd = 0;
 
   for (const city of cities) {
@@ -145,8 +151,9 @@ async function sweepOneTenant(
       continue;
     }
 
-    // Re-apply the eligibility whitelist on the write so a row locked/curated
-    // since the fetch can't be clobbered (a 0-row update just gets skipped).
+    // Re-apply the FULL eligibility whitelist on the write (incl. the
+    // title-or-description-NULL guard) so a row locked, curated, or otherwise
+    // populated since the fetch can't be clobbered — a 0-row update is skipped.
     const updated = await db
       .update(cityLocations)
       .set({ metaTitle: result.title, metaDescription: result.description, metaSource: "llm" })
@@ -155,12 +162,15 @@ async function sweepOneTenant(
           eq(cityLocations.id, city.id),
           isNull(cityLocations.metaLockedAt),
           or(isNull(cityLocations.metaSource), eq(cityLocations.metaSource, "fallback")),
+          or(isNull(cityLocations.metaTitle), isNull(cityLocations.metaDescription)),
         ),
       )
       .returning({ id: cityLocations.id });
 
     if (updated.length === 0) {
-      // Lost a race against a lock/curate between fetch and write — skip.
+      // Lost a race against a lock/curate/populate between fetch and write. The
+      // LLM call already cost money, so this still counts against the budget.
+      skipped++;
       continue;
     }
 
@@ -182,13 +192,14 @@ async function sweepOneTenant(
     });
   }
 
-  return { slug, eligible, processed: generated + failed, generated, failed, costUsd };
+  return { slug, eligible, processed: generated + failed + skipped, generated, failed, skipped, costUsd };
 }
 
 export async function runCityMetaSweep(input: SweepInput): Promise<SweepResult> {
   const t0 = Date.now();
   const username = input.username ?? "sweeper";
-  const limit = Math.max(1, Math.floor(input.limit ?? DEFAULT_LIMIT));
+  const rawLimit = Math.floor(input.limit ?? DEFAULT_LIMIT);
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(1, rawLimit), MAX_LIMIT) : DEFAULT_LIMIT;
   const dryRun = input.dryRun ?? false;
 
   const base: SweepResult = {
@@ -201,6 +212,7 @@ export async function runCityMetaSweep(input: SweepInput): Promise<SweepResult> 
     processed: 0,
     generated: 0,
     failed: 0,
+    skipped: 0,
     costUsd: 0,
     durationMs: 0,
     perTenant: [],
@@ -245,6 +257,7 @@ export async function runCityMetaSweep(input: SweepInput): Promise<SweepResult> 
       processed: perTenant.reduce((s, r) => s + r.processed, 0),
       generated: perTenant.reduce((s, r) => s + r.generated, 0),
       failed: perTenant.reduce((s, r) => s + r.failed, 0),
+      skipped: perTenant.reduce((s, r) => s + r.skipped, 0),
       costUsd: perTenant.reduce((s, r) => s + r.costUsd, 0),
       durationMs: Date.now() - t0,
       perTenant,
