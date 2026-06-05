@@ -42,6 +42,7 @@ interface Readiness {
   brand: { complete: boolean }
   cities: { total: number; withEnabledResearchSource: number; groundingGateOpen: boolean }
   haylo: { total: number; ready: boolean }
+  truthDoc: { articleId: string | null; ready: boolean }
   publishReady: boolean
 }
 
@@ -316,15 +317,25 @@ function StepHayloAndBrand({
         brandFeatureCta: brand.brandFeatureCta.trim(),
       })
 
-      await apiRequest("POST", `/api/admin/personas/${slug}/haylo`, {
+      const hayloRes = await apiRequest("POST", `/api/admin/personas/${slug}/haylo`, {
         title: hayloTitle.trim(),
         topicSlug: hayloTopic.trim() || undefined,
         bodyHtml: hayloBody,
         summary: hayloSummary.trim() || undefined,
       })
+
+      // TD-3: designate the seeded essay as this persona's Truth Document so
+      // city meta is wired up by construction. The Wizard seeds exactly one
+      // essay here, so the newest seed is the truth doc.
+      const haylo = await hayloRes.json()
+      if (haylo?.id) {
+        await apiRequest("POST", `/api/admin/personas/${slug}/truth-doc`, {
+          hayloArticleId: haylo.id,
+        })
+      }
     },
     onSuccess: () => {
-      toast({ title: "Saved", description: "Brand voice + Haylo essay locked to this persona." })
+      toast({ title: "Saved", description: "Brand voice + Haylo essay (Truth Document) locked to this persona." })
       refetchReadiness()
       onAdvance()
     },
@@ -697,13 +708,14 @@ function StepFinish({ slug, readiness, onFinish }: { slug: string; readiness?: R
         <SummaryRow label="Feature CTA" value={stripPlaceholder(readiness?.tenant.brandFeatureCta) || "—"} />
         <SummaryRow label="Cities" value={`${readiness?.cities.total ?? 0}${readiness?.cities.groundingGateOpen ? "" : " (no research sources yet)"}`} />
         <SummaryRow label="Haylo essays" value={`${readiness?.haylo.total ?? 0}`} />
+        <SummaryRow label="Truth Document" value={readiness?.truthDoc.ready ? "Set — city meta enabled" : "Not set"} />
       </div>
       {!allDone && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Not ready yet</AlertTitle>
           <AlertDescription>
-            Brand voice, ≥1 city, and ≥1 Haylo essay are all required.
+            Brand voice, ≥1 city, ≥1 Haylo essay, and a Truth Document are all required.
           </AlertDescription>
         </Alert>
       )}

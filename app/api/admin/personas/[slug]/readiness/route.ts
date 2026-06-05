@@ -38,6 +38,7 @@ export async function GET(
       brandVertical: tenants.brandVertical,
       brandTagline: tenants.brandTagline,
       brandFeatureCta: tenants.brandFeatureCta,
+      defaultHayloArticleId: tenants.defaultHayloArticleId,
     })
     .from(tenants)
     .where(eq(tenants.slug, slug))
@@ -71,6 +72,7 @@ export async function GET(
   let cityCount = 0;
   let cityWithResearchSourceCount = 0;
   let hayloCount = 0;
+  let truthDocReady = false;
   try {
     const c = pool;
     const r1 = await c.query(
@@ -89,6 +91,19 @@ export async function GET(
       `SELECT COUNT(*)::int AS n FROM "tenant_${slug}".haylo_articles`,
     );
     hayloCount = r3.rows[0]?.n ?? 0;
+
+    // Truth doc is ready only if the pointer is set AND resolves to a real
+    // article in this tenant with a non-empty body (an empty body grounds on
+    // nothing and the city-meta generator treats it as "no truth doc").
+    if (tenantRow.defaultHayloArticleId) {
+      const r4 = await c.query(
+        `SELECT 1 FROM "tenant_${slug}".haylo_articles
+          WHERE id = $1 AND length(btrim(coalesce(body_html, ''))) > 0
+          LIMIT 1`,
+        [tenantRow.defaultHayloArticleId],
+      );
+      truthDocReady = (r4.rowCount ?? 0) > 0;
+    }
   } catch (err: any) {
     return NextResponse.json(
       { error: `Failed to read tenant state: ${err?.message ?? err}` },
@@ -115,11 +130,18 @@ export async function GET(
       total: hayloCount,
       ready: hayloCount >= 1,
     },
+    // TD-3: Truth Document gate. City meta only writes for a tenant once this
+    // pointer is set to a valid (non-empty) Haylo article. Required for publish.
+    truthDoc: {
+      articleId: tenantRow.defaultHayloArticleId ?? null,
+      ready: truthDocReady,
+    },
     // Aggregate gate used by the Wizard's "Finish" button. Note: research
     // sources are NOT in the hard gate — they're a soft warning surfaced as
     // `cities.groundingGateOpen` so the Wizard can finish before the Conductor
     // runs the per-city research-source auto-seeder (out-of-band today,
     // wired into the Wizard in a follow-on gate MT-4.13.1).
-    publishReady: brandComplete && cityCount >= 1 && hayloCount >= 1,
+    publishReady:
+      brandComplete && cityCount >= 1 && hayloCount >= 1 && truthDocReady,
   });
 }

@@ -22,6 +22,7 @@
 | Rev | Date (UTC) | Author | Change |
 |---|---|---|---|
 | r1 | 2026-06-05 | Agent | Initial document. Captures Article meta history (MT-4.13 → MT-4.13.4) and City meta build (G1 → G5, PROD rollout complete). Records the considered-and-parked 290–320 / 50–65 proposal. |
+| r2 | 2026-06-05 | Agent | **Universal Truth Document Provisioning (TD-0..TD-5).** Adds the human-designation path for a per-tenant truth doc (Haylo Library star + Persona Wizard auto-designate on seed), readiness gating (`truthDoc.ready` folded into `publishReady`), and same-tenant + Conductor cross-tenant designation APIs. See new §G6. **No contract / band / model change** — only *how* a persona acquires the truth doc the City generator already required. |
 
 > **Document-control rule:** every substantive change to meta behavior gets a new revision row here **and** a matching update to `Regeneration.md`. Bump the rev letter, never overwrite history.
 
@@ -140,6 +141,14 @@ Gates:
 - **Verified:** 0 eligible remaining, **0 contract violations**, title **42–65** / description **131–165**.
 - Throughput note: the real ceiling is OpenAI's **gpt-4.1 TPM limit**, not wall-clock; 429s are free and leave the city eligible, so re-running drains the rest (idempotent).
 
+### G6 — Universal Truth Document Provisioning (TD-0..TD-5)
+The City generator was already keyed on `tenants.default_haylo_article_id` + `--persona`, but **only tableicity ever had a pointer set** — every other persona silently produced no city meta (graceful no-op). G6 makes the truth doc a **first-class, human-designatable** object so any persona can be provisioned without SQL:
+- **Designation API (TD-1):** `app/api/admin/haylo-articles/truth-doc/route.ts` (same-tenant GET current / PUT set+clear; validates the article lives in the session tenant and has a non-empty body; audit `haylo.truthdoc.set`) and `app/api/admin/personas/[slug]/truth-doc/route.ts` (Conductor-gated cross-tenant POST; `withTenantAsync(target)` validates the article, then sets `public.tenants`; audit `persona.truthdoc.set` into the actor's tenant).
+- **Haylo Library (TD-2):** `app/admin/haylo/page.tsx` shows a **"Truth Document"** badge on the designated row and a per-row star toggle to set/clear it; an amber "paused" notice appears while no truth doc is set (city meta is a no-op until then).
+- **Onboarding gate (TD-3):** `app/api/admin/personas/[slug]/readiness/route.ts` adds `truthDoc {articleId, ready}` (ready = pointer set AND body non-empty) and folds it into `publishReady`. The Persona Wizard (`app/admin/personas/new/page.tsx`) **auto-designates the single seeded essay** as the truth doc on save, and the Finish button stays disabled until `truthDoc.ready`. A new persona therefore cannot ship ungrounded city meta by construction.
+- **Rollout (TD-4):** the backfill engine is unchanged (`--persona` already supported); per-persona rollout is now *data-gated on designation* rather than on SQL access. As of this snapshot **only tableicity exists as a tenant in dev** (truth doc set, 18 cities) and is fully backfilled on PROD (340/340); the other four personas (haylo/payrol/texitie/veltroy) have no tenant rows yet and are onboarded — truth doc included — through the gated Wizard.
+- **No contract change:** bands (130/160/165 desc, 55/65 title), models (`gpt-4.1` / `gpt-4.1-mini`), and the never-throw / forward-only / `meta_locked_at`-sacred rules are **identical** to G5. G6 changes *provisioning*, not *generation*.
+
 ---
 
 ## 3. Considered-and-parked proposals (kept for context)
@@ -166,6 +175,11 @@ Agent laid out the exact code changes required (contract constants, a `minLen` p
 | `lib/cities/cityMetaGenerator.ts` | **City** RAG generator (desc-first, title-second, two-shot, never-throws) |
 | `app/api/admin/cities/[id]/generate-meta/route.ts` | single-city admin generate |
 | `scripts/backfill-city-meta.ts` | bulk backfill (dry-run default, `--confirm`, `--force`, `--prod`, `--concurrency`) |
+| `app/api/admin/haylo-articles/truth-doc/route.ts` | same-tenant truth-doc designation (GET current / PUT set+clear) |
+| `app/api/admin/personas/[slug]/truth-doc/route.ts` | Conductor cross-tenant truth-doc designation (POST) |
+| `app/api/admin/personas/[slug]/readiness/route.ts` | persona readiness incl. `truthDoc.ready` gate |
+| `app/admin/haylo/page.tsx` | Haylo Library — truth-doc badge + per-row star toggle |
+| `app/admin/personas/new/page.tsx` | Persona Wizard — auto-designates seeded truth doc; Finish gated on it |
 | `lib/newsroom/brandContext.ts` | **shared** validators: `metaTitleAcceptable`, `metaDescriptionAcceptable` |
 | `lib/newsroom/metaNaturalizer.ts` | **Article** Tier-2.5 naturalizer + `hayloBodyExcerptFromHtml` (reused by city RAG) |
 | `scripts/sync-tenant-schemas.mjs` | fans additive schema changes into every `tenant_<slug>` schema (`--prod` for prod) |

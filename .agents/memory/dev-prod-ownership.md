@@ -20,3 +20,11 @@ operates the Production live site directly. The agent builds and tests in Dev on
   the needed Prod data into Dev rather than pointing dev code at Prod.
 - Prod schema/data changes are propagated by the user (or via the documented
   `push-schema-to-prod.sh` / `sync-dev-to-prod.ts`) — the agent prepares, the user ships.
+
+**Tenant divergence (2026-06-05):** Dev `public.tenants` has only **tableicity**; the
+other personas (haylo/payrol/texitie/veltroy) exist only on PROD. So any per-persona
+rollout (e.g. city-meta backfill) can be dry-run in dev for tableicity only; the rest
+are blocked on onboarding. City meta is **data-gated** on `tenants.default_haylo_article_id`
+(the "truth doc") — no pointer ⇒ generator no-ops, page keeps its render fallback. Dev
+tableicity cities are intentionally NOT fully backfilled (PROD is the source of truth at
+340/340); don't pay OpenAI to regenerate dev rows that aren't user-facing.

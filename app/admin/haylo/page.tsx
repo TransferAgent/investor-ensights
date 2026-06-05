@@ -46,6 +46,7 @@ import {
   CheckCircle,
   Cloud,
   CloudDownload,
+  Star,
 } from "lucide-react"
 import {
   Accordion,
@@ -142,6 +143,34 @@ export default function HayloLibraryPage() {
 
   const { data: haloStatus } = useQuery<HaloStatus>({
     queryKey: ["/api/admin/haylo-articles/halo-status"],
+  })
+
+  // TD-2: which article (if any) is this tenant's Truth Document — the article
+  // the city-meta LLM grounds on. No truth doc ⇒ city meta is paused.
+  const { data: truthDoc } = useQuery<{ defaultHayloArticleId: string | null }>({
+    queryKey: ["/api/admin/haylo-articles/truth-doc"],
+  })
+  const truthDocId = truthDoc?.defaultHayloArticleId ?? null
+
+  const setTruthDocMutation = useMutation({
+    mutationFn: async (hayloArticleId: string | null) =>
+      apiRequest("PUT", "/api/admin/haylo-articles/truth-doc", { hayloArticleId }),
+    onSuccess: (_res, hayloArticleId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/haylo-articles/truth-doc"] })
+      toast({
+        title: hayloArticleId ? "Truth Document set" : "Truth Document cleared",
+        description: hayloArticleId
+          ? "City meta will now ground on this article."
+          : "City meta is paused until a Truth Document is set.",
+      })
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Could not update Truth Document",
+        description: err?.message ?? "",
+        variant: "destructive",
+      })
+    },
   })
 
   const topics = useMemo(() => {
@@ -508,6 +537,19 @@ export default function HayloLibraryPage() {
       )}
 
       <Card className="p-4">
+        {!isLoading && (articles?.length ?? 0) > 0 && !truthDocId && (
+          <div
+            className="mb-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+            data-testid="alert-no-truthdoc"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              No <strong>Truth Document</strong> set for this tenant — city meta generation is
+              paused. Click the <Star className="inline h-3 w-3" /> on an article to designate the
+              one the city-meta writer should ground on.
+            </div>
+          </div>
+        )}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Input
             placeholder="Search title or slug…"
@@ -572,6 +614,14 @@ export default function HayloLibraryPage() {
                   <TableCell>
                     <div className="font-medium" data-testid={`text-title-${a.id}`}>{a.title}</div>
                     <div className="text-xs text-muted-foreground font-mono">{a.slug}</div>
+                    {truthDocId === a.id && (
+                      <Badge
+                        className="mt-1 bg-indigo-100 text-indigo-800 hover:bg-indigo-100 text-xs"
+                        data-testid={`badge-truthdoc-${a.id}`}
+                      >
+                        <Star className="mr-1 h-3 w-3 fill-current" /> Truth Document
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     {a.topicSlug ? (
@@ -590,6 +640,16 @@ export default function HayloLibraryPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setTruthDocMutation.mutate(truthDocId === a.id ? null : a.id)}
+                        disabled={setTruthDocMutation.isPending}
+                        data-testid={`button-truthdoc-${a.id}`}
+                        title={truthDocId === a.id ? "Unset as Truth Document" : "Set as Truth Document"}
+                      >
+                        <Star className={`h-4 w-4 ${truthDocId === a.id ? "fill-amber-400 text-amber-500" : ""}`} />
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => setPreviewing(a)} data-testid={`button-preview-${a.id}`} title="Preview">
                         <Eye className="h-4 w-4" />
                       </Button>

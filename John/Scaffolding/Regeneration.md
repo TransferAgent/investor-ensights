@@ -21,6 +21,7 @@
 | Rev | Date (UTC) | Author | Anchor commit | Summary |
 |---|---|---|---|---|
 | r1 | 2026-06-05 | Agent | `9f294dc` (tree at "Published your App"; meta build at `38d7305`) | City meta G1–G5 complete & live on PROD; article meta at MT-4.13.4. Bands: desc 130/160/165, title 55/65. |
+| r2 | 2026-06-05 | Agent | *(this change set; commit recorded at task close)* | TD-0..TD-5 **Universal Truth Document Provisioning** — adds human designation (Haylo Library star + Persona Wizard auto-designate on seed) + readiness gate (`truthDoc.ready` in `publishReady`) for the per-tenant truth doc. **Contract / bands / models unchanged from r1** (desc 130/160/165, title 55/65, `gpt-4.1` / `gpt-4.1-mini`): §§2–3 numbers are identical; §4 updated for provisioning. |
 
 > **Rule:** create a NEW revision row each time the meta subsystem changes, and re-snapshot §§2–5 below to match. Never edit an old row. The newest row is the live restore point.
 
@@ -96,7 +97,10 @@ City gates:
 | Observed title length range | 42–65 |
 | Observed description length range | 131–165 |
 | tableicity `tenants.default_haylo_article_id` (PROD) | `b6ecfe27-b110-4076-a68f-9e5c53bd13cf` (matched by truth-doc **title**; dev id differs) |
-| Other personas (haylo/payrol/texitie/veltroy) | columns present; **not yet backfilled** (no truth doc / cities seeded for city meta) |
+| tableicity DEV cities | 18 total; 1 `meta_source='llm'` + 17 NULL (dev was never fully backfilled — **PROD is the source of truth**; dev meta is not user-facing, so left as-is rather than paying OpenAI to regenerate) |
+| Other personas (haylo/payrol/texitie/veltroy) | columns present; **no tenant rows in dev**; on PROD columns present but not backfilled. As of r2 they are onboarded via the **gated Persona Wizard**, which auto-designates the seeded Haylo essay as the truth doc (TD-3) — so a new persona is grounded by construction before any city-meta backfill is run. |
+
+> **r2 provisioning note:** the truth doc is now human-designatable without SQL (Haylo Library star toggle for the active tenant; Wizard auto-designate + Conductor cross-tenant POST for onboarding). This is a **code-level** change only — **no new schema** (`tenants.default_haylo_article_id` already existed) and **no contract change**. Per-persona city-meta backfill (`scripts/backfill-city-meta.ts --persona=<slug> --confirm`) is unchanged and remains the rollout step once a persona has a truth doc + cities.
 
 ---
 
@@ -130,6 +134,7 @@ GROUP BY meta_source;
 **A. Code drifted (someone changed the contract/generator) and you want it back:**
 1. Preferred (non-destructive): use the Replit **checkpoint rollback** to commit `9f294dc` / `cd66559` — see the `diagnostics` skill. This restores codebase + chat + DB checkpoint together.
 2. Git-level restore of just the meta files (destructive git ops must be delegated to a background Project Task, never run directly): restore `lib/cities/cityMetaContract.ts`, `lib/cities/cityMetaGenerator.ts`, `app/api/admin/cities/[id]/generate-meta/route.ts`, `scripts/backfill-city-meta.ts`, `lib/newsroom/brandContext.ts`, `shared/schema.ts` from commit `38d7305`/`9f294dc`.
+3. **r2 provisioning files** (truth-doc designation; restore from the r2 commit, not `9f294dc`): `app/api/admin/haylo-articles/truth-doc/route.ts`, `app/api/admin/personas/[slug]/truth-doc/route.ts`, `app/api/admin/personas/[slug]/readiness/route.ts`, `app/admin/haylo/page.tsx`, `app/admin/personas/new/page.tsx`. These do not affect the generation contract — restoring r1's generator files alone leaves provisioning intact.
 
 **B. PROD data drifted (cities lost their meta) and you want it back:**
 - The generator is **idempotent and forward-only**, so you regenerate rather than "restore a backup":
