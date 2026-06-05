@@ -26,6 +26,11 @@ import { metaTitleAcceptable } from "@/lib/newsroom/brandContext";
  *     - MUST contain the city name verbatim.
  *     - MUST NOT contain the brand/persona name (it earns its place in the
  *       H1, canonical URL, and description; the title budget is for the city).
+ *     - MUST NOT contain the state code (e.g. the "TX" in "Austin, TX") — the
+ *       Conductor wants city-only titles to kill the "door-hanger" look. The
+ *       guard is a case-sensitive word-boundary match on the uppercase code, so
+ *       it catches "Austin, TX" without tripping on lowercase words that happen
+ *       to spell a code (e.g. "or", "in").
  *
  * Every gate returns `null` on pass, or a short machine-readable reason string
  * on reject (mirrors `metaTitleAcceptable` / `metaDescriptionAcceptable`), so
@@ -80,15 +85,31 @@ export function closingSentence(text: string): string {
 }
 
 /**
- * City Meta TITLE gate. Thin wrapper over the shared `metaTitleAcceptable`
- * (city verbatim + brand-free + length) pinned to the City hard max.
+ * City Meta TITLE gate. Wraps the shared `metaTitleAcceptable` (city verbatim +
+ * brand-free + length, pinned to the City hard max) and adds the City-specific
+ * "no state code" guard so titles read "Austin" not "Austin, TX" (door-hanger
+ * elimination — Conductor decision). Pass `stateCode` to enable the guard;
+ * omit it (or pass empty) and the title is gated exactly as before.
  */
 export function cityMetaTitleAcceptable(
   meta: string | null | undefined,
   brand: BrandContext,
   cityName: string,
+  stateCode?: string | null,
 ): string | null {
-  return metaTitleAcceptable(meta, brand, cityName, CITY_META_TITLE_HARD_MAX);
+  const base = metaTitleAcceptable(meta, brand, cityName, CITY_META_TITLE_HARD_MAX);
+  if (base) return base;
+
+  const code = (stateCode ?? "").trim().toUpperCase();
+  if (meta && code.length > 0) {
+    // Match the UPPERCASE code as a word-boundary token. We normalize the code
+    // to uppercase (above) and match case-sensitively, so it catches "Austin,
+    // TX" / a standalone "TX" but does NOT reject lowercase words that happen to
+    // spell a code ("portland or austin", "based in austin").
+    const stateRe = new RegExp(`\\b${escapeRegExp(code)}\\b`);
+    if (stateRe.test(meta)) return "title-contains-state";
+  }
+  return null;
 }
 
 /**

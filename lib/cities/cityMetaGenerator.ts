@@ -163,6 +163,7 @@ RULES (any violation rejects your output):
 - Length: target ${CITY_META_TITLE_TARGET} characters, hard maximum ${CITY_META_TITLE_HARD_MAX}. Google truncates around 60 — keep it tight.
 - MUST contain the EXACT city name (case-insensitive), verbatim.
 - MUST NOT contain the brand name. The brand belongs to the H1, URL, and description — spending title characters on it is wasteful.
+- MUST NOT contain the state or its 2-letter code. Write the CITY ONLY — never "City, ST" (e.g. write "Austin", never "Austin, TX"). The "City, ST" stamp reads like a door-hanger; drop it.
 - Single line, on-topic with the description you are given. No emojis, hashtags, or wrapping quotation marks. Optional single trailing period only.
 
 Return STRICT JSON ONLY (no prose, no code fences): { "title": "..." }`;
@@ -171,7 +172,7 @@ Return STRICT JSON ONLY (no prose, no code fences): { "title": "..." }`;
 function titleUserPrompt(input: GenerateCityMetaInput, description: string): string {
   return `Brand name (FORBIDDEN in the title): ${input.brand.personaDisplayName}
 City (required verbatim): ${input.cityName}
-State code: ${input.stateCode}
+State code (FORBIDDEN in the title — do NOT append it, write the city alone): ${input.stateCode}
 
 The approved description for this same page (match its topic, do not repeat it):
 ${description}
@@ -226,10 +227,13 @@ function titleRetryHint(candidate: string, reason: string, input: GenerateCityMe
   if (reason === "title-contains-brand") {
     return `Remove "${brand}" entirely — the brand is forbidden in the title. Keep "${city}".`;
   }
+  if (reason === "title-contains-state") {
+    return `Remove the state and its code "${input.stateCode}" — write "${city}" alone, never "${city}, ${input.stateCode}".`;
+  }
   if (reason === "title-missing-city") {
     return `Include "${city}" verbatim.`;
   }
-  return `Fix it: ≤ ${CITY_META_TITLE_HARD_MAX} chars, "${city}" verbatim, no "${brand}".`;
+  return `Fix it: ≤ ${CITY_META_TITLE_HARD_MAX} chars, "${city}" verbatim, no "${brand}", no state code "${input.stateCode}".`;
 }
 
 // ---------------------------------------------------------------------------
@@ -407,7 +411,7 @@ export async function generateCityMeta(input: GenerateCityMetaInput): Promise<Ci
     "title",
     titleSystemPrompt(),
     titleUserPrompt(input, descValue),
-    (c) => cityMetaTitleAcceptable(c, input.brand, input.cityName),
+    (c) => cityMetaTitleAcceptable(c, input.brand, input.cityName, input.stateCode),
     (candidate, reason) => titleRetryHint(candidate, reason, input),
   );
   tokensUsed += title.promptTokens + title.completionTokens;
