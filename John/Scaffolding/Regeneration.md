@@ -11,9 +11,9 @@
 | Field | Value |
 |---|---|
 | Document | `John/Scaffolding/Regeneration.md` |
-| Status | **LIVE** — under active revision control |
+| Status | **CLOSED** — final restore point; shipped to PROD & Conductor-accepted 2026-06-05 (reopen by flipping back to LIVE + new revision) |
 | Owner | Conductor (abc19@gmail) |
-| Maintainer | Agent (document control until Meta work is fully revised) |
+| Maintainer | Agent (document control — chapter closed) |
 | Companion | `John/Scaffolding/Meta_Desc_Title.md` |
 
 ### Revision Log
@@ -24,6 +24,7 @@
 | r2 | 2026-06-05 | Agent | *(this change set; commit recorded at task close)* | TD-0..TD-5 **Universal Truth Document Provisioning** — adds human designation (Haylo Library star + Persona Wizard auto-designate on seed) + readiness gate (`truthDoc.ready` in `publishReady`) for the per-tenant truth doc. **Contract / bands / models unchanged from r1** (desc 130/160/165, title 55/65, `gpt-4.1` / `gpt-4.1-mini`): §§2–3 numbers are identical; §4 updated for provisioning. |
 | r3 | 2026-06-05 | Agent | `09c1c19` (state-ban); sparkle button at `5f95614` | **City Title now BANS the state code** — `cityMetaTitleAcceptable` rejects `title-contains-state` (uppercase word-boundary; code normalized to uppercase first), so city titles are city-only ("Austin", never "Austin, TX"). **City path only — the shared article gate is untouched.** Plus a per-row admin "generate meta" **sparkle** button on the Cities listing. **Bands / models unchanged from r1/r2** (desc 130/160/165, title 55/65, `gpt-4.1`/`gpt-4.1-mini`); §2 title-gate line updated, §5 gains a state-ban check. |
 | r4 | 2026-06-05 | Agent | *(this change set; commit recorded at task close)* | **City-meta reconciling CRON sweeper** — `lib/cities/cityMetaSweeper.ts` + `app/api/cron/city-meta-sweeper/route.ts` auto-fill city meta for every tenant with a truth doc (mirrors the newsroom scheduler; `CRON_SECRET`-gated; `dryRun` free; per-tick `limit` drip; reuses the one-city eligibility whitelist + TOCTOU-safe forward-only write). **Contract / bands / models unchanged from r3** (desc 130/160/165, title 55/65, `gpt-4.1`/`gpt-4.1-mini`). Does NOT auto-designate truth docs. §4 data-state + §5 verify + §6 restore list updated. |
+| r5 | 2026-06-05 | Agent | `192b7fc` ("City-meta sweep: auto-trigger on the newsroom heartbeat") | **Auto-trigger + CLOSE-OUT.** Sweep rides along on the newsroom-scheduler heartbeat (article tick first/committed, then `runCityMetaSweep` in its own try/catch), bounded by attempt budget (`CITY_META_SWEEP_PER_TICK=5`) AND wall-clock deadline (`CITY_META_SWEEP_DEADLINE_MS=80_000` → `SweepInput.deadlineMs`); OpenAI client timeout-bounded (`timeout 30_000, maxRetries 1`). Optional dedicated `scripts/city-meta-sweep-tick.mjs`. **Conductor tested Cities + Articles on PROD, accepted 100%; this is the FINAL restore point — document CLOSED.** Contract / bands / models unchanged from r4. |
 
 > **Rule:** create a NEW revision row each time the meta subsystem changes, and re-snapshot §§2–5 below to match. Never edit an old row. The newest row is the live restore point.
 
