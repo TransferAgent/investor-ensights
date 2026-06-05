@@ -62,7 +62,8 @@ const LIMIT = KV.has("--limit") ? Number(KV.get("--limit")) : null;
 // How many cities to generate concurrently per chunk. The generation phase runs
 // OUTSIDE the transaction, so this only governs OpenAI fan-out, not DB writes.
 // Default 5 keeps a full ~340-city run fast without tripping rate limits.
-const CONCURRENCY = Math.max(1, KV.has("--concurrency") ? Number(KV.get("--concurrency")) : 5);
+const CONCURRENCY_RAW = KV.has("--concurrency") ? Number(KV.get("--concurrency")) : 5;
+const CONCURRENCY = Number.isFinite(CONCURRENCY_RAW) ? Math.max(1, Math.floor(CONCURRENCY_RAW)) : 5;
 
 // Persona becomes a raw SQL identifier (`tenant_<persona>`), so it MUST be a
 // safe slug — no quoting can make arbitrary input safe inside an identifier.
