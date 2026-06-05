@@ -34,7 +34,13 @@ import { metaTitleAcceptable } from "@/lib/newsroom/brandContext";
 
 export const CITY_META_DESC_TARGET = 160;
 export const CITY_META_DESC_HARD_MAX = 165;
-export const CITY_META_DESC_MIN = 140;
+/**
+ * Floor. Set to 130 (not 140) so the generator can aim the model BELOW the 165
+ * ceiling for margin without tripping a too-short reject. A 130–160 char SERP
+ * snippet is still substantive (Google renders ~155-160). The Conductor spec
+ * pins the *target* (160) and *hard max* (165); the floor is ours to tune.
+ */
+export const CITY_META_DESC_MIN = 130;
 /**
  * Brand may not appear within the first N chars. This is the "content leads,
  * brand earns its place at the end" guard. It also closes the single-sentence
@@ -131,5 +137,55 @@ export function cityMetaDescriptionAcceptable(
     return "desc-brand-not-in-closing";
   }
 
+  return null;
+}
+
+/**
+ * Deterministic length repair for an OVER-LENGTH description.
+ *
+ * LLMs cannot count characters, so a too-long description that is otherwise
+ * on-contract (city present, single brand mention in a short closing sentence)
+ * is common. When the description has a droppable middle — i.e. 3+ sentences —
+ * we can guarantee the ceiling by dropping whole content sentences while
+ * preserving (a) the first content sentence (carries the city) and (b) the
+ * brand closing sentence. The result is re-validated against the FULL contract
+ * before being returned, so this can never produce an off-contract string.
+ *
+ * Returns the repaired description (passes `cityMetaDescriptionAcceptable`), or
+ * null when it can't be safely fixed (e.g. only two sentences, both needed).
+ * Caller then treats it as an llm-failed skip.
+ */
+export function repairCityMetaDescriptionLength(
+  text: string,
+  brand: BrandContext,
+  cityName: string,
+  opts: { minLen?: number; maxLen?: number } = {},
+): string | null {
+  const maxLen = opts.maxLen ?? CITY_META_DESC_HARD_MAX;
+  if (text.length <= maxLen) {
+    return cityMetaDescriptionAcceptable(text, brand, cityName, opts) === null ? text : null;
+  }
+  const persona = brand.personaDisplayName ?? "";
+  if (persona.length === 0) return null;
+  const sentences = splitSentences(text);
+  if (sentences.length < 3) return null; // no droppable middle
+
+  const brandRe = new RegExp(`\\b${escapeRegExp(persona)}\\b`, "i");
+  let brandIdx = -1;
+  for (let i = 0; i < sentences.length; i++) {
+    if (brandRe.test(sentences[i])) brandIdx = i; // last match wins (closing)
+  }
+  if (brandIdx === -1) return null;
+  const brandSentence = sentences[brandIdx];
+  const content = sentences.filter((_, i) => i !== brandIdx);
+
+  // Keep the longest leading run of content sentences (the first one carries
+  // the city) that still fits with the brand closing sentence appended.
+  for (let k = content.length - 1; k >= 1; k--) {
+    const candidate = [...content.slice(0, k), brandSentence].join(" ");
+    if (cityMetaDescriptionAcceptable(candidate, brand, cityName, opts) === null) {
+      return candidate;
+    }
+  }
   return null;
 }
