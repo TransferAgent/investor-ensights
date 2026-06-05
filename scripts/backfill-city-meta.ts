@@ -59,6 +59,10 @@ const FORCE = FLAGS.has("--force");
 const PERSONA = (KV.get("--persona") ?? "tableicity").trim();
 const ONLY_CITY = KV.get("--city")?.trim() || null;
 const LIMIT = KV.has("--limit") ? Number(KV.get("--limit")) : null;
+// How many cities to generate concurrently per chunk. The generation phase runs
+// OUTSIDE the transaction, so this only governs OpenAI fan-out, not DB writes.
+// Default 5 keeps a full ~340-city run fast without tripping rate limits.
+const CONCURRENCY = Math.max(1, KV.has("--concurrency") ? Number(KV.get("--concurrency")) : 5);
 
 // Persona becomes a raw SQL identifier (`tenant_<persona>`), so it MUST be a
 // safe slug — no quoting can make arbitrary input safe inside an identifier.
@@ -159,6 +163,7 @@ async function main(): Promise<void> {
   console.log(`Force:   ${FORCE ? "YES (also re-gen existing 'llm' rows)" : "no (skip 'llm'/'manual'/locked)"}`);
   if (ONLY_CITY) console.log(`Scope:   single city slug='${ONLY_CITY}'`);
   if (LIMIT) console.log(`Limit:   ${LIMIT} candidate(s)`);
+  console.log(`Workers: ${CONCURRENCY} concurrent OpenAI generation(s) per chunk`);
   console.log("");
 
   const pool = new pg.Pool({
@@ -210,28 +215,44 @@ async function main(): Promise<void> {
       return;
     }
 
-    // 2) Generate (LLM) OUTSIDE the transaction.
+    // 2) Generate (LLM) OUTSIDE the transaction, in concurrent chunks of
+    //    CONCURRENCY so a full ~340-city run finishes in one pass instead of
+    //    serializing every call. generateCityMeta is compute-only and never
+    //    throws, so Promise.all over a chunk can't reject. Results are stitched
+    //    back in candidate order for deterministic output.
     const plans: Plan[] = [];
     const failures: { slug: string; reason: string | null; status: string }[] = [];
     let totalCost = 0;
-    for (const c of candidates) {
-      const r = await generateCityMeta({
-        brand,
-        cityName: c.city_name,
-        stateCode: c.state_code,
-        truthDocTitle: truthDoc.title,
-        truthDocBody: truthDoc.body_html,
-      });
-      totalCost += r.costUsd;
-      if (r.status === "generated" && r.title && r.description) {
-        plans.push({ city: c, title: r.title, description: r.description, costUsd: r.costUsd });
-        console.log(`  OK    ${c.slug}`);
-        console.log(`          T(${r.title.length}): ${r.title}`);
-        console.log(`          D(${r.description.length}): ${r.description}`);
-      } else {
-        failures.push({ slug: c.slug, reason: r.rejectionReason, status: r.status });
-        console.log(`  SKIP  ${c.slug}  [${r.status}] ${r.rejectionReason ?? ""}`);
+    let done = 0;
+    for (let i = 0; i < candidates.length; i += CONCURRENCY) {
+      const chunk = candidates.slice(i, i + CONCURRENCY);
+      const results = await Promise.all(
+        chunk.map((c) =>
+          generateCityMeta({
+            brand,
+            cityName: c.city_name,
+            stateCode: c.state_code,
+            truthDocTitle: truthDoc.title,
+            truthDocBody: truthDoc.body_html,
+          }),
+        ),
+      );
+      for (let j = 0; j < chunk.length; j++) {
+        const c = chunk[j];
+        const r = results[j];
+        totalCost += r.costUsd;
+        if (r.status === "generated" && r.title && r.description) {
+          plans.push({ city: c, title: r.title, description: r.description, costUsd: r.costUsd });
+          console.log(`  OK    ${c.slug}`);
+          console.log(`          T(${r.title.length}): ${r.title}`);
+          console.log(`          D(${r.description.length}): ${r.description}`);
+        } else {
+          failures.push({ slug: c.slug, reason: r.rejectionReason, status: r.status });
+          console.log(`  SKIP  ${c.slug}  [${r.status}] ${r.rejectionReason ?? ""}`);
+        }
       }
+      done += chunk.length;
+      console.log(`  ...progress ${done}/${candidates.length}  (cost so far $${totalCost.toFixed(4)})`);
     }
 
     console.log("");
