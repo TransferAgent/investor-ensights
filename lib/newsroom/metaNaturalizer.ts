@@ -184,6 +184,64 @@ function validateOrNull(
   return { ok: true };
 }
 
+/**
+ * MT-4.14.2 — salvage an over-length LLM description instead of discarding it
+ * for the deterministic formula. The contract puts the brand "accent" as the
+ * closing sentence, so we keep that sentence and greedily retain as many of the
+ * leading content sentences as fit under `maxLen`, dropping from the middle/end
+ * of the content. Returns the trimmed description, or null when it cannot fit
+ * while preserving the brand (in which case the caller keeps the formula).
+ *
+ * The caller MUST re-validate the result against the full guard set before
+ * shipping — this helper only fixes length, not the other invariants.
+ */
+function salvageTooLongDescription(
+  desc: string,
+  brand: BrandContext,
+  cityName: string,
+  minLen: number,
+  maxLen: number,
+): string | null {
+  const persona = brand.personaDisplayName;
+  if (persona.length === 0) return null;
+  const personaEsc = persona.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const brandRe = new RegExp(`\\b${personaEsc}\\b`, "i");
+  // Split into whole sentences (keep terminators) so we never ship a broken clause.
+  const parts = (desc.match(/[^.!?]+[.!?]+/g) ?? []).map((s) => s.trim()).filter(Boolean);
+  if (parts.length < 2) return null; // need at least one content + the brand sentence
+  // The brand "accent" — the LAST sentence that names the brand. Keep it as the
+  // closing sentence (the contract's "20% brand" tail).
+  let brandIdx = -1;
+  for (let i = parts.length - 1; i >= 0; i--) {
+    if (brandRe.test(parts[i])) { brandIdx = i; break; }
+  }
+  if (brandIdx < 1) return null; // brand missing, or no content sentence precedes it
+  const brandSentence = parts[brandIdx];
+  // Search subsets of the leading content sentences (order preserved) for the
+  // combination that, with the brand sentence appended, lands FULLEST inside
+  // [minLen, maxLen] AND passes the full description guard. Whole sentences only,
+  // so the snippet always reads as clean prose. Content-sentence count is tiny
+  // (capped at 8) so brute force is trivial.
+  const content = brandIdx > 8 ? parts.slice(brandIdx - 8, brandIdx) : parts.slice(0, brandIdx);
+  const n = content.length;
+  let best: string | null = null;
+  let bestLen = -1;
+  for (let mask = 1; mask < (1 << n); mask++) {
+    const subset: string[] = [];
+    for (let i = 0; i < n; i++) if (mask & (1 << i)) subset.push(content[i]);
+    const candidate = [...subset, brandSentence].join(" ").trim();
+    if (candidate.length < minLen || candidate.length > maxLen) continue;
+    const reason = metaDescriptionAcceptable(candidate, brand, cityName, {
+      minLen,
+      maxLen,
+      brandLeadGuardChars: META_DESCRIPTION_BRAND_LEAD_GUARD,
+    });
+    if (reason !== null) continue;
+    if (candidate.length > bestLen) { best = candidate; bestLen = candidate.length; }
+  }
+  return best;
+}
+
 /** Public entry point. NEVER throws — degrades silently to the fallback. */
 export async function naturalizeMeta(input: NaturalizeMetaInput): Promise<NaturalizeMetaResult> {
   const baseline: Omit<NaturalizeMetaResult, "rejectionReason" | "source"> = {
@@ -210,7 +268,7 @@ export async function naturalizeMeta(input: NaturalizeMetaInput): Promise<Natura
   let totalPromptTokens = 0;
   let totalCompletionTokens = 0;
   let lastRejection: string | null = null;
-  let lastAttempt: ParsedLLM | null = null;
+  let salvageCandidate: ParsedLLM | null = null;
   const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
     { role: "system", content: buildSystemPrompt() },
     { role: "user", content: buildUserPrompt(input) },
@@ -246,7 +304,6 @@ export async function naturalizeMeta(input: NaturalizeMetaInput): Promise<Natura
       }
       continue;
     }
-    lastAttempt = parsed;
     const v = validateOrNull(parsed, input);
     if (v.ok) {
       const tokensUsed = totalPromptTokens + totalCompletionTokens;
@@ -262,6 +319,9 @@ export async function naturalizeMeta(input: NaturalizeMetaInput): Promise<Natura
       };
     }
     lastRejection = v.reason;
+    // Remember any attempt whose ONLY failure is an over-length description —
+    // we may be able to salvage it (sentence-trim) instead of using the formula.
+    if (v.reason.startsWith("desc-too-long")) salvageCandidate = parsed;
     if (attempt < MAX_ATTEMPTS - 1) {
       messages.push({ role: "assistant", content: JSON.stringify(parsed) });
       messages.push({
@@ -271,11 +331,38 @@ export async function naturalizeMeta(input: NaturalizeMetaInput): Promise<Natura
     }
   }
 
-  // All three attempts failed validation — fall back to the formula. The last
-  // attempt's strings are intentionally discarded; the formula is safer.
-  void lastAttempt;
   const tokensUsed = totalPromptTokens + totalCompletionTokens;
   const costUsd = costFor(totalPromptTokens, totalCompletionTokens);
+
+  // MT-4.14.2 — before degrading to the formula, try to SALVAGE the LLM copy
+  // when the only thing wrong was an over-length description. We sentence-trim
+  // it to the cap (keeping the brand accent) and re-validate against the FULL
+  // guard set. If it passes, we ship LLM voice instead of formula glue.
+  if (salvageCandidate) {
+    const trimmed = salvageTooLongDescription(
+      salvageCandidate.description,
+      input.brand,
+      input.cityName,
+      META_DESCRIPTION_MIN,
+      META_DESCRIPTION_HARD_MAX,
+    );
+    if (trimmed) {
+      const salvaged: ParsedLLM = { title: salvageCandidate.title, description: trimmed };
+      if (validateOrNull(salvaged, input).ok) {
+        return {
+          title: salvaged.title,
+          description: salvaged.description,
+          source: "naturalized",
+          rejectionReason: null,
+          model: MODEL,
+          tokensUsed,
+          costUsd,
+        };
+      }
+    }
+  }
+
+  // All attempts failed and nothing was salvageable — fall back to the formula.
   return { ...baseline, tokensUsed, costUsd, source: "fallback", rejectionReason: lastRejection ?? "unknown" };
 }
 
