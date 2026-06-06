@@ -3,5 +3,6 @@
 - [City meta generation](city-meta-generation.md) — tight char-band meta desc needs full gpt-4.1 (mini can't count, stuck ~50%); write-time so cost is trivial. Title stays on mini.
 - [Dev/Prod ownership](dev-prod-ownership.md) — Dev is the agent's, Prod is the user's; never write Prod unless asked. Dev/Prod data diverge (e.g. Haylo library).
 - [Haylo ingestion paths](haylo-ingestion-paths.md) — paste vs Halo-API import don't share field defaults; any gate-affecting field must be set in BOTH or imports get trapped in Draft.
+- [Halo import watermark](haylo-import-watermark.md) — "Pull from API" is incremental (per-tenant halo_last_pulled_id); deleting an essay won't re-pull it. Recover by rewinding the watermark.
 - [Cities vs Articles](cities-vs-articles.md) — separate domains ("different planets"); a city is grounding input to an article, never an article itself. Don't conflate.
 - [Multi-tenant cron jobs](multi-tenant-cron.md) — context-less cron silently hits only the default tenant; sweep all tenants by enumerating public.tenants under withTenantAsync, then per-tenant withTenantAsync.
