@@ -187,10 +187,16 @@ function validateOrNull(
 /**
  * MT-4.14.2 — salvage an over-length LLM description instead of discarding it
  * for the deterministic formula. The contract puts the brand "accent" as the
- * closing sentence, so we keep that sentence and greedily retain as many of the
- * leading content sentences as fit under `maxLen`, dropping from the middle/end
- * of the content. Returns the trimmed description, or null when it cannot fit
- * while preserving the brand (in which case the caller keeps the formula).
+ * closing sentence, so we keep that sentence as a fixed tail and BRUTE-FORCE
+ * every subset of the leading content sentences (order preserved, count capped
+ * at 8), picking the FULLEST candidate that lands inside [minLen, maxLen] AND
+ * passes the full `metaDescriptionAcceptable` guard. Subset search — not a
+ * greedy prefix-trim — because a greedy "keep the longest fitting prefix"
+ * undershoots the floor whenever the next sentence would overflow; dropping an
+ * earlier sentence can make room for a fuller later combination. Whole
+ * sentences only, so the result always reads as clean prose. Returns the
+ * trimmed description, or null when no whole-sentence subset fits (caller then
+ * keeps the formula).
  *
  * The caller MUST re-validate the result against the full guard set before
  * shipping — this helper only fixes length, not the other invariants.
@@ -321,6 +327,9 @@ export async function naturalizeMeta(input: NaturalizeMetaInput): Promise<Natura
     lastRejection = v.reason;
     // Remember any attempt whose ONLY failure is an over-length description —
     // we may be able to salvage it (sentence-trim) instead of using the formula.
+    // `validateOrNull` checks the title FIRST, so a "desc-too-long" reason
+    // guarantees the title already passed AND the description is valid except
+    // for length — i.e. this draft's sole defect is that it overran the cap.
     if (v.reason.startsWith("desc-too-long")) salvageCandidate = parsed;
     if (attempt < MAX_ATTEMPTS - 1) {
       messages.push({ role: "assistant", content: JSON.stringify(parsed) });
