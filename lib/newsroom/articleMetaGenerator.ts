@@ -127,8 +127,9 @@ function buildSystemPrompt(titleHardMax: number, descHardMax: number): string {
 Work IN THIS ORDER — DESCRIPTION first (it carries the substance), THEN a TITLE whose hook is drawn from that description.
 
 DESCRIPTION:
-- Shape it ~80% content / ~20% brand: roughly 80% is the real pain point, problem, or insight taken from the article; roughly 20% is the brand named as the source/solution.
-- LEAD with the pain point or story. The brand earns its mention as the source near the END — never as the opening words.
+- Shape it ~80% content / ~20% brand. The ~80% is the real pain point or problem taken from the article. The ~20% is the brand presented as THE SOLUTION to that exact problem.
+- The cause-and-effect must connect: state the problem, then name the brand as the thing that solves it. The brand is NOT a generic capability credited at the end — it IS the fix for the pain point you just described. Do not describe a generic solution and then tack the brand on; make the brand the subject that resolves the problem (e.g. "...[brand] fixes this by ...", "[brand] turns that around by ...").
+- LEAD with the pain point or story. The brand earns its mention as the solution near the END — never as the opening words.
 - The brand name MUST appear (this is mandatory). Mention it once, twice at most.
 - Aim for about ${ARTICLE_META_LIMITS.descTarget} characters. Hard ceiling is ${descHardMax} characters — never exceed it. You may finish a sentence rather than cut it short.
 - Complete sentences only. No emojis, no hashtags, no markdown, no surrounding quotes.
@@ -151,7 +152,7 @@ function buildUserPrompt(input: GenerateArticleMetaInput, body: string): string 
   const cityLine = input.cityName ? `City (optional to mention, only if natural): ${input.cityName}\n` : "";
   const verticalLine = input.brand.brandVertical ? `Brand vertical: ${input.brand.brandVertical}\n` : "";
   const taglineLine = input.brand.brandTagline ? `Brand tagline (tone only, do not copy): ${input.brand.brandTagline}\n` : "";
-  return `Brand name (MUST appear in the description, near the end, once or twice): ${input.brand.personaDisplayName}
+  return `Brand name (MUST appear in the description near the end, presented as THE SOLUTION to the article's problem, once or twice): ${input.brand.personaDisplayName}
 ${cityLine}${verticalLine}${taglineLine}
 Article headline:
 ${input.articleTitle}
@@ -278,7 +279,7 @@ export async function generateArticleMeta(
       messages.push({ role: "assistant", content: JSON.stringify(parsed) });
       messages.push({
         role: "user",
-        content: `Rejected for: ${lastReason}. Fix it. DESCRIPTION: must include the brand name "${input.brand.personaDisplayName}" near the end, and be at most ${descHardMax} characters (aim ~${ARTICLE_META_LIMITS.descTarget}). TITLE: at most ${titleHardMax} characters (aim ~${ARTICLE_META_LIMITS.titleTarget}). Keep it grounded in the article. Return STRICT JSON only.`,
+        content: `Rejected for: ${lastReason}. Fix it. DESCRIPTION: must include the brand name "${input.brand.personaDisplayName}" near the end, presented as THE SOLUTION to the problem (not a generic fix credited at the end), and be at most ${descHardMax} characters (aim ~${ARTICLE_META_LIMITS.descTarget}). TITLE: at most ${titleHardMax} characters (aim ~${ARTICLE_META_LIMITS.titleTarget}). Keep it grounded in the article. Return STRICT JSON only.`,
       });
     }
   }
