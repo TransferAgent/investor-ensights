@@ -22,6 +22,7 @@
 | r1 | 2026-06-06 | Agent | Initial document. Captures the Halo-pull → Library(draft) → set-Ready → Content-Studio(pairing) → Article pipeline, the status/topic/truth-doc gates, the exact friction the Conductor hit on Textitie, and the verified file/endpoint map. Built from the current discussion (API call, Haylo Library, Content Studio) + read-only PROD verification. **No code changed** to produce this doc. |
 | r2 | 2026-06-06 | Agent | **Correction (Conductor-caught).** r1 §4 claimed "Topic never gates pairing" — **false** at the human/UI path. The Library edit form (`app/admin/haylo/page.tsx` ~L292 `submitForm`) requires **Title AND Topic Slug AND body HTML** or it refuses to save; that same save writes `status`, so you **cannot reach Ready via the UI without a Topic Slug**, and only Ready essays appear in Content Studio. Net: Topic Slug **is** a de-facto gate to pairing/publishing on the path the Conductor uses. Halo-API pulls land `topic_slug=null`, so each pulled essay needs Title + Topic Slug set (manually, or by future H1-derivation logic) before it can go Ready. Conductor verified manually on a Textitie essay → green Ready pill → now selectable in Content Studio → Published. §1/§2/§4/§6 corrected accordingly. **No code changed.** |
 | r3 | 2026-06-06 | Agent | **Root cause for "Halo imports arrive with no Topic Slug".** Two independent ingestion paths exist and only the paste path fills topic. (1) Paste/file-scan (`parseHayloFile` + `buildInsertFromPaste`, `lib/haylo/ingest.ts`) derives topic from a `<!-- topic: -->` comment or the filename (L52–53) and defaults `status='ready'` (L95). (2) Halo API pull (`parseHaloPayload` + `pull-from-halo/route.ts`) returns NO topic and the route **explicitly forces `topicSlug=null`** (route L130/L139, comment "admin assigns in the Library after import") and hard-codes `status='draft'` (L133). Tableicity's Ready library is `source='paste'` (path 1); Texitie's is `source='halo_api'` (path 2). So the topic auto-fill **never translated** — it was never in the Halo path. Conductor's recollection confirmed: the earlier fix lived on the paste path / was a manual paper-over; the real issue (two unreconciled paths) was never closed. New §4b records this; §8 carries the proposed fix. **No code changed.** |
+| r4 | 2026-06-06 | Agent | **FIX SHIPPED (Conductor said "do both").** (1) Forward fix: `pull-from-halo/route.ts` now derives `topicSlug = slugifyHaylo(parsed.title, "general")` at import instead of forcing `null`, so future Halo pulls arrive topic-filled (still `status='draft'` for review — auto-promote remains §8 open). (2) Backfill: new `scripts/backfill-haylo-topic.ts` (dry-run default, `--persona`, `--prod`, `--confirm`, forward-only/audited) filled `topic_slug` on the **121** existing null-topic `halo_api` rows in `tenant_texitie` (PROD), derived from each title; status deliberately untouched. The 1 essay the Conductor fixed manually was already non-null and skipped. Verified PROD: 0 empty topics remain. **This is the real fix, not a per-tenant paper-over.** |
 
 > **Document-control rule:** any change to the ingestion workflow gets a new revision row here. Bump the rev letter, never overwrite history.
 
@@ -35,7 +36,8 @@
         │  Authorization: Bearer <per-tenant key>
         ▼
   [1] PULL  ── app/api/admin/haylo-articles/pull-from-halo
-        │  lands each essay as: status='draft', topic_slug=null, source='halo_api'
+        │  lands each essay as: status='draft', source='halo_api',
+        │  topic_slug = slugify(title)   ← r4 fix; was null before (see §4b)
         ▼
   [2] HAYLO LIBRARY (/admin/haylo)   ← essay is here, but DRAFT
         │  ▸ MISSING STEP: edit essay → set Title + Topic Slug → Status = Ready
@@ -100,9 +102,9 @@
 | **`schedulerPicker.ts` (auto-scheduler query)** | No topic check — but it filters `status='ready'`, and a UI-made Ready essay always has a topic. |
 
 **Where Topic Slug comes from:**
-- **Halo-API pull:** `topic_slug=null` — nothing is derived. Every pulled essay shows a "Needs topic" badge and must get a Title + Topic Slug before it can go Ready.
+- **Halo-API pull:** as of **r4**, the topic is **derived from the title** (`slugifyHaylo(parsed.title)`) at import — same shape as the paste path. (Before r4 it was forced `null`, which is the whole reason §4b exists.) Imports still land `draft` for review, but they now have a topic so they're one step from Ready.
 - **Manual:** type it in the edit form (what the Conductor did on Textitie → green Ready pill → selectable in Studio → Published).
-- **Tableicity precedent:** the Conductor notes existing logic that strips the essay **`<h1>`** to derive both Title and Topic Slug for the article/edit. That derivation is **not** wired into the Halo-pull path today — hence the manual step. *(Open question §8: wire H1-derivation into the pull so imports arrive topic-filled.)*
+- **Tableicity precedent:** the Conductor notes existing logic that strips the essay **`<h1>`** to derive both Title and Topic Slug. As of **r4** the Halo-pull path does the same (title → topic), so this is now wired in, not manual.
 
 **What Topic Slug also does (secondary, still true from r1):** Library filter/organizer; slug seed; an on-topic steering hint to the newsroom LLM; stamped as a hidden `data-topic="…"` on the rendered article. It does **not** touch the Truth-Document/city-meta track (§5).
 
@@ -123,7 +125,9 @@
 - So nothing regressed in the new Persona. The H1/topic auto-fill was **never** part of the Halo path; Tableicity's Ready essays are `source='paste'`, Texitie's are `source='halo_api'`. Different code, by design.
 - That `null` then **collides with the Library form gate** (§4 / `page.tsx` ~L292): topic is required to save Ready → pulled essays are trapped in Draft until a human types one.
 
-**This is a path mismatch, not a per-tenant bug.** The earlier fix patched the path Tableicity used (or was a manual/backfill paper-over). The real issue — the Halo-pull path doesn't derive a topic — was never closed. Proposed remedy in §8.
+**This is a path mismatch, not a per-tenant bug.** The earlier fix patched the path Tableicity used (or was a manual/backfill paper-over). The real issue — the Halo-pull path doesn't derive a topic — was never closed.
+
+> **RESOLVED (r4):** the Halo-pull path now derives the topic from the title at import, and a backfill (`scripts/backfill-haylo-topic.ts`) filled the 121 stuck `tenant_texitie` rows on PROD. The two paths are now symmetric on topic. Status promotion (Draft→Ready) is still a separate step — see §8.
 
 ---
 
@@ -178,10 +182,10 @@ Implication: Textitie has **1** ready essay (the paste) — that is the only row
 
 ## 8. Open questions for the meeting (decisions, not actions)
 
-1. **Fix the Halo-pull path (the r3 root cause).** Derive the topic at import — `topicSlug = slugifyHaylo(parsed.title)` in `pull-from-halo` — instead of forcing `null` (route L130/L139). Makes the Halo path symmetric with the paste path so imports arrive topic-filled. **This is the real fix, not another paper-over.**
-2. **Backfill the rows already stuck.** One-time fill of `topic_slug` on existing null-topic Halo rows in Texitie (and any tenant) so essays already in the Library can go Ready without retyping each. Pairs with #1: #1 stops recurrence, #2 rescues the stuck rows.
-3. **Auto-promote on pull?** With a topic now present, should imports land `ready`, or stay `draft` for a one-click review step?
-4. **Bulk "Set Ready"?** Add a multi-select / "mark all Ready" action in the Library (today it's one essay at a time via the edit dialog).
-5. **Grounding** for Textitie cities — are research sources enabled, so the scheduler path (not just manual Studio) can run?
+1. ✅ **DONE (r4) — Halo-pull path fixed.** `pull-from-halo` now derives `topicSlug = slugifyHaylo(parsed.title)` instead of forcing `null`. Imports arrive topic-filled.
+2. ✅ **DONE (r4) — stuck rows rescued.** `scripts/backfill-haylo-topic.ts` filled `topic_slug` on the 121 null-topic `halo_api` rows in `tenant_texitie` (PROD, verified 0 remaining). Reusable for any tenant via `--persona`.
+3. **OPEN — Auto-promote on pull?** With a topic now present, should imports land `ready`, or stay `draft` for a one-click review step? *(Today they still land `draft` — the 121 backfilled rows are topic-filled but not yet Ready.)*
+4. **OPEN — Bulk "Set Ready"?** Add a multi-select / "mark all Ready" action in the Library (today it's one essay at a time via the edit dialog). Relevant now: 121 Texitie essays still need promoting to Ready.
+5. **OPEN — Grounding** for Textitie cities — are research sources enabled, so the scheduler path (not just manual Studio) can run?
 
-No code or data was changed to produce this document — it is a verified map only.
+Through **r3** this document was a verified map only (no code/data changed). **r4 shipped a fix:** code change in `pull-from-halo/route.ts` + new `scripts/backfill-haylo-topic.ts`, and a PROD data backfill of 121 `tenant_texitie` rows. All later revisions log their own change/no-change status in the table above.

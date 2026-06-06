@@ -122,12 +122,16 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Parse title + summary out of the htmlContent. Halo doesn't send a topic.
+        // Parse title + summary out of the htmlContent. Halo doesn't send a
+        // topic, so we DERIVE one from the title — the same shape the paste
+        // path produces. A non-empty Topic Slug is required before the Library
+        // edit form will let the essay be saved Ready (see the topic gate in
+        // app/admin/haylo/page.tsx). Admin can still refine it in the Library.
         const parsed = parseHaloPayload(item.htmlContent);
         const baseSlug = slugifyHaylo(parsed.title, `halo-${item.id}`);
         const insert = buildInsertFromPaste({
           title: parsed.title,
-          topicSlug: "", // builder slugifies; we'll null it out below since topic is optional now
+          topicSlug: slugifyHaylo(parsed.title, "general"),
           bodyHtml: parsed.bodyHtml,
           summary: parsed.summary,
           status: "draft",
@@ -135,8 +139,6 @@ export async function POST(request: NextRequest) {
           sourceFilename: null,
           slug: baseSlug,
         });
-        // Null out topic — admin assigns in the Library after import.
-        (insert as any).topicSlug = null;
         // Attach Halo-specific fields.
         (insert as any).haloRemoteId = item.id;
         (insert as any).haloPublishedAt = new Date(item.publishedAt);
