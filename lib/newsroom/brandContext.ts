@@ -130,6 +130,7 @@ export function metaTitleAcceptable(
   brand: BrandContext,
   cityName: string,
   maxLen: number = 65,
+  stateCode?: string | null,
 ): string | null {
   if (!meta) return "title-empty";
   if (meta.length > maxLen) return `title-too-long-${meta.length}`;
@@ -140,6 +141,16 @@ export function metaTitleAcceptable(
     lower.includes(brand.personaDisplayName.toLowerCase())
   ) {
     return "title-contains-brand";
+  }
+  // "No door-hanger" guard: ban the 2-letter state code as a word-boundary
+  // token (case-sensitive on the UPPERCASE code, so lowercase words that
+  // happen to spell a code — "or", "in" — never false-positive). Opt-in:
+  // only enforced when the caller passes stateCode. City titles read
+  // "Albany", never "Albany, NY".
+  const code = (stateCode ?? "").trim().toUpperCase();
+  if (code.length > 0) {
+    const stateRe = new RegExp(`\\b${code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`);
+    if (stateRe.test(meta)) return "title-contains-state";
   }
   return null;
 }

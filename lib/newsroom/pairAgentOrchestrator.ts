@@ -7,6 +7,7 @@ import {
   buildMetaTitle,
   buildSuggestedSlug,
   processPair,
+  META_LIMITS,
   type PairInput,
   type PairResult,
 } from "./pairProcessor";
@@ -149,11 +150,18 @@ export async function runPairAgentPipeline(input: RunPairAgentInput): Promise<Pa
     agentDraft.metaTitle ?? null,
     brand,
     input.city.cityName,
+    META_LIMITS.titleHardMax,
+    input.city.stateCode,
   );
   const descRejection = metaDescriptionAcceptable(
     agentDraft.metaDescription ?? null,
     brand,
     input.city.cityName,
+    {
+      minLen: META_LIMITS.descriptionMin,
+      maxLen: META_LIMITS.descriptionHardMax,
+      brandLeadGuardChars: META_LIMITS.descriptionBrandLeadGuard,
+    },
   );
   const llmMetaTitleOk = titleRejection === null;
   const llmMetaDescOk = descRejection === null;
@@ -205,7 +213,7 @@ export async function runPairAgentPipeline(input: RunPairAgentInput): Promise<Pa
       cityName: input.city.cityName,
       stateCode: input.city.stateCode,
       hayloTitle: input.hayloArticle.title,
-      hayloBodyExcerpt: hayloBodyExcerptFromHtml(input.hayloArticle.bodyHtml),
+      hayloBodyExcerpt: hayloBodyExcerptFromHtml(input.hayloArticle.bodyHtml, 4000),
       fallbackTitle,
       fallbackDescription,
     });

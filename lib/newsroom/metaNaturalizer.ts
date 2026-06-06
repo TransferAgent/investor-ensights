@@ -42,9 +42,9 @@ const MODEL = "gpt-4.1-mini";
 // MT-4.13.4 contract.
 const META_TITLE_HARD_MAX = 65;
 const META_TITLE_TARGET = 55;
-const META_DESCRIPTION_HARD_MAX = 200;
-const META_DESCRIPTION_TARGET = 150;
-const META_DESCRIPTION_MIN = 100;
+const META_DESCRIPTION_HARD_MAX = 300;
+const META_DESCRIPTION_TARGET = 275;
+const META_DESCRIPTION_MIN = 250;
 const META_DESCRIPTION_BRAND_LEAD_GUARD = 40;
 
 export type NaturalizedMetaSource = "naturalized" | "fallback";
@@ -55,7 +55,7 @@ export interface NaturalizeMetaInput {
   stateCode: string;
   hayloTitle: string;
   /**
-   * First ~1000 chars of plain-text Haylo body, for grounding the LLM.
+   * First ~4000 chars of plain-text Haylo body, for grounding the LLM.
    * Caller pre-strips HTML so we don't burn tokens on tags.
    */
   hayloBodyExcerpt: string;
@@ -99,6 +99,7 @@ TITLE rules (any violation rejects your output):
 - Length: target ${META_TITLE_TARGET} characters, hard maximum ${META_TITLE_HARD_MAX} characters. Aim short. Google truncates around 60.
 - MUST contain the EXACT city name (case-insensitive).
 - MUST NOT contain the brand persona name. Repeat: the brand name is forbidden in the title. (The brand is already carried by the H1, canonical URL, and description — putting it in the title burns SERP characters.)
+- MUST NOT contain the state name or the two-letter state code. Write the CITY ONLY (e.g. "Albany", never "Albany, NY"). A "City, ST" stamp reads like a door-hanger and is rejected.
 - Single line. No emojis. No hashtags. No trailing punctuation except an optional period. No quotation marks wrapping the whole title.
 - Lead with the topic or the city — make it useful to a founder skimming the SERP.
 
@@ -130,7 +131,7 @@ Brand tagline (for tone, do not copy verbatim): ${brand.brandTagline}
 Haylo article title (the topic — keep meta on-topic):
 ${hayloTitle}
 
-Haylo article excerpt (first ~1000 chars, for grounding the angle — do not quote verbatim):
+Haylo article excerpt (first ~4000 chars, for grounding the angle — do not quote verbatim):
 ${hayloBodyExcerpt}
 
 For reference, the deterministic-fallback strings (do NOT copy — beat them):
@@ -170,7 +171,7 @@ function validateOrNull(
   input: NaturalizeMetaInput,
 ): { ok: true } | { ok: false; reason: string } {
   const { brand, cityName } = input;
-  const titleReason = metaTitleAcceptable(parsed.title, brand, cityName, META_TITLE_HARD_MAX);
+  const titleReason = metaTitleAcceptable(parsed.title, brand, cityName, META_TITLE_HARD_MAX, input.stateCode);
   if (titleReason) return { ok: false, reason: titleReason };
   const descReason = metaDescriptionAcceptable(parsed.description, brand, cityName, {
     minLen: META_DESCRIPTION_MIN,
@@ -258,7 +259,7 @@ export async function naturalizeMeta(input: NaturalizeMetaInput): Promise<Natura
       messages.push({ role: "assistant", content: JSON.stringify(parsed) });
       messages.push({
         role: "user",
-        content: `Your previous attempt was rejected for: ${v.reason}. Try again. Remember: title MUST contain "${input.cityName}" and MUST NOT contain "${input.brand.personaDisplayName}", title length ≤ ${META_TITLE_HARD_MAX}. Description MUST contain both "${input.cityName}" and "${input.brand.personaDisplayName}", brand mentioned 1-2 times and NOT in the first ${META_DESCRIPTION_BRAND_LEAD_GUARD} characters, length between ${META_DESCRIPTION_MIN} and ${META_DESCRIPTION_HARD_MAX}.`,
+        content: `Your previous attempt was rejected for: ${v.reason}. Try again. Remember: title MUST contain "${input.cityName}", MUST NOT contain "${input.brand.personaDisplayName}", and MUST NOT contain the state code "${input.stateCode}" (city only, no "City, ST" stamp), title length ≤ ${META_TITLE_HARD_MAX}. Description MUST contain both "${input.cityName}" and "${input.brand.personaDisplayName}", brand mentioned 1-2 times and NOT in the first ${META_DESCRIPTION_BRAND_LEAD_GUARD} characters, length between ${META_DESCRIPTION_MIN} and ${META_DESCRIPTION_HARD_MAX}.`,
       });
     }
   }

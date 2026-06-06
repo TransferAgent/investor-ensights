@@ -21,9 +21,10 @@ import { getCurrentTenantSlug, DEFAULT_TENANT_SLUG } from "@/lib/tenant/context"
 //     - Soft target ~150, hard cap 200 (Google snippet ~155 chars desktop).
 const META_TITLE_TARGET_CHARS = 55;
 const META_TITLE_HARD_MAX = 65;
-const META_DESCRIPTION_SOFT_WARN_CHARS = 180;
-const META_DESCRIPTION_TARGET_CHARS = 150;
-const META_DESCRIPTION_HARD_MAX = 200;
+const META_DESCRIPTION_SOFT_WARN_CHARS = 290;
+const META_DESCRIPTION_TARGET_CHARS = 275;
+const META_DESCRIPTION_HARD_MAX = 300;
+const META_DESCRIPTION_MIN_CHARS = 250;
 /** No brand mention permitted before this byte index in a description (80/20 rule). */
 export const META_DESCRIPTION_BRAND_LEAD_GUARD_CHARS = 40;
 /** Re-exported so the naturalizer + admin preview share the same numbers. */
@@ -31,6 +32,7 @@ export const META_LIMITS = {
   titleTarget: META_TITLE_TARGET_CHARS,
   titleHardMax: META_TITLE_HARD_MAX,
   descriptionTarget: META_DESCRIPTION_TARGET_CHARS,
+  descriptionMin: META_DESCRIPTION_MIN_CHARS,
   descriptionSoftWarn: META_DESCRIPTION_SOFT_WARN_CHARS,
   descriptionHardMax: META_DESCRIPTION_HARD_MAX,
   descriptionBrandLeadGuard: META_DESCRIPTION_BRAND_LEAD_GUARD_CHARS,
@@ -156,7 +158,10 @@ export function buildMetaTitle(
   // brand kept as a parameter for signature compatibility with pre-MT-4.13.4
   // callers; intentionally unused — see contract above.
   void brand;
-  const prefix = `${cityName}, ${stateCode}: `;
+  // City-only — no "City, ST" stamp (door-hanger guard). stateCode kept for
+  // signature compatibility but intentionally unused.
+  void stateCode;
+  const prefix = `${cityName}: `;
   const remaining = META_TITLE_HARD_MAX - prefix.length;
   const rawSuffix = (hayloTitle ?? "").trim();
   const suffix = rawSuffix
