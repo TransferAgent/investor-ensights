@@ -11,7 +11,7 @@
 | Field | Value |
 |---|---|
 | Document | `John/Scaffolding/Regeneration.md` |
-| Status | **CLOSED** — final restore point; shipped to PROD & Conductor-accepted 2026-06-05 (reopen by flipping back to LIVE + new revision) |
+| Status | **RETIRED** 2026-06-06 — final meta-subsystem restore point (PROD-accepted 2026-06-05); superseded as the active Scaffolding doc by `API-WorkFlow.md`. Retained per the forward-only rule, not deleted. Historical reference only. |
 | Owner | Conductor (abc19@gmail) |
 | Maintainer | Agent (document control — chapter closed) |
 | Companion | `John/Scaffolding/Meta_Desc_Title.md` |
