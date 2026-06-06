@@ -21,6 +21,7 @@
 |---|---|---|---|
 | r1 | 2026-06-06 | Agent | Initial document. Captures the Halo-pull → Library(draft) → set-Ready → Content-Studio(pairing) → Article pipeline, the status/topic/truth-doc gates, the exact friction the Conductor hit on Textitie, and the verified file/endpoint map. Built from the current discussion (API call, Haylo Library, Content Studio) + read-only PROD verification. **No code changed** to produce this doc. |
 | r2 | 2026-06-06 | Agent | **Correction (Conductor-caught).** r1 §4 claimed "Topic never gates pairing" — **false** at the human/UI path. The Library edit form (`app/admin/haylo/page.tsx` ~L292 `submitForm`) requires **Title AND Topic Slug AND body HTML** or it refuses to save; that same save writes `status`, so you **cannot reach Ready via the UI without a Topic Slug**, and only Ready essays appear in Content Studio. Net: Topic Slug **is** a de-facto gate to pairing/publishing on the path the Conductor uses. Halo-API pulls land `topic_slug=null`, so each pulled essay needs Title + Topic Slug set (manually, or by future H1-derivation logic) before it can go Ready. Conductor verified manually on a Textitie essay → green Ready pill → now selectable in Content Studio → Published. §1/§2/§4/§6 corrected accordingly. **No code changed.** |
+| r3 | 2026-06-06 | Agent | **Root cause for "Halo imports arrive with no Topic Slug".** Two independent ingestion paths exist and only the paste path fills topic. (1) Paste/file-scan (`parseHayloFile` + `buildInsertFromPaste`, `lib/haylo/ingest.ts`) derives topic from a `<!-- topic: -->` comment or the filename (L52–53) and defaults `status='ready'` (L95). (2) Halo API pull (`parseHaloPayload` + `pull-from-halo/route.ts`) returns NO topic and the route **explicitly forces `topicSlug=null`** (route L130/L139, comment "admin assigns in the Library after import") and hard-codes `status='draft'` (L133). Tableicity's Ready library is `source='paste'` (path 1); Texitie's is `source='halo_api'` (path 2). So the topic auto-fill **never translated** — it was never in the Halo path. Conductor's recollection confirmed: the earlier fix lived on the paste path / was a manual paper-over; the real issue (two unreconciled paths) was never closed. New §4b records this; §8 carries the proposed fix. **No code changed.** |
 
 > **Document-control rule:** any change to the ingestion workflow gets a new revision row here. Bump the rev letter, never overwrite history.
 
@@ -107,6 +108,25 @@
 
 ---
 
+## 4b. Root cause — why Topic Slug is empty after a Halo pull (full on Tableicity) [r3]
+
+**The symptom:** a Halo API pull drops essays into the Library with **no Title-quality Topic Slug**, all stuck at **Draft**, so none can go Ready and none reach Content Studio. On Tableicity the same kind of content arrived Ready, with topic. The Conductor's read — *"we coded it and didn't fix the real issue; the Tableicity fix didn't translate"* — is correct.
+
+**Why:** there are **two independent ingestion paths**, and topic-fill only ever lived in one of them.
+
+| Path | Code | Topic Slug | Status on arrival |
+|---|---|---|---|
+| **Paste / file-scan** (how Tableicity was loaded) | `parseHayloFile` + `buildInsertFromPaste` (`lib/haylo/ingest.ts`) | **Filled** — `<!-- topic: -->` comment, else filename (L52–53) | defaults **`ready`** (L95) |
+| **Halo API pull** (how Texitie was loaded) | `parseHaloPayload` + `app/api/admin/haylo-articles/pull-from-halo/route.ts` | **Forced `null`** — route L130 sets `topicSlug:""`, L139 overwrites to `null` (comment: *"admin assigns in the Library after import"*) | hard-coded **`draft`** (L133) |
+
+- `parseHaloPayload` (ingest.ts L107–124) returns only `{title, summary, bodyHtml}` — Halo sends no topic, and the route chooses **not** to derive one.
+- So nothing regressed in the new Persona. The H1/topic auto-fill was **never** part of the Halo path; Tableicity's Ready essays are `source='paste'`, Texitie's are `source='halo_api'`. Different code, by design.
+- That `null` then **collides with the Library form gate** (§4 / `page.tsx` ~L292): topic is required to save Ready → pulled essays are trapped in Draft until a human types one.
+
+**This is a path mismatch, not a per-tenant bug.** The earlier fix patched the path Tableicity used (or was a manual/backfill paper-over). The real issue — the Halo-pull path doesn't derive a topic — was never closed. Proposed remedy in §8.
+
+---
+
 ## 5. Separate track — Truth Document & City Meta (Cities ≠ Articles)
 
 This is a **different planet** from the article spine above and must not be conflated:
@@ -158,9 +178,10 @@ Implication: Textitie has **1** ready essay (the paste) — that is the only row
 
 ## 8. Open questions for the meeting (decisions, not actions)
 
-1. **Auto-promote on pull?** Should Halo imports land `ready` instead of `draft` (skip the review hop), or keep the draft gate?
-2. **Bulk "Set Ready"?** Add a multi-select / "mark all Ready" action in the Library (today it's one essay at a time via the edit dialog).
-3. **Auto-topic?** Halo sends no topic. Derive one from the `<h1>`/body, or keep it a manual/optional field?
-4. **Grounding** for Textitie cities — are research sources enabled, so the scheduler path (not just manual Studio) can run?
+1. **Fix the Halo-pull path (the r3 root cause).** Derive the topic at import — `topicSlug = slugifyHaylo(parsed.title)` in `pull-from-halo` — instead of forcing `null` (route L130/L139). Makes the Halo path symmetric with the paste path so imports arrive topic-filled. **This is the real fix, not another paper-over.**
+2. **Backfill the rows already stuck.** One-time fill of `topic_slug` on existing null-topic Halo rows in Texitie (and any tenant) so essays already in the Library can go Ready without retyping each. Pairs with #1: #1 stops recurrence, #2 rescues the stuck rows.
+3. **Auto-promote on pull?** With a topic now present, should imports land `ready`, or stay `draft` for a one-click review step?
+4. **Bulk "Set Ready"?** Add a multi-select / "mark all Ready" action in the Library (today it's one essay at a time via the edit dialog).
+5. **Grounding** for Textitie cities — are research sources enabled, so the scheduler path (not just manual Studio) can run?
 
 No code or data was changed to produce this document — it is a verified map only.
