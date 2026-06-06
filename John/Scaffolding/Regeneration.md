@@ -11,7 +11,7 @@
 | Field | Value |
 |---|---|
 | Document | `John/Scaffolding/Regeneration.md` |
-| Status | **RETIRED** 2026-06-06 — final meta-subsystem restore point (PROD-accepted 2026-06-05); superseded as the active Scaffolding doc by `API-WorkFlow.md`. Retained per the forward-only rule, not deleted. Historical reference only. |
+| Status | **LIVE (reactivated 2026-06-06)** — reopened as the companion restore point alongside `Meta_Desc_Title.md` r7 (article meta re-band + article Title state-ban). Was RETIRED 2026-06-06 after the PROD-accepted city-meta close-out; reopened per the forward-only / matching-companion rule. Newest revision row is the live restore point. |
 | Owner | Conductor (abc19@gmail) |
 | Maintainer | Agent (document control — chapter closed) |
 | Companion | `John/Scaffolding/Meta_Desc_Title.md` |
@@ -25,6 +25,7 @@
 | r3 | 2026-06-05 | Agent | `09c1c19` (state-ban); sparkle button at `5f95614` | **City Title now BANS the state code** — `cityMetaTitleAcceptable` rejects `title-contains-state` (uppercase word-boundary; code normalized to uppercase first), so city titles are city-only ("Austin", never "Austin, TX"). **City path only — the shared article gate is untouched.** Plus a per-row admin "generate meta" **sparkle** button on the Cities listing. **Bands / models unchanged from r1/r2** (desc 130/160/165, title 55/65, `gpt-4.1`/`gpt-4.1-mini`); §2 title-gate line updated, §5 gains a state-ban check. |
 | r4 | 2026-06-05 | Agent | *(this change set; commit recorded at task close)* | **City-meta reconciling CRON sweeper** — `lib/cities/cityMetaSweeper.ts` + `app/api/cron/city-meta-sweeper/route.ts` auto-fill city meta for every tenant with a truth doc (mirrors the newsroom scheduler; `CRON_SECRET`-gated; `dryRun` free; per-tick `limit` drip; reuses the one-city eligibility whitelist + TOCTOU-safe forward-only write). **Contract / bands / models unchanged from r3** (desc 130/160/165, title 55/65, `gpt-4.1`/`gpt-4.1-mini`). Does NOT auto-designate truth docs. §4 data-state + §5 verify + §6 restore list updated. |
 | r5 | 2026-06-05 | Agent | `192b7fc` ("City-meta sweep: auto-trigger on the newsroom heartbeat") | **Auto-trigger + CLOSE-OUT.** Sweep rides along on the newsroom-scheduler heartbeat (article tick first/committed, then `runCityMetaSweep` in its own try/catch), bounded by attempt budget (`CITY_META_SWEEP_PER_TICK=5`) AND wall-clock deadline (`CITY_META_SWEEP_DEADLINE_MS=80_000` → `SweepInput.deadlineMs`); OpenAI client timeout-bounded (`timeout 30_000, maxRetries 1`). Optional dedicated `scripts/city-meta-sweep-tick.mjs`. **Conductor tested Cities + Articles on PROD, accepted 100%; this is the FINAL restore point — document CLOSED.** Contract / bands / models unchanged from r4. |
+| r6 | 2026-06-06 | Agent | *(this change set; commit recorded at task close)* | **ARTICLE meta re-band + article Title state-ban** (companion to `Meta_Desc_Title.md` r7 / MT-4.14). **Article path only — City pipeline numbers unchanged (still desc 130/160/165, title 55/65, `gpt-4.1`/`gpt-4.1-mini`).** Article changes: (1) Haylo read excerpt **1000 → 4000** chars (orchestrator passes `4000` to `hayloBodyExcerptFromHtml`; helper default still 1000). (2) Description re-banded **target 275 / range 250–300** (was 150 / 100–200) — `metaNaturalizer.ts` consts + `pairProcessor.ts` `META_LIMITS` (`descriptionMin: 250`, target 275, hardMax 300, softWarn 290); orchestrator Tier-1 desc gate passes the new band. (3) Article **Title state-ban** — shared `metaTitleAcceptable` gained optional `stateCode` (`title-contains-state`); passed by orchestrator Tier-1 + naturalizer `validateOrNull`; system prompt + retry hint forbid the state; formula `buildMetaTitle` prefix `${city}, ${state}:` → `${city}:`. Article title band (55/65) + model (`gpt-4.1-mini`) unchanged. §2 article block re-snapshotted below. |
 
 > **Rule:** create a NEW revision row each time the meta subsystem changes, and re-snapshot §§2–5 below to match. Never edit an old row. The newest row is the live restore point.
 
@@ -72,9 +73,12 @@ City gates:
 | Temperatures | shot 0 = 0.6, retries = 0.3 |
 | Order | description FIRST, title SECOND |
 
-### Article meta — `lib/newsroom/brandContext.ts`
-- `metaTitleAcceptable(meta, brand, cityName, maxLen=65)` — max-only (no min), city verbatim, brand-free.
-- `metaDescriptionAcceptable(meta, brand, cityName, {minLen=100, maxLen=200, brandLeadGuardChars=40})` — band 100–200, city verbatim, brand 1–2×, brand not in first 40 chars.
+### Article meta — `lib/newsroom/brandContext.ts` (re-snapshotted at r6 — MT-4.14)
+- `metaTitleAcceptable(meta, brand, cityName, maxLen=65, stateCode?)` — max-only (no min), city verbatim, brand-free, **and (r6) state-free when `stateCode` is passed** (`title-contains-state`, uppercase word-boundary). The article path now passes `stateCode` from both gates (orchestrator Tier-1 + naturalizer `validateOrNull`); the city wrapper has its own state check, so the shared default (no `stateCode`) is unaffected.
+- `metaDescriptionAcceptable(meta, brand, cityName, {minLen=250, maxLen=300, brandLeadGuardChars=40})` — **band 250–300 (r6; was 100–200)**, city verbatim, brand 1–2×, brand not in first 40 chars.
+- **Article constants (r6):** `metaNaturalizer.ts` → `META_DESCRIPTION_TARGET=275`, `_MIN=250`, `_HARD_MAX=300`, `_TITLE_TARGET=55`, `_TITLE_HARD_MAX=65`. `pairProcessor.ts` `META_LIMITS` → `descriptionTarget=275`, `descriptionMin=250`, `descriptionHardMax=300`, `descriptionSoftWarn=290`, `titleTarget=55`, `titleHardMax=65`, `descriptionBrandLeadGuard=40`.
+- **Haylo read excerpt (r6):** orchestrator calls `hayloBodyExcerptFromHtml(bodyHtml, 4000)` (was the 1000 default) for the article naturalizer grounding slice.
+- **Formula fallback (r6):** `pairProcessor.ts buildMetaTitle` prefix is now `${cityName}: ` (state dropped) so the safety net is also state-free. Model for article meta: `gpt-4.1-mini` (unchanged).
 
 ---
 
