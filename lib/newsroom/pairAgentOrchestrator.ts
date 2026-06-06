@@ -3,23 +3,16 @@ import type { AuditorIssue, AuditorResult, AuditVerdict } from "./auditor";
 import type { HayloArticle, CityLocation } from "@shared/schema";
 import type { NewsroomDraftPayloadV1 } from "./draftPayload";
 import {
-  buildMetaDescription,
-  buildMetaTitle,
   buildSuggestedSlug,
   processPair,
-  META_LIMITS,
   type PairInput,
   type PairResult,
 } from "./pairProcessor";
 import { runPipeline } from "./pipelineWorker";
 import { makeOpenAIGenerator } from "./openaiGenerator";
 import { ensureCitySources } from "./cityResearchAutoSeeder";
-import {
-  metaTitleAcceptable,
-  metaDescriptionAcceptable,
-  resolveBrandContext,
-} from "./brandContext";
-import { naturalizeMeta, hayloBodyExcerptFromHtml } from "./metaNaturalizer";
+import { resolveBrandContext } from "./brandContext";
+import { generateArticleMeta } from "./articleMetaGenerator";
 import { getCurrentTenantSlug, DEFAULT_TENANT_SLUG } from "@/lib/tenant/context";
 
 /**
@@ -29,8 +22,6 @@ import { getCurrentTenantSlug, DEFAULT_TENANT_SLUG } from "@/lib/tenant/context"
  */
 const PASS_THRESHOLD = 75;
 const WARN_THRESHOLD = 50;
-
-const META_DESCRIPTION_MIN = 40;
 
 function verdictFromScore(score: number): AuditVerdict {
   if (score >= PASS_THRESHOLD) return "pass";
@@ -138,108 +129,35 @@ export async function runPairAgentPipeline(input: RunPairAgentInput): Promise<Pa
   const agentDraft = pipelineResult.draftPayload;
   const suggestedSlug = buildSuggestedSlug(input.city.slug, input.hayloArticle.slug);
 
-  // MT-4.13.4: tiered meta selection on the new contract.
-  //   Tier-1 (LLM):       copywriter's meta passes the new title+desc gates
-  //                       (city in title, brand BANNED from title; brand 1-2x
-  //                       in desc but not in the first 40 chars).
-  //   Tier-2.5 (LLM polish): Tier-1 reject → naturalizer rewrites the formula.
-  //   Tier-2 (formula):   if naturalizer also fails its guards → safety net.
-  //
-  // metaSource is recorded so the admin UI can show provenance per article.
-  const titleRejection = metaTitleAcceptable(
-    agentDraft.metaTitle ?? null,
-    brand,
-    input.city.cityName,
-    META_LIMITS.titleHardMax,
-    input.city.stateCode,
-  );
-  const descRejection = metaDescriptionAcceptable(
-    agentDraft.metaDescription ?? null,
-    brand,
-    input.city.cityName,
-    {
-      minLen: META_LIMITS.descriptionMin,
-      maxLen: META_LIMITS.descriptionHardMax,
-      brandLeadGuardChars: META_LIMITS.descriptionBrandLeadGuard,
+  // The LLM reads the finished article body and writes Meta Title + Meta
+  // Description. No formula fallback, no naturalizer tiers: if it can't pass
+  // the gates after retries, metaSource is "needs-meta" and we ship NO meta
+  // (the article is flagged for a human) rather than a deterministic glue
+  // string. metaSource is recorded so the admin UI shows provenance.
+  const meta = await generateArticleMeta({
+    articleTitle: agentDraft.title ?? input.hayloArticle.title,
+    articleBody: agentDraft.bodyHtml,
+    cityName: input.city.cityName,
+    brand: {
+      personaDisplayName: brand.personaDisplayName,
+      brandVertical: brand.brandVertical,
+      brandTagline: brand.brandTagline,
     },
-  );
-  const llmMetaTitleOk = titleRejection === null;
-  const llmMetaDescOk = descRejection === null;
-
-  let metaTitle: string;
-  let metaDescription: string;
-  let metaSource: "llm" | "fallback" | "naturalized";
-
-  if (llmMetaTitleOk && llmMetaDescOk) {
-    metaTitle = agentDraft.metaTitle!;
-    metaDescription = agentDraft.metaDescription!;
-    metaSource = "llm";
-  } else {
-    if (!llmMetaTitleOk) {
-      console.warn(
-        `[pairAgentOrchestrator] LLM metaTitle rejected: ${titleRejection}; routing through Tier-2.5 naturalizer.`,
-        { citySlug: input.city.slug, raw: agentDraft.metaTitle ?? null },
-      );
-    }
-    if (!llmMetaDescOk) {
-      console.warn(
-        `[pairAgentOrchestrator] LLM metaDescription rejected: ${descRejection}; routing through Tier-2.5 naturalizer.`,
-        { citySlug: input.city.slug, length: agentDraft.metaDescription?.length ?? 0 },
-      );
-    }
-    // Tier-2: deterministic formula. Always computed so we have a guaranteed
-    // safety-net string with the correct brand+city tokens.
-    const fallbackTitle = buildMetaTitle(
-      brand,
-      input.city.cityName,
-      input.city.stateCode,
-      input.hayloArticle.title,
+  });
+  const metaOk = meta.status === "ok";
+  if (!metaOk) {
+    console.warn(
+      `[pairAgentOrchestrator] meta needs-meta for ${input.city.slug} (${meta.rejectionReason}); shipping no meta, flagged for human.`,
     );
-    const fallbackDescription = buildMetaDescription(
-      brand,
-      input.city.cityName,
-      input.city.stateCode,
-      input.hayloArticle.title,
-      input.hayloArticle.bodyHtml,
-    );
-
-    // MT-4.13.3 — Tier-2.5: in-line LLM "polish" pass over the formula. If
-    // the naturalizer produces a string that contains brand+city, sits
-    // inside the length bounds, and doesn't echo the formula's colon-prefix,
-    // we ship the naturalized version. Otherwise we ship the formula
-    // unchanged (silent degrade — naturalizer never throws).
-    const polished = await naturalizeMeta({
-      brand,
-      cityName: input.city.cityName,
-      stateCode: input.city.stateCode,
-      hayloTitle: input.hayloArticle.title,
-      hayloBodyExcerpt: hayloBodyExcerptFromHtml(input.hayloArticle.bodyHtml, 4000),
-      fallbackTitle,
-      fallbackDescription,
-    });
-    if (polished.source === "naturalized") {
-      console.info(
-        `[pairAgentOrchestrator] Tier-2.5 naturalizer applied (cost=$${polished.costUsd}, tokens=${polished.tokensUsed}).`,
-        { citySlug: input.city.slug },
-      );
-    } else if (polished.rejectionReason) {
-      console.warn(
-        `[pairAgentOrchestrator] Tier-2.5 naturalizer rejected (${polished.rejectionReason}); shipping Tier-2 formula.`,
-        { citySlug: input.city.slug },
-      );
-    }
-    metaTitle = polished.title;
-    metaDescription = polished.description;
-    metaSource = polished.source === "naturalized" ? "naturalized" : "fallback";
   }
 
   const draftPayload: NewsroomDraftPayloadV1 = {
     ...agentDraft,
     citySlug: input.city.slug,
     suggestedSlug,
-    metaTitle,
-    metaDescription,
-    metaSource,
+    metaTitle: metaOk ? meta.title! : undefined,
+    metaDescription: metaOk ? meta.description! : undefined,
+    metaSource: metaOk ? "llm" : "needs-meta",
     dateline: agentDraft.dateline ?? composed.dateline,
     authorName: agentDraft.authorName ?? brand.authorName,
     publisherName: agentDraft.publisherName ?? brand.publisherName,

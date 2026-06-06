@@ -5,13 +5,14 @@
  * Tableicity article (current count passed via `--expected=N`; replit.md notes
  * 80 articles + 4 static = 84 sitemap URLs, but the canonical published count
  * fluctuates and is set from the live PROD value at execution time).
- * Uses the deterministic Tier-2 builders from
- * `lib/newsroom/pairProcessor` so the same brand+city formatting that ships
- * for new pairs also applies to legacy rows.
+ * Uses the LLM article-meta generator (`lib/newsroom/articleMetaGenerator`) —
+ * the same engine the live pair pipeline uses — so legacy rows get the same
+ * read-the-article Title + Description that new pairs get. Rows the generator
+ * cannot satisfy are reported as "needs-meta" and SKIPPED (never written).
  *
  * Locked decisions (replit.md / John gate notes):
  *   - Backfill scope = published Tableicity articles only (status='published').
- *   - Source stamp on every backfilled row = `fallback` (deterministic Tier-2).
+ *   - Source stamp on every backfilled row = `llm` (read-the-article generator).
  *   - `meta_locked_at` is set to the backfill-run wall-clock time so legacy
  *     rows are immediately frozen and can never be regenerated.
  *   - Forward-only: this script never DELETES anything; it only UPDATEs the
@@ -39,9 +40,8 @@
  */
 
 import pg from "pg";
-import { buildMetaTitle, buildMetaDescription } from "../lib/newsroom/pairProcessor";
+import { generateArticleMeta } from "../lib/newsroom/articleMetaGenerator";
 import type { BrandContext } from "../lib/newsroom/brandContext";
-import { naturalizeMeta, hayloBodyExcerptFromHtml } from "../lib/newsroom/metaNaturalizer";
 
 const TENANT_SLUG = "tableicity";
 const TENANT_SCHEMA = `tenant_${TENANT_SLUG}`;
@@ -59,7 +59,6 @@ const KV = new Map<string, string>(
 const IS_PROD = FLAGS.has("--prod");
 const CONFIRM = FLAGS.has("--confirm");
 const FORCE = FLAGS.has("--force");
-const NATURALIZE = FLAGS.has("--naturalize");
 const EXPECTED = Number(KV.get("--expected") ?? DEFAULT_EXPECTED);
 
 const DEV_URL = process.env.DATABASE_URL;
@@ -81,6 +80,7 @@ interface ArticleRow {
   title: string;
   city_slug: string | null;
   haylo_article_id: string | null;
+  body_html: string | null;
   meta_title: string | null;
   meta_description: string | null;
   meta_source: string | null;
@@ -131,7 +131,7 @@ async function main(): Promise<void> {
   console.log(`Schema: ${TENANT_SCHEMA}`);
   console.log(`Mode:   ${CONFIRM ? "WRITE (--confirm)" : "DRY RUN"}`);
   console.log(`Force:  ${FORCE ? "YES (re-stamp locked rows)" : "no (skip locked)"}`);
-  console.log(`Polish: ${NATURALIZE ? "YES (--naturalize: Tier-2.5 LLM polish; meta_source='naturalized' on success)" : "no (pure Tier-2 formula; meta_source='fallback')"}`);
+  console.log(`Engine: LLM meta generator (reads article -> Title + Description; needs-meta rows are flagged & skipped, never written)`);
   console.log(`Canary: expect ${EXPECTED} candidate rows (override with --expected=N)`);
   console.log("");
 
@@ -150,7 +150,7 @@ async function main(): Promise<void> {
     //    so the canary count matches the published universe (84) regardless of
     //    how many already happen to be locked.
     const { rows: articles } = await pool.query<ArticleRow>(
-      `SELECT id, slug, title, city_slug, haylo_article_id,
+      `SELECT id, slug, title, city_slug, haylo_article_id, body_html,
               meta_title, meta_description, meta_source, meta_locked_at
        FROM ${TENANT_SCHEMA}.knowledge_articles
        WHERE status = 'published'
@@ -199,76 +199,58 @@ async function main(): Promise<void> {
       reason: "backfill" | "force-relock" | "skip-locked" | "skip-no-city" | "skip-already-set";
       newMetaTitle: string | null;
       newMetaDescription: string | null;
-      newMetaSource: "fallback" | "naturalized" | null;
-      naturalizerCostUsd: number;
-      naturalizerRejection: string | null;
+      newMetaSource: "llm" | "needs-meta" | null;
+      metaCostUsd: number;
+      metaRejection: string | null;
     }
     const plans: Plan[] = [];
 
     for (const a of articles) {
       if (a.meta_locked_at && !FORCE) {
-        plans.push({ id: a.id, slug: a.slug, reason: "skip-locked", newMetaTitle: null, newMetaDescription: null, newMetaSource: null, naturalizerCostUsd: 0, naturalizerRejection: null });
+        plans.push({ id: a.id, slug: a.slug, reason: "skip-locked", newMetaTitle: null, newMetaDescription: null, newMetaSource: null, metaCostUsd: 0, metaRejection: null });
         continue;
       }
       if (!a.city_slug) {
-        plans.push({ id: a.id, slug: a.slug, reason: "skip-no-city", newMetaTitle: null, newMetaDescription: null, newMetaSource: null, naturalizerCostUsd: 0, naturalizerRejection: null });
+        plans.push({ id: a.id, slug: a.slug, reason: "skip-no-city", newMetaTitle: null, newMetaDescription: null, newMetaSource: null, metaCostUsd: 0, metaRejection: null });
         continue;
       }
       const city = cityMap.get(a.city_slug);
       if (!city) {
-        plans.push({ id: a.id, slug: a.slug, reason: "skip-no-city", newMetaTitle: null, newMetaDescription: null, newMetaSource: null, naturalizerCostUsd: 0, naturalizerRejection: null });
+        plans.push({ id: a.id, slug: a.slug, reason: "skip-no-city", newMetaTitle: null, newMetaDescription: null, newMetaSource: null, metaCostUsd: 0, metaRejection: null });
         continue;
       }
       const haylo = a.haylo_article_id ? hayloMap.get(a.haylo_article_id) : null;
-      // Fall back to the article title when the legacy article isn't paired
-      // to a Halo essay (some of the 80 manual rows pre-date the pairing).
-      const hayloTitle = haylo?.title ?? a.title ?? "";
-      const hayloBody = haylo?.body_html;
+      // Generate from the article's own published body; fall back to the paired
+      // Haylo essay, then the title, so legacy unpaired rows still get real meta.
+      const articleBody = a.body_html || haylo?.body_html || a.title || "";
+      const articleTitle = a.title || haylo?.title || "";
 
-      const fallbackTitle = buildMetaTitle(brand, city.city_name, city.state_code, hayloTitle);
-      const fallbackDescription = buildMetaDescription(brand, city.city_name, city.state_code, hayloTitle, hayloBody);
-
-      let newMetaTitle = fallbackTitle;
-      let newMetaDescription = fallbackDescription;
-      let newMetaSource: "fallback" | "naturalized" = "fallback";
-      let naturalizerCostUsd = 0;
-      let naturalizerRejection: string | null = null;
-
-      if (NATURALIZE) {
-        // MT-4.13.3 — Tier-2.5 LLM polish. Same naturalizer the live
-        // pipeline uses; same guards (brand+city in both, length bounds, no
-        // formula-prefix echo). Silent degrade to the formula on any
-        // failure — backfill never aborts on a single naturalizer rejection.
-        const polished = await naturalizeMeta({
-          brand,
-          cityName: city.city_name,
-          stateCode: city.state_code,
-          hayloTitle,
-          hayloBodyExcerpt: hayloBodyExcerptFromHtml(hayloBody, 4000),
-          fallbackTitle,
-          fallbackDescription,
-        });
-        newMetaTitle = polished.title;
-        newMetaDescription = polished.description;
-        newMetaSource = polished.source === "naturalized" ? "naturalized" : "fallback";
-        naturalizerCostUsd = polished.costUsd;
-        naturalizerRejection = polished.rejectionReason;
-        if (polished.source === "naturalized") {
-          console.log(`  naturalized: ${a.slug}  ($${polished.costUsd}, ${polished.tokensUsed} tok)`);
-        } else {
-          console.log(`  fallback:    ${a.slug}  (rejected=${polished.rejectionReason})`);
-        }
+      const meta = await generateArticleMeta({
+        articleTitle,
+        articleBody,
+        cityName: city.city_name,
+        brand: {
+          personaDisplayName: brand.personaDisplayName,
+          brandVertical: brand.brandVertical,
+          brandTagline: brand.brandTagline,
+        },
+      });
+      const ok = meta.status === "ok";
+      if (ok) {
+        console.log(`  llm:        ${a.slug}  ($${meta.costUsd}, ${meta.tokensUsed} tok, ${meta.attempts} attempt(s))`);
+      } else {
+        console.log(`  needs-meta: ${a.slug}  (rejected=${meta.rejectionReason}) -- SKIPPED, not written`);
       }
 
       plans.push({
         id: a.id,
         slug: a.slug,
         reason: a.meta_locked_at ? "force-relock" : "backfill",
-        newMetaTitle,
-        newMetaDescription,
-        newMetaSource,
-        naturalizerCostUsd,
-        naturalizerRejection,
+        newMetaTitle: ok ? meta.title : null,
+        newMetaDescription: ok ? meta.description : null,
+        newMetaSource: ok ? "llm" : "needs-meta",
+        metaCostUsd: meta.costUsd,
+        metaRejection: meta.rejectionReason,
       });
     }
 
@@ -281,15 +263,17 @@ async function main(): Promise<void> {
     console.log("Plan:");
     for (const [k, v] of Object.entries(counts)) console.log(`  ${k.padEnd(20)} ${v}`);
 
-    const writable = plans.filter((p) => p.reason === "backfill" || p.reason === "force-relock");
-    console.log(`\nWritable rows: ${writable.length}`);
-
-    if (NATURALIZE) {
-      const naturalizedCount = writable.filter((p) => p.newMetaSource === "naturalized").length;
-      const fallbackCount = writable.filter((p) => p.newMetaSource === "fallback").length;
-      const totalCost = writable.reduce((acc, p) => acc + p.naturalizerCostUsd, 0);
-      console.log(`Naturalizer summary: ${naturalizedCount} naturalized, ${fallbackCount} fell back to formula. Total OpenAI cost: $${totalCost.toFixed(4)}`);
-    }
+    // Only rows with a successfully generated 'llm' meta are written. needs-meta
+    // rows are reported and SKIPPED (forward-only: never clobber existing meta
+    // with nulls).
+    const candidates = plans.filter((p) => p.reason === "backfill" || p.reason === "force-relock");
+    const writable = candidates.filter((p) => p.newMetaSource === "llm");
+    const needsMeta = candidates.filter((p) => p.newMetaSource === "needs-meta");
+    const totalCost = plans.reduce((acc, p) => acc + p.metaCostUsd, 0);
+    console.log(`\nWritable rows (llm meta): ${writable.length}`);
+    console.log(`Needs-meta (flagged, NOT written): ${needsMeta.length}`);
+    console.log(`Total OpenAI cost: $${totalCost.toFixed(4)}`);
+    for (const p of needsMeta.slice(0, 10)) console.log(`  needs-meta: ${p.slug} (${p.metaRejection})`);
 
     if (writable.length > 0) {
       console.log("\nSample (first 5):");
@@ -309,8 +293,9 @@ async function main(): Promise<void> {
       return;
     }
 
-    // 5) Transactional write. Stamp meta_source='fallback', meta_generated_at
-    //    and meta_locked_at to `now` per locked decision.
+    // 5) Transactional write. Only 'llm' rows reach here; stamp
+    //    meta_source='llm', meta_generated_at and meta_locked_at to `now` per
+    //    locked decision.
     console.log("\nApplying writes inside a transaction...");
     const client = await pool.connect();
     try {
@@ -331,7 +316,7 @@ async function main(): Promise<void> {
                meta_locked_at = $3
            WHERE id = $4
              AND ($5::boolean OR meta_locked_at IS NULL)`,
-          [p.newMetaTitle, p.newMetaDescription, now, p.id, FORCE, p.newMetaSource ?? "fallback"],
+          [p.newMetaTitle, p.newMetaDescription, now, p.id, FORCE, p.newMetaSource ?? "llm"],
         );
         written += rowCount ?? 0;
       }

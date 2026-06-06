@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireConductor } from "@/lib/conductor-guard";
-import {
-  buildMetaTitle,
-  buildMetaDescription,
-} from "@/lib/newsroom/pairProcessor";
-import type { BrandContext } from "@/lib/newsroom/brandContext";
+import { generateArticleMeta } from "@/lib/newsroom/articleMetaGenerator";
 
-// MT-4.13: live SEO meta preview for the Persona Wizard. Uses the SAME
-// deterministic Tier-2 builders the live pair pipeline uses, so what staff
-// see here is exactly what published articles will get for this persona.
+// Live SEO meta preview for the Persona Wizard. Uses the SAME LLM generator the
+// live pair pipeline uses, so what staff see here is exactly the engine that
+// will produce published meta for this persona.
 export const dynamic = "force-dynamic";
 
 const previewSchema = z.object({
@@ -37,34 +33,29 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const brand: BrandContext = {
-    slug: "preview",
-    personaDisplayName: body.personaDisplayName.trim(),
-    publisherName: body.personaDisplayName.trim(),
-    authorName: `${body.personaDisplayName.trim()} Newsroom`,
-    brandVertical: "preview",
-    brandTagline: body.brandTagline.trim(),
-    brandFeatureCta: body.brandFeatureCta.trim(),
-    brandHomeUrl: null,
-  };
+  const meta = await generateArticleMeta({
+    articleTitle: body.hayloTitle,
+    // No real article body at wizard time — seed the generator with the sample
+    // headline + tagline so the preview reflects the live engine's style.
+    articleBody: `${body.hayloTitle}. ${body.brandTagline.trim()}`,
+    cityName: body.cityName,
+    brand: {
+      personaDisplayName: body.personaDisplayName.trim(),
+      brandTagline: body.brandTagline.trim(),
+    },
+  });
 
-  const metaTitle = buildMetaTitle(
-    brand,
-    body.cityName,
-    body.stateCode.toUpperCase(),
-    body.hayloTitle,
-  );
-  const metaDescription = buildMetaDescription(
-    brand,
-    body.cityName,
-    body.stateCode.toUpperCase(),
-    body.hayloTitle,
-  );
-
+  // On "needs-meta" the generator returns the last rejected candidate for
+  // visibility — do NOT surface it as if it were usable meta. Show empty
+  // strings and let metaStatus tell the wizard it needs a human.
+  const ok = meta.status === "ok";
+  const metaTitle = ok ? meta.title ?? "" : "";
+  const metaDescription = ok ? meta.description ?? "" : "";
   return NextResponse.json({
     metaTitle,
     metaDescription,
     metaTitleLength: metaTitle.length,
     metaDescriptionLength: metaDescription.length,
+    metaStatus: meta.status,
   });
 }

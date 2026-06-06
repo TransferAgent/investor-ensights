@@ -1,6 +1,7 @@
 - [Article author rendering is decoupled from DB](article-author-rendering.md) — article byline/bio/JSON-LD is hardcoded to PLATFORM_AUTHOR in lib/author-config.ts, NOT article.author_name. The DB column is data-hygiene only.
 - [Sitemap canary baseline](sitemap-canary.md) — replit.md says 84 URLs but post-E-E-A-T rollup it's 104 (added pubs + persona hubs). Update baseline before treating divergence as alarm.
 - [City meta generation](city-meta-generation.md) — tight char-band meta desc needs full gpt-4.1 (mini can't count, stuck ~50%); write-time so cost is trivial. Title stays on mini.
+- [Article meta generation](article-meta-generation.md) — articles use ONE pure-LLM generator (≤65 title / ≤320 desc + brand); on fail → "needs-meta" flag, NEVER glue. Separate engine from city meta; don't reconverge.
 - [Dev/Prod ownership](dev-prod-ownership.md) — Dev is the agent's, Prod is the user's; never write Prod unless asked. Dev/Prod data diverge (e.g. Haylo library).
 - [Haylo ingestion paths](haylo-ingestion-paths.md) — paste vs Halo-API import don't share field defaults; any gate-affecting field must be set in BOTH or imports get trapped in Draft.
 - [Halo import watermark](haylo-import-watermark.md) — "Pull from API" is incremental (per-tenant halo_last_pulled_id); deleting an essay won't re-pull it. Recover by rewinding the watermark.

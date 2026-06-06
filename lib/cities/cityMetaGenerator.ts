@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import type { BrandContext } from "@/lib/newsroom/brandContext";
-import { hayloBodyExcerptFromHtml } from "@/lib/newsroom/metaNaturalizer";
+import { hayloBodyExcerptFromHtml } from "@/lib/newsroom/htmlExcerpt";
 import {
   CITY_META_DESC_BRAND_LEAD_GUARD,
   CITY_META_DESC_HARD_MAX,

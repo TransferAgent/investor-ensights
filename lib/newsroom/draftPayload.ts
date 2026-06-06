@@ -17,14 +17,17 @@ export const newsroomDraftPayloadV1Schema = z.object({
     .max(120)
     .regex(/^[a-z0-9-]+$/, "lowercase letters, digits, hyphens only"),
   title: z.string().min(10).max(120),
-  // MT-4.12: SEO `<title>` (SERP) — distinct from H1 `title`. Soft target 50-60,
-  // hard cap 90.
-  metaTitle: z.string().min(10).max(90).optional(),
-  metaDescription: z.string().min(40).max(300).optional(),
-  // MT-4.12: provenance for the meta fields above. 'llm' = produced by the
-  // copywriter agent and validated to contain brand+city; 'fallback' =
-  // deterministic Tier-2 prefix; 'manual' = reviewer-edited.
-  metaSource: z.enum(["llm", "naturalized", "fallback", "manual"]).optional(),
+  // SEO `<title>` (SERP) — distinct from H1 `title`. Soft target 55-60,
+  // hard cap 65 (matches ARTICLE_META_LIMITS.titleHardMax / the generator gate).
+  metaTitle: z.string().min(1).max(65).optional(),
+  metaDescription: z.string().min(1).max(320).optional(),
+  // Provenance for the meta fields above. 'llm' = produced by the LLM meta
+  // generator (reads the finished article, validates length + brand-injected).
+  // 'needs-meta' = the generator could not satisfy the gates after retries, so
+  // meta was left UNSET and the article is flagged for a human — never formula
+  // glue. 'manual' = reviewer-edited. ('naturalized'/'fallback' = removed
+  // deterministic tiers, kept in the enum only for legacy rows.)
+  metaSource: z.enum(["llm", "naturalized", "fallback", "manual", "needs-meta"]).optional(),
   headline: z.string().min(10),
   subheadline: z.string().optional(),
   dateline: z.string().max(120).optional(),

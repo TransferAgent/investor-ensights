@@ -439,13 +439,16 @@ export const knowledgeArticles = pgTable(
     // Soft target 50-60 chars, hard cap 90.
     metaTitle: text("meta_title"),
     metaDescription: text("meta_description"),
-    // MT-4.12 / MT-4.13.3: provenance + lifecycle for the meta fields.
-    //   meta_source: 'llm' | 'naturalized' | 'fallback' | 'manual'
-    //     - 'llm':         copywriter-emitted meta passed brand+city check (Tier-1)
-    //     - 'naturalized': Tier-2.5 LLM polish over the deterministic formula
-    //                      (gpt-4.1-mini in `lib/newsroom/metaNaturalizer.ts`)
-    //     - 'fallback':    pure deterministic Tier-2 "${persona} in ${city}, ${ST}: ..."
+    // Provenance + lifecycle for the meta fields.
+    //   meta_source: 'llm' | 'manual' | 'needs-meta' (+ legacy 'naturalized'|'fallback')
+    //     - 'llm':         produced by the LLM article-meta generator
+    //                      (`lib/newsroom/articleMetaGenerator.ts`) — reads the
+    //                      finished article, validates length + brand-injected.
+    //     - 'needs-meta':  generator could not satisfy the gates after retries;
+    //                      meta left UNSET, article flagged for a human (no glue).
     //     - 'manual':      Conductor edited via admin (locks the row)
+    //     - 'naturalized'/'fallback': removed deterministic tiers; kept as values
+    //                      only for legacy rows written before the generator.
     //   meta_generated_at: when the current meta was produced (any source)
     //   meta_locked_at: non-null = frozen (set on publish; never re-generated)
     metaSource: varchar("meta_source", { length: 16 }),

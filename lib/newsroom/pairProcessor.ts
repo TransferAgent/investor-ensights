@@ -1,42 +1,11 @@
 import { createHash } from "node:crypto";
 import { composePressRelease, type ComposeInput, type ComposeResult } from "./pressReleaseComposer";
-import { auditPressRelease, type AuditorInput, type AuditorResult, type AuditVerdict, type AuditorIssue } from "./auditor";
-import { normalizeHayloBody } from "./hayloBodyNormalizer";
+import { auditPressRelease, type AuditorInput, type AuditorResult, type AuditorIssue } from "./auditor";
 import type { HayloArticle, CityLocation } from "@shared/schema";
 import type { NewsroomDraftPayloadV1 } from "./draftPayload";
-import { resolveBrandContext, type BrandContext } from "./brandContext";
+import { resolveBrandContext } from "./brandContext";
 import { getCurrentTenantSlug, DEFAULT_TENANT_SLUG } from "@/lib/tenant/context";
-
-// MT-4.12 / MT-4.13.4: meta-field shape constants.
-//   Title contract (MT-4.13.4 — Conductor approved):
-//     - DROP the brand from the title (Google SERP truncates ~60 chars; the
-//       brand was eating budget without adding SEO value — H1, canonical
-//       URL prefix, and description all carry the brand).
-//     - Title MUST contain the city verbatim.
-//     - Soft target ≤55, hard cap 65 (matches Google's SERP truncation).
-//   Description contract (MT-4.13.4 — "80% content, 20% brand"):
-//     - Content-first prose; brand named once (max twice), NOT in the first
-//       40 characters (so the snippet doesn't read like a door-hanger ad).
-//     - MUST contain BOTH city verbatim AND brand verbatim.
-//     - Soft target ~150, hard cap 200 (Google snippet ~155 chars desktop).
-const META_TITLE_TARGET_CHARS = 55;
-const META_TITLE_HARD_MAX = 65;
-const META_DESCRIPTION_SOFT_WARN_CHARS = 290;
-const META_DESCRIPTION_TARGET_CHARS = 275;
-const META_DESCRIPTION_HARD_MAX = 300;
-const META_DESCRIPTION_MIN_CHARS = 250;
-/** No brand mention permitted before this byte index in a description (80/20 rule). */
-export const META_DESCRIPTION_BRAND_LEAD_GUARD_CHARS = 40;
-/** Re-exported so the naturalizer + admin preview share the same numbers. */
-export const META_LIMITS = {
-  titleTarget: META_TITLE_TARGET_CHARS,
-  titleHardMax: META_TITLE_HARD_MAX,
-  descriptionTarget: META_DESCRIPTION_TARGET_CHARS,
-  descriptionMin: META_DESCRIPTION_MIN_CHARS,
-  descriptionSoftWarn: META_DESCRIPTION_SOFT_WARN_CHARS,
-  descriptionHardMax: META_DESCRIPTION_HARD_MAX,
-  descriptionBrandLeadGuard: META_DESCRIPTION_BRAND_LEAD_GUARD_CHARS,
-} as const;
+import { generateArticleMeta } from "./articleMetaGenerator";
 
 export interface PairInput {
   hayloArticle: Pick<HayloArticle, "id" | "slug" | "title" | "topicSlug" | "bodyHtml">;
@@ -66,157 +35,6 @@ export function buildSuggestedSlug(citySlug: string, hayloSlug: string): string 
   const personaSlug = getCurrentTenantSlug() ?? DEFAULT_TENANT_SLUG;
   const base = `${personaSlug}-${citySlug}-${hayloSlug}`.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
   return base.slice(0, 110);
-}
-
-function htmlToPlainText(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, " ")
-    .replace(/<\/(p|h[1-6]|li|div)>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function splitSentences(text: string): string[] {
-  const matches = text.match(/[^.!?]+[.!?]+/g);
-  if (!matches || matches.length === 0) return text ? [text] : [];
-  return matches.map((s) => s.trim()).filter(Boolean);
-}
-
-function hardTruncateToPeriod(sentence: string, maxChars: number): string {
-  if (sentence.length <= maxChars) return sentence;
-  const slice = sentence.slice(0, maxChars - 1);
-  const lastSpace = slice.lastIndexOf(" ");
-  const cut = lastSpace > 40 ? slice.slice(0, lastSpace) : slice;
-  return cut.replace(/[\s,;:—\-–]+$/, "") + ".";
-}
-
-function buildMetaDescriptionFromBody(bodyHtml: string, maxChars: number): string | null {
-  const normalized = normalizeHayloBody(bodyHtml);
-  const text = htmlToPlainText(normalized);
-  if (!text) return null;
-
-  const sentences = splitSentences(text);
-  if (sentences.length === 0) return null;
-
-  let acc = "";
-  for (const s of sentences) {
-    const tentative = acc ? `${acc} ${s}` : s;
-    if (tentative.length > maxChars) {
-      if (!acc) {
-        return hardTruncateToPeriod(s, maxChars);
-      }
-      return acc;
-    }
-    acc = tentative;
-  }
-  return acc || null;
-}
-
-/**
- * Trim to a maximum length without cutting a word in half. Adds a single
- * trailing period (so meta strings always end on a sentence boundary) when
- * truncation drops a word.
- */
-function truncateAtWordBoundary(s: string, max: number): string {
-  if (s.length <= max) return s;
-  const slice = s.slice(0, max - 1);
-  const lastSpace = slice.lastIndexOf(" ");
-  const cut = lastSpace > Math.floor(max * 0.5) ? slice.slice(0, lastSpace) : slice;
-  const stripped = cut.replace(/[\s,;:—\-–]+$/, "");
-  return /[.!?]$/.test(stripped) ? stripped : `${stripped}.`;
-}
-
-/**
- * MT-4.13.4: deterministic Tier-2 SEO `<title>` (SERP).
- *
- * NEW CONTRACT (replaces MT-4.12 brand-leading prefix):
- *   - Format: "${city}, ${state}: ${haylo title trimmed}"
- *   - Brand is INTENTIONALLY DROPPED from the title (Google truncates ~60
- *     chars; brand presence in title adds nothing — H1, canonical URL,
- *     and description all carry the brand).
- *   - Hard cap 65; target 55.
- *
- * Used as the safety net by:
- *   - `processPair` (dry-run path) where there is no LLM output
- *   - `pairAgentOrchestrator` when the Tier-2.5 naturalizer also fails its
- *     guards (rare; naturalizer almost always passes on the new contract)
- *   - the Tableicity backfill script (`--naturalize` polishes this output)
- */
-export function buildMetaTitle(
-  brand: BrandContext,
-  cityName: string,
-  stateCode: string,
-  hayloTitle?: string | null,
-): string {
-  // brand kept as a parameter for signature compatibility with pre-MT-4.13.4
-  // callers; intentionally unused — see contract above.
-  void brand;
-  // City-only — no "City, ST" stamp (door-hanger guard). stateCode kept for
-  // signature compatibility but intentionally unused.
-  void stateCode;
-  const prefix = `${cityName}: `;
-  const remaining = META_TITLE_HARD_MAX - prefix.length;
-  const rawSuffix = (hayloTitle ?? "").trim();
-  const suffix = rawSuffix
-    ? truncateAtWordBoundary(rawSuffix, Math.max(10, remaining)).replace(/\.$/, "")
-    : "Founders' guide";
-  const out = `${prefix}${suffix}`.slice(0, META_TITLE_HARD_MAX);
-  return out;
-}
-
-/**
- * MT-4.13.4: deterministic Tier-2 SEO meta description.
- *
- * NEW CONTRACT (replaces MT-4.12 brand-leading prefix):
- *   - Content-first: 1–2 sentences from the Haylo body open the snippet.
- *   - Brand named ONCE at the end as an accent (not as the leading subject).
- *   - MUST contain city + brand verbatim. ~150 chars target, 200 hard cap.
- *
- * Body sourced from the Haylo essay's first sentences (or the Haylo title
- * when no body HTML is available, e.g. legacy unpaired articles).
- */
-export function buildMetaDescription(
-  brand: BrandContext,
-  cityName: string,
-  stateCode: string,
-  hayloTitle: string,
-  hayloBodyHtml?: string,
-): string {
-  // City+brand attribution sentence appended at the end (the "20% brand"
-  // accent). Kept short and on-topic to the local market.
-  const tail = ` ${brand.personaDisplayName} helps ${cityName} founders.`;
-  const remaining = META_DESCRIPTION_HARD_MAX - tail.length;
-
-  let body: string | null = null;
-  if (hayloBodyHtml) {
-    body = buildMetaDescriptionFromBody(hayloBodyHtml, remaining);
-  }
-  if (!body) {
-    body = hayloTitle.trim();
-  }
-  // Strip a brand mention from the leading body if the Haylo essay opened
-  // with the brand name — we re-attach it ourselves at the end.
-  const brandRe = new RegExp(`\\b${brand.personaDisplayName.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}\\b[\\s,:.-]*`, "i");
-  if (body.length > 0 && brandRe.test(body.slice(0, META_DESCRIPTION_BRAND_LEAD_GUARD_CHARS))) {
-    body = body.replace(brandRe, "").trim();
-    if (body.length > 0) body = body.charAt(0).toUpperCase() + body.slice(1);
-  }
-  void stateCode;
-
-  const out = truncateAtWordBoundary(`${body}${tail}`, META_DESCRIPTION_HARD_MAX);
-  if (out.length > META_DESCRIPTION_SOFT_WARN_CHARS) {
-    console.warn(
-      `[buildMetaDescription] soft-warn: meta_description is ${out.length} chars (>${META_DESCRIPTION_SOFT_WARN_CHARS} target) for ${brand.personaDisplayName}/${cityName}.`,
-    );
-  }
-  return out;
 }
 
 function mockAudit(input: { citySlug: string; hayloArticleId: string; localVibeWasInjected: boolean; warnings: string[] }): AuditorResult {
@@ -278,32 +96,39 @@ export async function processPair(input: PairInput): Promise<PairResult> {
   }
 
   const suggestedSlug = buildSuggestedSlug(input.city.slug, input.hayloArticle.slug);
-  // MT-4.12: dry-run path has no LLM output, so meta is always Tier-2 (deterministic).
   const brand = await resolveBrandContext(
     getCurrentTenantSlug() ?? DEFAULT_TENANT_SLUG,
   );
-  const metaTitle = buildMetaTitle(
-    brand,
-    input.city.cityName,
-    input.city.stateCode,
-    input.hayloArticle.title,
-  );
-  const metaDescription = buildMetaDescription(
-    brand,
-    input.city.cityName,
-    input.city.stateCode,
-    input.hayloArticle.title,
-    input.hayloArticle.bodyHtml,
-  );
+
+  // Meta: the LLM reads the composed article and writes Title + Description.
+  // No formula fallback — if it can't satisfy the gates after retries,
+  // metaSource is "needs-meta" (the article is flagged for a human) and we
+  // ship NO meta string rather than deterministic glue.
+  const meta = await generateArticleMeta({
+    articleTitle: composed.title,
+    articleBody: composed.fullHtml,
+    cityName: input.city.cityName,
+    brand: {
+      personaDisplayName: brand.personaDisplayName,
+      brandVertical: brand.brandVertical,
+      brandTagline: brand.brandTagline,
+    },
+  });
+  const metaOk = meta.status === "ok";
+  if (!metaOk) {
+    console.warn(
+      `[processPair] meta needs-meta for ${input.city.slug} (${meta.rejectionReason}); shipping no meta, flagged for human.`,
+    );
+  }
 
   const draftPayload: NewsroomDraftPayloadV1 = {
     version: "v1",
     citySlug: input.city.slug,
     suggestedSlug,
     title: composed.title,
-    metaTitle,
-    metaDescription,
-    metaSource: "fallback",
+    metaTitle: metaOk ? meta.title! : undefined,
+    metaDescription: metaOk ? meta.description! : undefined,
+    metaSource: metaOk ? "llm" : "needs-meta",
     headline: composed.title,
     dateline: composed.dateline,
     bodyHtml: composed.fullHtml,
