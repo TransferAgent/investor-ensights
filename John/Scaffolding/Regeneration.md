@@ -26,6 +26,7 @@
 | r4 | 2026-06-05 | Agent | *(this change set; commit recorded at task close)* | **City-meta reconciling CRON sweeper** — `lib/cities/cityMetaSweeper.ts` + `app/api/cron/city-meta-sweeper/route.ts` auto-fill city meta for every tenant with a truth doc (mirrors the newsroom scheduler; `CRON_SECRET`-gated; `dryRun` free; per-tick `limit` drip; reuses the one-city eligibility whitelist + TOCTOU-safe forward-only write). **Contract / bands / models unchanged from r3** (desc 130/160/165, title 55/65, `gpt-4.1`/`gpt-4.1-mini`). Does NOT auto-designate truth docs. §4 data-state + §5 verify + §6 restore list updated. |
 | r5 | 2026-06-05 | Agent | `192b7fc` ("City-meta sweep: auto-trigger on the newsroom heartbeat") | **Auto-trigger + CLOSE-OUT.** Sweep rides along on the newsroom-scheduler heartbeat (article tick first/committed, then `runCityMetaSweep` in its own try/catch), bounded by attempt budget (`CITY_META_SWEEP_PER_TICK=5`) AND wall-clock deadline (`CITY_META_SWEEP_DEADLINE_MS=80_000` → `SweepInput.deadlineMs`); OpenAI client timeout-bounded (`timeout 30_000, maxRetries 1`). Optional dedicated `scripts/city-meta-sweep-tick.mjs`. **Conductor tested Cities + Articles on PROD, accepted 100%; this is the FINAL restore point — document CLOSED.** Contract / bands / models unchanged from r4. |
 | r6 | 2026-06-06 | Agent | *(this change set; commit recorded at task close)* | **ARTICLE meta re-band + article Title state-ban** (companion to `Meta_Desc_Title.md` r7 / MT-4.14). **Article path only — City pipeline numbers unchanged (still desc 130/160/165, title 55/65, `gpt-4.1`/`gpt-4.1-mini`).** Article changes: (1) Haylo read excerpt **1000 → 4000** chars (orchestrator passes `4000` to `hayloBodyExcerptFromHtml`; helper default still 1000). (2) Description re-banded **target 275 / range 250–300** (was 150 / 100–200) — `metaNaturalizer.ts` consts + `pairProcessor.ts` `META_LIMITS` (`descriptionMin: 250`, target 275, hardMax 300, softWarn 290); orchestrator Tier-1 desc gate passes the new band. (3) Article **Title state-ban** — shared `metaTitleAcceptable` gained optional `stateCode` (`title-contains-state`); passed by orchestrator Tier-1 + naturalizer `validateOrNull`; system prompt + retry hint forbid the state; formula `buildMetaTitle` prefix `${city}, ${state}:` → `${city}:`. Article title band (55/65) + model (`gpt-4.1-mini`) unchanged. §2 article block re-snapshotted below. |
+| r7 | 2026-06-06 | Agent | *(this change set; commit recorded at task close)* | **ARTICLE naturalizer hardening** (companion to `Meta_Desc_Title.md` r8 / MT-4.14.1). Article naturalizer only; **City pipeline unchanged**; **bands unchanged** (article desc 250–300, title 55–65); auto-publish kept; **body/copywriter never touched**. `lib/newsroom/metaNaturalizer.ts`: model `gpt-4.1-mini` → **`gpt-4.1` (full)** (`costFor` repriced $2/$8 per M); **two-shot → three-shot** (`MAX_ATTEMPTS=3`, temps `0.6/0.3/0.2`, rejection-reason feedback after each non-final attempt); **description-first** system prompt (author description, derive title hook from it; JSON `{ "description", "title" }`; retry hint reworded). Formula safety net + never-throw + forward-only rules intact. §2 article block re-snapshotted below. |
 
 > **Rule:** create a NEW revision row each time the meta subsystem changes, and re-snapshot §§2–5 below to match. Never edit an old row. The newest row is the live restore point.
 
@@ -73,12 +74,24 @@ City gates:
 | Temperatures | shot 0 = 0.6, retries = 0.3 |
 | Order | description FIRST, title SECOND |
 
+### Article naturalizer — `lib/newsroom/metaNaturalizer.ts` (re-snapshotted at r7 — MT-4.14.1)
+| Setting | Value |
+|---|---|
+| `MODEL` (title + desc, one call) | `gpt-4.1` (full) — was `gpt-4.1-mini` |
+| `costFor()` pricing | $2.00 / 1M in, $8.00 / 1M out |
+| Attempts | up to **3** (`MAX_ATTEMPTS=3`) — was 2 |
+| Temperatures | `[0.6, 0.3, 0.2]` per attempt |
+| Order | **description FIRST, title derived from it** (JSON `{ "description", "title" }`) |
+| Excerpt | first `4000` chars of Haylo body (r6) |
+| Fallback | deterministic formula (never throws); `meta_source='fallback'` |
+
 ### Article meta — `lib/newsroom/brandContext.ts` (re-snapshotted at r6 — MT-4.14)
 - `metaTitleAcceptable(meta, brand, cityName, maxLen=65, stateCode?)` — max-only (no min), city verbatim, brand-free, **and (r6) state-free when `stateCode` is passed** (`title-contains-state`, uppercase word-boundary). The article path now passes `stateCode` from both gates (orchestrator Tier-1 + naturalizer `validateOrNull`); the city wrapper has its own state check, so the shared default (no `stateCode`) is unaffected.
 - `metaDescriptionAcceptable(meta, brand, cityName, {minLen=250, maxLen=300, brandLeadGuardChars=40})` — **band 250–300 (r6; was 100–200)**, city verbatim, brand 1–2×, brand not in first 40 chars.
 - **Article constants (r6):** `metaNaturalizer.ts` → `META_DESCRIPTION_TARGET=275`, `_MIN=250`, `_HARD_MAX=300`, `_TITLE_TARGET=55`, `_TITLE_HARD_MAX=65`. `pairProcessor.ts` `META_LIMITS` → `descriptionTarget=275`, `descriptionMin=250`, `descriptionHardMax=300`, `descriptionSoftWarn=290`, `titleTarget=55`, `titleHardMax=65`, `descriptionBrandLeadGuard=40`.
 - **Haylo read excerpt (r6):** both article naturalizer call sites pass `4000` to `hayloBodyExcerptFromHtml` (was the 1000 default) — the live orchestrator and the `--naturalize` backfill (`scripts/backfill-tableicity-meta.ts`). The helper default stays 1000; the City truth-doc generator already passed 4000 and is unchanged.
-- **Formula fallback (r6):** `pairProcessor.ts buildMetaTitle` prefix is now `${cityName}: ` (state dropped) so the safety net is also state-free. Model for article meta: `gpt-4.1-mini` (unchanged).
+- **Formula fallback (r6):** `pairProcessor.ts buildMetaTitle` prefix is now `${cityName}: ` (state dropped) so the safety net is also state-free.
+- **Naturalizer model + loop (r7):** article meta now runs `gpt-4.1` (full), up to 3 attempts (temps 0.6/0.3/0.2), **description-first** prompt. See the naturalizer table above. Auto-publish + body untouched.
 
 ---
 

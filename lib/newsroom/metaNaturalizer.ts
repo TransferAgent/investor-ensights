@@ -20,24 +20,25 @@ import { metaTitleAcceptable, metaDescriptionAcceptable } from "./brandContext";
  *     caller; degrades silently to the safety net.
  *
  * Guards (a naturalized output is only used if it passes ALL of these):
- *   1. Title ≤ META_TITLE_HARD_MAX (90)
- *   2. Description in [META_DESCRIPTION_MIN (40), META_DESCRIPTION_HARD_MAX (300)]
+ *   1. Title ≤ META_TITLE_HARD_MAX (65)
+ *   2. Description in [META_DESCRIPTION_MIN (250), META_DESCRIPTION_HARD_MAX (300)]
  *   3. Both title AND description contain the persona name AND city name
  *      (case-insensitive substring; mirrors `metaContainsBrandAndCity`)
  *   4. No leading "${persona} in ${city}, ${state}:" colon-prefix (would
  *      mean the LLM just echoed the formula)
  *   5. Strict JSON parse with title + description string fields
  *
- * Cost: gpt-4.1-mini at ~$0.15 / $0.60 per M tokens (in/out). Each call
- * is well under 500 tokens combined → ~$0.0003/article. The 75 published
- * Tableicity articles re-naturalized via the backfill cost ~$0.025 total.
+ * Cost: gpt-4.1 (full) at ~$2.00 / $8.00 per M tokens (in/out). Each call
+ * is well under 1000 tokens combined → ~$0.004/article; worst case (3
+ * attempts) still ~$0.012/article. Trivial — the SERP snippet is the
+ * customer's first impression, so we spend the strong model here.
  *
  * Audit. Caller is responsible for `logAuditEvent("meta.naturalized", ...)`
  * — this module just returns the receipt fields (model, tokens, costUsd,
  * source) so callers (live pipeline + backfill script) can log uniformly.
  */
 
-const MODEL = "gpt-4.1-mini";
+const MODEL = "gpt-4.1";
 
 // MT-4.13.4 contract.
 const META_TITLE_HARD_MAX = 65;
@@ -85,39 +86,40 @@ function getClient(): OpenAI {
 }
 
 function costFor(promptTokens: number, completionTokens: number): number {
-  // gpt-4.1-mini pricing: $0.15 / 1M input, $0.60 / 1M output (matches auditor's gpt-4o-mini).
-  const cost = (promptTokens / 1_000_000) * 0.15 + (completionTokens / 1_000_000) * 0.6;
+  // gpt-4.1 (full) pricing: $2.00 / 1M input, $8.00 / 1M output.
+  const cost = (promptTokens / 1_000_000) * 2.0 + (completionTokens / 1_000_000) * 8.0;
   return Number(cost.toFixed(6));
 }
 
 function buildSystemPrompt(): string {
   return `You are an SEO meta-tag stylist for a local-market press release publisher.
 
-You write a TITLE (for the SERP <title>) and a DESCRIPTION (for the SERP snippet) that read like a useful local article — not like a door-hanger ad.
+You write a DESCRIPTION (the SERP snippet) and a TITLE (the SERP <title>) that read like a useful local article — not a door-hanger ad. Work IN THIS ORDER: write the DESCRIPTION first, because it carries the substance; THEN write a TITLE whose hook is drawn from that same description. The title must never introduce a topic the description didn't raise.
 
-TITLE rules (any violation rejects your output):
-- Length: target ${META_TITLE_TARGET} characters, hard maximum ${META_TITLE_HARD_MAX} characters. Aim short. Google truncates around 60.
-- MUST contain the EXACT city name (case-insensitive).
-- MUST NOT contain the brand persona name. Repeat: the brand name is forbidden in the title. (The brand is already carried by the H1, canonical URL, and description — putting it in the title burns SERP characters.)
-- MUST NOT contain the state name or the two-letter state code. Write the CITY ONLY (e.g. "Albany", never "Albany, NY"). A "City, ST" stamp reads like a door-hanger and is rejected.
-- Single line. No emojis. No hashtags. No trailing punctuation except an optional period. No quotation marks wrapping the whole title.
-- Lead with the topic or the city — make it useful to a founder skimming the SERP.
-
-DESCRIPTION rules (any violation rejects your output):
-- Length: target ${META_DESCRIPTION_TARGET} characters, between ${META_DESCRIPTION_MIN} and ${META_DESCRIPTION_HARD_MAX}.
-- "80% content, 20% brand" — the description is content-first prose. Lead with the story, the problem, or the local detail. The brand earns one mention near the END as the source/CTA.
+STEP 1 — DESCRIPTION first (any violation rejects your output):
+- This is the snippet a founder reads in Google. Shape it "80% content, 20% brand": about 80% is the real pain point, problem, or local detail taken from the article excerpt below; about 20% is the brand as the source/solution.
+- LEAD with the pain point or the story. The brand earns ONE mention near the END as the source/CTA — never as the opener.
+- Length: target ${META_DESCRIPTION_TARGET} characters, between ${META_DESCRIPTION_MIN} and ${META_DESCRIPTION_HARD_MAX}. Count carefully and fill the band.
 - MUST contain the EXACT city name (case-insensitive).
 - MUST contain the EXACT brand persona name AT LEAST ONCE and AT MOST TWICE. One mention is preferred.
-- The brand name MUST NOT appear inside the first ${META_DESCRIPTION_BRAND_LEAD_GUARD} characters. If you start a sentence with the brand it will be rejected.
+- The brand name MUST NOT appear inside the first ${META_DESCRIPTION_BRAND_LEAD_GUARD} characters.
 - One or two complete sentences. No emojis, no hashtags, no markdown.
+
+STEP 2 — TITLE, derived from the description you just wrote (any violation rejects your output):
+- It must echo the SAME pain point / angle as the description — a tight hook, not a new subject.
+- Length: target ${META_TITLE_TARGET} characters, hard maximum ${META_TITLE_HARD_MAX}. Aim short — Google truncates around 60.
+- MUST contain the EXACT city name (case-insensitive).
+- MUST NOT contain the brand persona name (the H1, canonical URL, and description already carry it — putting it here burns SERP characters).
+- MUST NOT contain the state name or the two-letter state code. Write the CITY ONLY (e.g. "Albany", never "Albany, NY"). A "City, ST" stamp reads like a door-hanger and is rejected.
+- Single line. No emojis. No hashtags. No quotation marks wrapping the whole title. No trailing punctuation except an optional period.
 
 Universal rules:
 - American English. Address founders / operators plainly.
-- Do not invent statistics or facts. Stay within the topic of the haylo article you are given.
-- Do not echo the deterministic-fallback strings you are shown — they are provided ONLY so you can do better.
+- Do not invent statistics or facts. Stay within the topic of the article excerpt you are given.
+- Do not echo the deterministic-fallback strings you are shown — they are provided ONLY so you can beat them.
 
 Return STRICT JSON ONLY (no prose, no code fences) in this exact shape:
-{ "title": "...", "description": "..." }`;
+{ "description": "...", "title": "..." }`;
 }
 
 function buildUserPrompt(input: NaturalizeMetaInput): string {
@@ -199,9 +201,12 @@ export async function naturalizeMeta(input: NaturalizeMetaInput): Promise<Natura
     return { ...baseline, source: "fallback", rejectionReason: `no-api-key:${(err as Error).message}` };
   }
 
-  // MT-4.13.4: try once, then retry once with a feedback message that quotes
-  // the previous attempt + its rejection reason. Two-shot keeps cost under
-  // ~$0.0006/article worst-case while substantially raising the pass rate.
+  // MT-4.14.1: three-shot — initial attempt, then up to two retries that each
+  // quote the previous attempt + its rejection reason. The strong model
+  // (gpt-4.1) on three swings makes the LLM the trustworthy first impression
+  // on every article; the formula remains only as the never-throw safety net.
+  const TEMPS = [0.6, 0.3, 0.2];
+  const MAX_ATTEMPTS = 3;
   let totalPromptTokens = 0;
   let totalCompletionTokens = 0;
   let lastRejection: string | null = null;
@@ -211,12 +216,12 @@ export async function naturalizeMeta(input: NaturalizeMetaInput): Promise<Natura
     { role: "user", content: buildUserPrompt(input) },
   ];
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     let raw: string;
     try {
       const completion = await client.chat.completions.create({
         model: MODEL,
-        temperature: attempt === 0 ? 0.6 : 0.3,
+        temperature: TEMPS[attempt] ?? 0.2,
         response_format: { type: "json_object" },
         messages,
       });
@@ -232,11 +237,13 @@ export async function naturalizeMeta(input: NaturalizeMetaInput): Promise<Natura
     const parsed = parseStrictJson(raw);
     if (!parsed) {
       lastRejection = "json-parse-failed";
-      messages.push({ role: "assistant", content: raw });
-      messages.push({
-        role: "user",
-        content: `That was not valid JSON. Return STRICT JSON only — no prose, no code fences — in the shape { "title": "...", "description": "..." }.`,
-      });
+      if (attempt < MAX_ATTEMPTS - 1) {
+        messages.push({ role: "assistant", content: raw });
+        messages.push({
+          role: "user",
+          content: `That was not valid JSON. Return STRICT JSON only — no prose, no code fences — in the shape { "description": "...", "title": "..." }.`,
+        });
+      }
       continue;
     }
     lastAttempt = parsed;
@@ -255,17 +262,17 @@ export async function naturalizeMeta(input: NaturalizeMetaInput): Promise<Natura
       };
     }
     lastRejection = v.reason;
-    if (attempt === 0) {
+    if (attempt < MAX_ATTEMPTS - 1) {
       messages.push({ role: "assistant", content: JSON.stringify(parsed) });
       messages.push({
         role: "user",
-        content: `Your previous attempt was rejected for: ${v.reason}. Try again. Remember: title MUST contain "${input.cityName}", MUST NOT contain "${input.brand.personaDisplayName}", and MUST NOT contain the state code "${input.stateCode}" (city only, no "City, ST" stamp), title length ≤ ${META_TITLE_HARD_MAX}. Description MUST contain both "${input.cityName}" and "${input.brand.personaDisplayName}", brand mentioned 1-2 times and NOT in the first ${META_DESCRIPTION_BRAND_LEAD_GUARD} characters, length between ${META_DESCRIPTION_MIN} and ${META_DESCRIPTION_HARD_MAX}.`,
+        content: `Your previous attempt was rejected for: ${v.reason}. Try again, harder. DESCRIPTION first: it MUST contain both "${input.cityName}" and "${input.brand.personaDisplayName}", brand mentioned 1-2 times and NOT in the first ${META_DESCRIPTION_BRAND_LEAD_GUARD} characters, length between ${META_DESCRIPTION_MIN} and ${META_DESCRIPTION_HARD_MAX}, shaped ~80% pain point and ~20% brand. THEN derive the TITLE from that description: it MUST contain "${input.cityName}", MUST NOT contain "${input.brand.personaDisplayName}", MUST NOT contain the state code "${input.stateCode}" (city only, no "City, ST" stamp), length ≤ ${META_TITLE_HARD_MAX}.`,
       });
     }
   }
 
-  // Both attempts failed validation — fall back to the formula. Last
-  // attempt's strings are intentionally discarded; formula is safer.
+  // All three attempts failed validation — fall back to the formula. The last
+  // attempt's strings are intentionally discarded; the formula is safer.
   void lastAttempt;
   const tokensUsed = totalPromptTokens + totalCompletionTokens;
   const costUsd = costFor(totalPromptTokens, totalCompletionTokens);
