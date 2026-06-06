@@ -244,7 +244,7 @@ async function main(): Promise<void> {
           cityName: city.city_name,
           stateCode: city.state_code,
           hayloTitle,
-          hayloBodyExcerpt: hayloBodyExcerptFromHtml(hayloBody),
+          hayloBodyExcerpt: hayloBodyExcerptFromHtml(hayloBody, 4000),
           fallbackTitle,
           fallbackDescription,
         });

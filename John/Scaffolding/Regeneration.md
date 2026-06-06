@@ -77,7 +77,7 @@ City gates:
 - `metaTitleAcceptable(meta, brand, cityName, maxLen=65, stateCode?)` — max-only (no min), city verbatim, brand-free, **and (r6) state-free when `stateCode` is passed** (`title-contains-state`, uppercase word-boundary). The article path now passes `stateCode` from both gates (orchestrator Tier-1 + naturalizer `validateOrNull`); the city wrapper has its own state check, so the shared default (no `stateCode`) is unaffected.
 - `metaDescriptionAcceptable(meta, brand, cityName, {minLen=250, maxLen=300, brandLeadGuardChars=40})` — **band 250–300 (r6; was 100–200)**, city verbatim, brand 1–2×, brand not in first 40 chars.
 - **Article constants (r6):** `metaNaturalizer.ts` → `META_DESCRIPTION_TARGET=275`, `_MIN=250`, `_HARD_MAX=300`, `_TITLE_TARGET=55`, `_TITLE_HARD_MAX=65`. `pairProcessor.ts` `META_LIMITS` → `descriptionTarget=275`, `descriptionMin=250`, `descriptionHardMax=300`, `descriptionSoftWarn=290`, `titleTarget=55`, `titleHardMax=65`, `descriptionBrandLeadGuard=40`.
-- **Haylo read excerpt (r6):** orchestrator calls `hayloBodyExcerptFromHtml(bodyHtml, 4000)` (was the 1000 default) for the article naturalizer grounding slice.
+- **Haylo read excerpt (r6):** both article naturalizer call sites pass `4000` to `hayloBodyExcerptFromHtml` (was the 1000 default) — the live orchestrator and the `--naturalize` backfill (`scripts/backfill-tableicity-meta.ts`). The helper default stays 1000; the City truth-doc generator already passed 4000 and is unchanged.
 - **Formula fallback (r6):** `pairProcessor.ts buildMetaTitle` prefix is now `${cityName}: ` (state dropped) so the safety net is also state-free. Model for article meta: `gpt-4.1-mini` (unchanged).
 
 ---
