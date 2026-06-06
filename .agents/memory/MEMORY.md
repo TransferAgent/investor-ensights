@@ -7,4 +7,5 @@
 - [Halo import watermark](haylo-import-watermark.md) — "Pull from API" is incremental (per-tenant halo_last_pulled_id); deleting an essay won't re-pull it. Recover by rewinding the watermark.
 - [Cities vs Articles](cities-vs-articles.md) — separate domains ("different planets"); a city is grounding input to an article, never an article itself. Don't conflate.
 - [Multi-tenant cron jobs](multi-tenant-cron.md) — context-less cron silently hits only the default tenant; sweep all tenants by enumerating public.tenants under withTenantAsync, then per-tenant withTenantAsync.
+- [Tenant-context db leak](tenant-context-db-leak.md) — admin/API routes using raw `db` without withTenantAsync silently read/write default tenant (tableicity); storage.* is safe, direct db.* is not.
 - [Article meta wiring](article-meta-wiring.md) — article meta band/rule changes must move in lockstep across 2 const sets, 2 gates, 2 excerpt call sites, prompt+retry+fallback; state-ban guard is uppercase-only by design.
